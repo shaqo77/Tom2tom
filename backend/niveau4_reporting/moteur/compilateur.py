@@ -40,7 +40,7 @@ class ModeleEtatInvalide(ValueError):
 
 @dataclass(frozen=True)
 class SelectionCompilee:
-    """Prédicat conservé pour la traçabilité descendante de T07."""
+    """Prédicat conservé pour la traçabilité descendante (voir `tracabilite.tracer`)."""
 
     sql: str
     params: tuple
@@ -69,6 +69,10 @@ class EtatCompile:
     assertions: dict[str, AssertionPreparee]
     prefixes_balance: tuple[str, ...]
     index_balances: dict[tuple[str, str], int]
+    # Colonnes de mapping de la CTE « source » et leurs paramètres : la
+    # traçabilité (L0-T07) rejoue la même CTE pour lister les lignes.
+    colonnes_mapping: tuple[str, ...]
+    params_cas: tuple
 
 
 @dataclass(frozen=True)
@@ -349,6 +353,8 @@ def compiler(
         assertions=assertions,
         prefixes_balance=prefixes_balance,
         index_balances=index_balances,
+        colonnes_mapping=tuple(colonnes_mapping),
+        params_cas=tuple(params_cas),
     )
 
 
