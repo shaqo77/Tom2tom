@@ -8,7 +8,6 @@ création et subit les politiques d'isolation.
 """
 
 from .base import *  # noqa: F403
-from .base import env
+from .base import configurer_base
 
-DATABASES = {"default": env.db("DATABASE_OWNER_URL")}
-DATABASES["default"]["ATOMIC_REQUESTS"] = True
+DATABASES = {"default": configurer_base("DATABASE_OWNER_URL")}
