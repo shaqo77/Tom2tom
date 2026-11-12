@@ -1,6 +1,5 @@
 """Assertions bloquantes exécutées avec l'unique requête SQL. Voir L0-T06."""
 
-import datetime
 import uuid
 from decimal import Decimal
 
@@ -10,28 +9,24 @@ from django.test.utils import CaptureQueriesContext
 
 from niveau4_reporting.moteur.assertions import AssertionsViolees
 from niveau4_reporting.moteur.compilateur import generer
-from niveau4_reporting.moteur.models import LigneEcriture
+from tests.outils import creer_ligne
 
 pytestmark = pytest.mark.django_db(transaction=True)
 PROJECT_ID = uuid.UUID("aaaaaaaa-0000-0000-0000-000000000001")
 
 
 def _ligne(org_id, compte, *, debit="0", credit="0", annee=2026, periode=4):
-    return LigneEcriture.objects.create(
-        org_id=org_id,
-        project_id=PROJECT_ID,
-        fiscal_year=annee,
-        period=periode,
-        accounting_date=datetime.date(annee, periode, 15),
-        compte=compte,
+    return creer_ligne(
+        org_id,
+        compte,
+        annee,
+        periode,
         debit=debit,
         credit=credit,
-        dim1="COMP-A",
         accord="IDA-6789",
         categorie="CAT-1",
         site="SIEGE",
-        devise="DJF",
-        taux="1",
+        dim1="COMP-A",
     )
 
 

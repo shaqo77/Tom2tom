@@ -20,7 +20,7 @@ from django.utils import timezone
 
 from niveau4_reporting.mapping.models import RegleMapping, TableMapping
 from niveau4_reporting.moteur.compilateur import generer
-from niveau4_reporting.moteur.models import LigneEcriture
+from tests.outils import creer_piece, id_objet
 
 pytestmark = pytest.mark.django_db(transaction=True)
 
@@ -45,23 +45,24 @@ def _poser_org(org_id):
 def donnees_figees(org_a):
     """Insère le jeu figé et les mappings ; retourne les règles par code de mapping."""
     _poser_org(org_a)
+    # Une pièce du jeu figé = une écriture comptabilisée, équilibrée.
+    pieces: dict[tuple, list] = {}
     for ligne in _json("jeu_donnees.json"):
-        LigneEcriture.objects.create(
-            org_id=org_a,
-            project_id=PROJETS[ligne["projet"]],
-            fiscal_year=ligne["exercice"],
-            period=ligne["periode"],
-            accounting_date=datetime.date(ligne["exercice"], ligne["periode"], 15),
-            compte=ligne["compte"],
-            debit=Decimal(ligne["debit"]),
-            credit=Decimal(ligne["credit"]),
-            dim1=ligne["dim1"],
-            accord=ligne["accord"],
-            categorie=ligne["categorie"],
-            site="SIEGE",
-            devise="DJF",
-            taux=Decimal("1"),
+        pieces.setdefault(
+            (ligne["projet"], ligne["piece"], ligne["exercice"], ligne["periode"]), []
+        ).append(
+            {
+                "compte": ligne["compte"],
+                "debit": ligne["debit"],
+                "credit": ligne["credit"],
+                "dim1": ligne["dim1"],
+                "accord": ligne["accord"],
+                "categorie": ligne["categorie"],
+                "site": "SIEGE",
+            }
         )
+    for (projet, _, annee, periode), lignes in pieces.items():
+        creer_piece(org_a, annee, periode, lignes, project_id=PROJETS[projet])
     regles = {}
     for code, definitions in _json("mappings.json").items():
         table = TableMapping.objects.create(
@@ -87,9 +88,21 @@ def donnees_figees(org_a):
     return regles
 
 
-def _produire(code_modele, regles):
+def _modele_et_parametres(code_modele):
+    """Modèle JSON et paramètres de génération.
+
+    Les fichiers de référence nomment l'accord par son code (« IDA-6789 ») ; le grand livre
+    le porte comme UUID. La traduction se fait ici pour garder ces fichiers inchangés.
+    """
     modele = _json("modeles", f"{code_modele}.json")
     parametres = {**modele.pop("parametres"), "project_id": PROJETS["principal"]}
+    if "agreement" in parametres:
+        parametres["agreement"] = str(id_objet(parametres["agreement"]))
+    return modele, parametres
+
+
+def _produire(code_modele, regles):
+    modele, parametres = _modele_et_parametres(code_modele)
     return generer(modele, regles, parametres)
 
 

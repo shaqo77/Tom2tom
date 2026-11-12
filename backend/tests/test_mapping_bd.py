@@ -16,7 +16,7 @@ from niveau4_reporting.mapping.resolveur import (
     table_active,
     verifier_exhaustivite,
 )
-from niveau4_reporting.moteur.models import LigneEcriture
+from tests.outils import creer_ligne
 
 pytestmark = pytest.mark.django_db(transaction=True)
 DATE_REFERENCE = datetime.date(2026, 3, 31)
@@ -62,21 +62,16 @@ def _regle(table, priority, match, target_code="R100"):
 
 
 def _ligne(org_id, compte, *, debit="100.0000", dim1="COMP-A"):
-    return LigneEcriture.objects.create(
-        org_id=org_id,
-        project_id=PROJECT_ID,
-        fiscal_year=2026,
-        period=1,
-        accounting_date=datetime.date(2026, 1, 15),
-        compte=compte,
+    return creer_ligne(
+        org_id,
+        compte,
+        2026,
+        1,
         debit=debit,
-        credit="0.0000",
-        dim1=dim1,
         accord="IDA-6789",
         categorie="CAT-1",
         site="SIEGE",
-        devise="DJF",
-        taux="1",
+        dim1=dim1,
     )
 
 

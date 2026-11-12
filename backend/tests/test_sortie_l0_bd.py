@@ -28,6 +28,7 @@ from niveau4_reporting.moteur.tracabilite import tracer
 from tests.test_etats_reference_bd import (  # noqa: F401  (fixture de données figées)
     PROJETS,
     _json,
+    _modele_et_parametres,
     _produire,
     donnees_figees,
 )
@@ -123,8 +124,7 @@ def test_toute_cellule_dagregat_des_etats_de_reference_est_tracable(
     donnees_figees,  # noqa: F811
 ):
     """Somme des lignes retournées == valeur de la cellule, au centime, sur TOUTES."""
-    modele = _json("modeles", f"{code_modele}.json")
-    parametres = {**modele.pop("parametres"), "project_id": PROJETS["principal"]}
+    modele, parametres = _modele_et_parametres(code_modele)
     produit = _produire(code_modele, donnees_figees)
     etat = compiler(modele, donnees_figees, parametres)
 

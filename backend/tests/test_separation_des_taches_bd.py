@@ -4,7 +4,6 @@ La règle est paramétrable par organisation et ACTIVÉE PAR DÉFAUT. Les écrit
 n'existent qu'au lot L3 : la ligne d'écriture du prototype tient lieu de pièce.
 """
 
-import datetime
 import uuid
 
 import pytest
@@ -15,11 +14,12 @@ from django.urls import path
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
+from niveau1_socle.comptabilite.models import Ecriture
 from niveau1_socle.habilitations.models import Habilitation, Role
 from niveau1_socle.habilitations.permissions import HabilitationRequise
 from niveau1_socle.habilitations.separation import exiger_separation_des_taches
 from niveau1_socle.organisations.models import Organisation
-from niveau4_reporting.moteur.models import LigneEcriture
+from tests.outils import creer_piece
 from tests.test_organisations_bd import _creer_organisation, _creer_projet
 
 pytestmark = pytest.mark.django_db(transaction=True)
@@ -31,7 +31,7 @@ class ValiderPiece(APIView):
     operation = "valider"
 
     def post(self, requete, project_id, piece_id):
-        piece = LigneEcriture.objects.get(pk=piece_id, project_id=project_id)
+        piece = Ecriture.objects.get(pk=piece_id, project_id=project_id)
         exiger_separation_des_taches(requete.user, piece.created_by)
         return Response({"validee": str(piece.pk)})
 
@@ -46,18 +46,13 @@ def _poser(org_id):
 
 def _piece(organisation, projet, auteur):
     _poser(organisation.id)
-    return LigneEcriture.objects.create(
-        org_id=organisation.id,
+    return creer_piece(
+        organisation.id,
+        2026,
+        1,
+        [{"compte": "6011", "debit": "10"}],
         project_id=projet.id,
-        fiscal_year=2026,
-        period=1,
-        accounting_date=datetime.date(2026, 1, 15),
-        compte="6011",
-        debit="10",
-        credit="0",
-        devise="DJF",
-        taux="1",
-        created_by=auteur.id if auteur else None,
+        utilisateur_id=auteur.id if auteur else None,
     )
 
 

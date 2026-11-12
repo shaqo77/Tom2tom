@@ -7,8 +7,8 @@ Seuls les champs techniques standard restent en anglais (`org_id`, `project_id`,
 Documents de référence, à lire avant de toucher à l'architecture :
 `01_SPECIFICATION_FONCTIONNELLE.md`, `02_ARCHITECTURE_TECHNIQUE.md`, `03_GUIDE_DEMARRAGE.md`
 (conventions, partie B ; règles, partie C), `04_PLAN_LOTS_L0_A_L4.md`, `05_PLAN_LOTS_L5_A_L10.md`.
-État actuel : lot **L0** (prototype du moteur d'états). `niveau1_socle/`, `niveau2_profils/`,
-`niveau3_config/` sont des dossiers encore vides.
+État actuel : lots **L0** à **L2** livrés, **L3** (grand livre) en cours. Le code vit dans `core/`,
+`niveau1_socle/`, `niveau3_config/` et `niveau4_reporting/` ; `niveau2_profils/` reste à faire (L5).
 
 ## Commandes (depuis `backend/`)
 
@@ -52,6 +52,12 @@ Les libellés sont du JSONB, jamais `label_fr`/`label_en`. Un test de convention
   `org_id` nul pour un compte de plateforme, qui ne voit alors aucune donnée métier). L'exception est déclarée
   dans `tests/test_isolation.py` (`TABLES_SANS_ISOLATION`) : ne l'étendez pas sans décision écrite.
   L'organisation elle-même est isolée par sa propre clé `id`.
+- **Le moteur d'états lit la vue `moteur_ligneecriture`, jamais le grand livre directement.** Elle expose
+  `comptabilite_ligneecriture` avec les noms de colonnes du prototype L0, ne montre que les écritures
+  `posted`/`locked`, et DOIT rester `security_invoker = true` : sinon, en production, elle s'exécute avec
+  les droits du propriétaire (`BYPASSRLS`) et ouvre toutes les organisations. Dans la base de test le rôle
+  applicatif possède la vue et subit la RLS forcée : seul un test sur `reloptions` détecte le défaut.
+  Accord, catégorie et site s'y exposent en texte d'UUID jusqu'à L4.
 - Le projet (`project_id`) n'est **pas** isolé par RLS : le tableau de bord multi-projets et la
   consolidation l'interdisent. Il sera cloisonné par habilitation applicative (lot L1).
 - `OrganisationScopeMiddleware` ouvre **lui-même** une transaction avant `SET LOCAL app.org_id`.

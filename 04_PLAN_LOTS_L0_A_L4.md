@@ -576,6 +576,8 @@ Remplacer le modèle prototype de L0-T01 par `Ecriture` et `LigneEcriture` compl
 
 **Contrôle.** Les tests d'états de référence de L0-T09 passent toujours, à l'identique.
 
+> **Réalisation de L3-T01.** `Journal`, `Ecriture` et `LigneEcriture` vivent dans `niveau1_socle/comptabilite`. Le moteur d'états n'est pas modifié : il lit la vue `moteur_ligneecriture` (`security_invoker`, écritures `posted`/`locked` seulement), qui expose le grand livre sous les noms de colonnes du prototype. Accord, catégorie, site, marché, compte bancaire et clé de cofinancement sont des UUID sans clé étrangère jusqu'à L4 et L9 ; la vue les expose en texte d'UUID, et L4 la rebranchera sur leurs codes. Coût mesuré : TER sur 200 000 lignes en 0,68 s (0,19 s sur la table prototype), une requête, limite 3 s. Aucune reprise de données : le prototype ne contenait que des lignes générées.
+
 ---
 
 ### L3-T02 — L'équilibre, en contrainte différée

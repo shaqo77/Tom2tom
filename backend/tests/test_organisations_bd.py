@@ -7,7 +7,7 @@ import pytest
 from django.db import IntegrityError, ProgrammingError, connection, transaction
 
 from niveau1_socle.organisations.models import Organisation, Projet
-from niveau4_reporting.moteur.models import LigneEcriture
+from tests.outils import creer_ligne
 
 pytestmark = pytest.mark.django_db(transaction=True)
 
@@ -106,18 +106,7 @@ def test_la_monnaie_et_la_base_comptable_ne_changent_plus_apres_la_premiere_ecri
     # Avant toute écriture, ces deux champs se corrigent.
     Projet.objects.filter(pk=projet.pk).update(base_currency="USD", accounting_basis="cash")
 
-    LigneEcriture.objects.create(
-        org_id=organisation.id,
-        project_id=projet.id,
-        fiscal_year=2026,
-        period=1,
-        accounting_date=datetime.date(2026, 1, 15),
-        compte="6011",
-        debit="10",
-        credit="0",
-        devise="USD",
-        taux="1",
-    )
+    creer_ligne(organisation.id, "6011", 2026, 1, debit="10", project_id=projet.id, devise="USD")
 
     for champ, valeur in [("base_currency", "DJF"), ("accounting_basis", "accrual")]:
         with pytest.raises(IntegrityError, match="première écriture"), transaction.atomic():
@@ -132,18 +121,7 @@ def test_une_ecriture_dun_autre_projet_ne_verrouille_pas_ce_projet():
     organisation = _creer_organisation("ORG-A")
     p1 = _creer_projet(organisation, "P1")
     p2 = _creer_projet(organisation, "P2")
-    LigneEcriture.objects.create(
-        org_id=organisation.id,
-        project_id=p1.id,
-        fiscal_year=2026,
-        period=1,
-        accounting_date=datetime.date(2026, 1, 15),
-        compte="6011",
-        debit="10",
-        credit="0",
-        devise="DJF",
-        taux="1",
-    )
+    creer_ligne(organisation.id, "6011", 2026, 1, debit="10", project_id=p1.id)
     Projet.objects.filter(pk=p2.pk).update(base_currency="EUR")
     assert Projet.objects.get(pk=p2.pk).base_currency == "EUR"
 

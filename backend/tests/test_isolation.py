@@ -1,6 +1,5 @@
 """Isolation des organisations par Row-Level Security. Voir §B.4 et règle n°4."""
 
-import datetime
 import uuid
 
 import pytest
@@ -12,19 +11,18 @@ pytestmark = pytest.mark.django_db(transaction=True)
 def _inserer(org_id, nb=3):
     with connection.cursor() as cur:
         cur.execute("SET app.org_id = %s", [str(org_id)])
-        for _ in range(nb):
+        for rang in range(nb):
             cur.execute(
-                """INSERT INTO moteur_ligneecriture
-                   (id, org_id, project_id, fiscal_year, period, accounting_date,
-                    compte, debit, credit, devise, taux, created_at, updated_at)
-                   VALUES (%s,%s,%s,2026,1,%s,'6011',100,0,'DJF',1,now(),now())""",
-                [uuid.uuid4(), org_id, uuid.uuid4(), datetime.date(2026, 1, 15)],
+                """INSERT INTO comptabilite_journal
+                   (id, org_id, code, label, actif, created_at, updated_at)
+                   VALUES (%s,%s,%s,'{"fr": "Journal"}',true,now(),now())""",
+                [uuid.uuid4(), org_id, f"J{rang}"],
             )
 
 
 def _compter():
     with connection.cursor() as cur:
-        cur.execute("SELECT count(*) FROM moteur_ligneecriture")
+        cur.execute("SELECT count(*) FROM comptabilite_journal")
         return cur.fetchone()[0]
 
 
@@ -50,7 +48,7 @@ def test_un_filtre_explicite_sur_une_autre_organisation_ne_rend_rien(org_a, org_
     _poser(org_a)
     with connection.cursor() as cur:
         cur.execute(
-            "SELECT count(*) FROM moteur_ligneecriture WHERE org_id = %s",
+            "SELECT count(*) FROM comptabilite_journal WHERE org_id = %s",
             [str(org_b)],
         )
         assert cur.fetchone()[0] == 0, "FUITE DE DONNÉES ENTRE ORGANISATIONS"
@@ -63,11 +61,10 @@ def test_inserer_pour_une_autre_organisation_est_refuse(org_a, org_b):
     _poser(org_a)
     with pytest.raises(ProgrammingError), connection.cursor() as cur:
         cur.execute(
-            """INSERT INTO moteur_ligneecriture
-               (id, org_id, project_id, fiscal_year, period, accounting_date,
-                compte, debit, credit, devise, taux, created_at, updated_at)
-               VALUES (%s,%s,%s,2026,1,%s,'6011',100,0,'DJF',1,now(),now())""",
-            [uuid.uuid4(), org_b, uuid.uuid4(), datetime.date(2026, 1, 15)],
+            """INSERT INTO comptabilite_journal
+               (id, org_id, code, label, actif, created_at, updated_at)
+               VALUES (%s,%s,'INTRUS','{"fr": "Journal"}',true,now(),now())""",
+            [uuid.uuid4(), org_b],
         )
 
 
@@ -82,7 +79,7 @@ def test_deplacer_une_ligne_vers_une_autre_organisation_est_refuse(org_a, org_b)
     _inserer(org_a, 1)
     _poser(org_a)
     with pytest.raises(ProgrammingError), connection.cursor() as cur:
-        cur.execute("UPDATE moteur_ligneecriture SET org_id = %s", [str(org_b)])
+        cur.execute("UPDATE comptabilite_journal SET org_id = %s", [str(org_b)])
     # La ligne n'a pas bougé : A la voit toujours, B ne la voit pas.
     assert _compter() == 1
     _poser(org_b)
@@ -112,7 +109,7 @@ def test_sans_org_id_pose_rien_nest_visible(org_a):
     _inserer(org_a, 4)
     with connection.cursor() as cur:
         cur.execute("RESET app.org_id")
-        cur.execute("SELECT count(*) FROM moteur_ligneecriture")
+        cur.execute("SELECT count(*) FROM comptabilite_journal")
         assert cur.fetchone()[0] == 0
 
 

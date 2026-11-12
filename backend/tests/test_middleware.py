@@ -7,7 +7,6 @@ survivre un SET LOCAL mal placé — et masquerait exactement le défaut que
 ces tests surveillent.
 """
 
-import datetime
 import uuid
 
 import pytest
@@ -54,13 +53,12 @@ def _vue_qui_observe(sql):
 def _inserer(org_id, nb):
     with connection.cursor() as cur:
         cur.execute("SET app.org_id = %s", [str(org_id)])
-        for _ in range(nb):
+        for rang in range(nb):
             cur.execute(
-                """INSERT INTO moteur_ligneecriture
-                   (id, org_id, project_id, fiscal_year, period, accounting_date,
-                    compte, debit, credit, devise, taux, created_at, updated_at)
-                   VALUES (%s,%s,%s,2026,1,%s,'6011',100,0,'DJF',1,now(),now())""",
-                [uuid.uuid4(), org_id, uuid.uuid4(), datetime.date(2026, 1, 15)],
+                """INSERT INTO comptabilite_journal
+                   (id, org_id, code, label, actif, created_at, updated_at)
+                   VALUES (%s,%s,%s,'{"fr": "Journal"}',true,now(),now())""",
+                [uuid.uuid4(), org_id, f"J{rang}"],
             )
         # Sans cela, le périmètre posé pour l'insertion survivrait au test et
         # le middleware passerait pour efficace sans avoir rien fait.
@@ -77,7 +75,7 @@ def test_lorganisation_atteint_la_transaction_de_la_vue(org_a):
 def test_la_vue_ne_voit_que_les_lignes_de_son_organisation(org_a, org_b):
     _inserer(org_a, 3)
     _inserer(org_b, 5)
-    vue, vu = _vue_qui_observe("SELECT count(*) FROM moteur_ligneecriture")
+    vue, vu = _vue_qui_observe("SELECT count(*) FROM comptabilite_journal")
     OrganisationScopeMiddleware(vue)(_requete(org_a))
     assert vu["valeur"] == 3, "FUITE DE DONNÉES ENTRE ORGANISATIONS"
 
@@ -94,6 +92,6 @@ def test_le_perimetre_ne_survit_pas_a_la_requete(org_a):
 def test_sans_organisation_la_vue_ne_voit_rien(org_a):
     """Utilisateur anonyme ou sans organisation : défaut sûr, pas défaut ouvert."""
     _inserer(org_a, 4)
-    vue, vu = _vue_qui_observe("SELECT count(*) FROM moteur_ligneecriture")
+    vue, vu = _vue_qui_observe("SELECT count(*) FROM comptabilite_journal")
     OrganisationScopeMiddleware(vue)(_requete(None))
     assert vu["valeur"] == 0
