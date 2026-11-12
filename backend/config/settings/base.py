@@ -26,6 +26,7 @@ INSTALLED_APPS = [
     "django.contrib.staticfiles",
     "rest_framework",
     "core",
+    "niveau4_reporting.mapping",
     "niveau4_reporting.moteur",
 ]
 
