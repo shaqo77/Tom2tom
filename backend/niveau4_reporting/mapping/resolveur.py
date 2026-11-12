@@ -127,7 +127,11 @@ def table_active(
     project_id,
     date_effet: datetime.date,
 ) -> TableMapping:
-    """Choisit la plus récente version active applicable, sous RLS."""
+    """Choisit la plus récente version active applicable, sous RLS.
+
+    Validité en intervalle semi-ouvert [valid_from, valid_to[ (guide §B.6) :
+    le jour de fin n'appartient plus à la version.
+    """
     table = (
         TableMapping.objects.filter(
             code=code,
@@ -136,7 +140,7 @@ def table_active(
             status=StatutMapping.ACTIF,
             valid_from__lte=date_effet,
         )
-        .filter(Q(valid_to__isnull=True) | Q(valid_to__gte=date_effet))
+        .filter(Q(valid_to__isnull=True) | Q(valid_to__gt=date_effet))
         .order_by("-version")
         .first()
     )
@@ -176,7 +180,7 @@ def comptes_non_mappes(table: TableMapping, periode: Mapping[str, Any]) -> list[
     if (
         table.status != StatutMapping.ACTIF
         or date_effet < table.valid_from
-        or (table.valid_to is not None and date_effet > table.valid_to)
+        or (table.valid_to is not None and date_effet >= table.valid_to)
     ):
         raise MappingIndisponible(f"La version {table.version} n'est pas active à {date_effet}")
     regles = list(table.regles.all().order_by("priority"))

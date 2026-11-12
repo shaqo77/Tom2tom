@@ -36,6 +36,7 @@ Environ 30 tests exigent une vraie PostgreSQL (`*_bd.py`, `test_isolation`, `tes
 5. Aucune `eval`/`exec` sur une formule utilisateur. Les formules et assertions passent par un langage borné.
 6. Aucune écriture dans une période close.
 7. Aucune mise à jour d'une configuration déjà utilisée : on crée une nouvelle version (`version`, `valid_from`, `valid_to`).
+   Validité en intervalle semi-ouvert `[valid_from, valid_to[` : `valid_to` est **exclu** (guide §B.6).
 8. Aucune génération de rapport avec un mapping incomplet.
 9. Aucune activation automatique d'une exigence.
 10. Aucun `left`/`right` codé en dur dans le CSS (l'arabe viendra).

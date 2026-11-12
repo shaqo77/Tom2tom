@@ -71,6 +71,42 @@ def test_inserer_pour_une_autre_organisation_est_refuse(org_a, org_b):
         )
 
 
+def test_deplacer_une_ligne_vers_une_autre_organisation_est_refuse(org_a, org_b):
+    """UPDATE ... SET org_id : la clause WITH CHECK doit refuser le transfert.
+
+    Sans elle, un utilisateur de l'organisation A pourrait « donner » une ligne
+    à B, ou y faire disparaître une ligne de son propre périmètre.
+    """
+    from django.db.utils import ProgrammingError
+
+    _inserer(org_a, 1)
+    _poser(org_a)
+    with pytest.raises(ProgrammingError), connection.cursor() as cur:
+        cur.execute("UPDATE moteur_ligneecriture SET org_id = %s", [str(org_b)])
+    # La ligne n'a pas bougé : A la voit toujours, B ne la voit pas.
+    assert _compter() == 1
+    _poser(org_b)
+    assert _compter() == 0
+
+
+def test_toute_politique_a_une_clause_with_check():
+    """Garde-fou méta : sans WITH CHECK, un UPDATE de org_id passerait.
+
+    Même résolution du schéma effectif que le test précédent.
+    """
+    with connection.cursor() as cur:
+        cur.execute(
+            """SELECT p.tablename, p.policyname FROM pg_policies p
+               WHERE p.schemaname = (SELECT n.nspname FROM pg_class c
+                                      JOIN pg_namespace n ON n.oid = c.relnamespace
+                                      WHERE c.oid = to_regclass('core_auditlog'))
+                 AND p.cmd IN ('ALL', 'UPDATE', 'INSERT')
+                 AND p.with_check IS NULL"""
+        )
+        sans_with_check = cur.fetchall()
+    assert not sans_with_check, f"Politiques sans WITH CHECK : {sans_with_check}"
+
+
 def test_sans_org_id_pose_rien_nest_visible(org_a):
     """Une requête hors contexte d'organisation ne voit rien. Défaut sûr."""
     _inserer(org_a, 4)

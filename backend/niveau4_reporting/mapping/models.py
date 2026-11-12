@@ -21,7 +21,7 @@ class TableMapping(ModeleOrganisation):
     code = models.CharField(max_length=64)
     version = models.PositiveIntegerField()
     valid_from = models.DateField()
-    valid_to = models.DateField(null=True, blank=True)
+    valid_to = models.DateField(null=True, blank=True)  # exclu : [valid_from, valid_to[
     status = models.CharField(
         max_length=16,
         choices=StatutMapping.choices,
@@ -38,7 +38,7 @@ class TableMapping(ModeleOrganisation):
                 name="uq_mapping_version",
             ),
             models.CheckConstraint(
-                condition=Q(valid_to__isnull=True) | Q(valid_to__gte=models.F("valid_from")),
+                condition=Q(valid_to__isnull=True) | Q(valid_to__gt=models.F("valid_from")),
                 name="mapping_dates_coherentes",
             ),
             models.CheckConstraint(
