@@ -47,6 +47,11 @@ Les libellés sont du JSONB, jamais `label_fr`/`label_en`. Un test de convention
 
 - Tout modèle métier hérite de `ModeleOrganisation` (`org_id`). Toute nouvelle table reçoit sa politique
   avec `activer_rls()` (`core/migrations/_rls.py`) dans une migration `RunSQL`.
+- **Une seule exception à l'isolation par `org_id` : `organisations_utilisateur`.** Le login doit lire le
+  compte avant de connaître l'organisation ; `AUTH_USER_MODEL` est `organisations.Utilisateur` (clé UUID,
+  `org_id` nul pour un compte de plateforme, qui ne voit alors aucune donnée métier). L'exception est déclarée
+  dans `tests/test_isolation.py` (`TABLES_SANS_ISOLATION`) : ne l'étendez pas sans décision écrite.
+  L'organisation elle-même est isolée par sa propre clé `id`.
 - Le projet (`project_id`) n'est **pas** isolé par RLS : le tableau de bord multi-projets et la
   consolidation l'interdisent. Il sera cloisonné par habilitation applicative (lot L1).
 - `OrganisationScopeMiddleware` ouvre **lui-même** une transaction avant `SET LOCAL app.org_id`.

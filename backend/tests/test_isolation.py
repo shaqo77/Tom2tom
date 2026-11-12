@@ -116,6 +116,32 @@ def test_sans_org_id_pose_rien_nest_visible(org_a):
         assert cur.fetchone()[0] == 0
 
 
+# Exceptions à l'isolation par org_id, chacune avec sa raison. Cette liste ne
+# s'allonge qu'avec une décision écrite : toute autre table à org_id est isolée.
+TABLES_SANS_ISOLATION = {
+    "organisations_utilisateur": (
+        "le login doit lire le compte avant que l'organisation soit connue ; "
+        "le compte porte lui-même org_id, d'où le périmètre de la requête"
+    ),
+}
+
+
+def test_les_exceptions_a_lisolation_sont_exactement_celles_declarees():
+    """Garde-fou méta : une exception ne se glisse pas sans que ce test la nomme."""
+    with connection.cursor() as cur:
+        cur.execute(
+            """SELECT c.relname FROM pg_class c
+               JOIN pg_attribute a ON a.attrelid = c.oid
+                                  AND a.attname = 'org_id' AND NOT a.attisdropped
+               WHERE c.relkind IN ('r', 'p')
+                 AND c.relnamespace = (SELECT relnamespace FROM pg_class
+                                        WHERE oid = to_regclass('core_auditlog'))
+                 AND NOT c.relrowsecurity"""
+        )
+        sans_rls = {r[0] for r in cur.fetchall()}
+    assert sans_rls == set(TABLES_SANS_ISOLATION), sans_rls
+
+
 def test_toute_table_avec_org_id_a_sa_politique():
     """Empêche qu'une nouvelle table soit créée sans isolation. Voir L1-T02.
 
@@ -135,5 +161,5 @@ def test_toute_table_avec_org_id_a_sa_politique():
                                         WHERE oid = to_regclass('core_auditlog'))
                  AND NOT (c.relrowsecurity AND c.relforcerowsecurity)"""
         )
-        manquantes = [r[0] for r in cur.fetchall()]
+        manquantes = [r[0] for r in cur.fetchall() if r[0] not in TABLES_SANS_ISOLATION]
     assert not manquantes, f"Tables sans isolation forcée : {manquantes}"

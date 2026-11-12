@@ -6,6 +6,9 @@ d'HABILITATION : il porte `org_id` comme toute table métier, mais n'est pas
 isolé par RLS (le tableau de bord multi-projets l'interdit ; lot L1-T05).
 """
 
+import uuid
+
+from django.contrib.auth.models import AbstractUser
 from django.db import models
 from django.db.models import Q
 
@@ -86,3 +89,22 @@ class Projet(ModeleOrganisation):
 
     def __str__(self) -> str:
         return self.code
+
+
+class Utilisateur(AbstractUser):
+    """Compte utilisateur, rattaché à UNE organisation.
+
+    Cette table est volontairement hors Row-Level Security : le login doit la
+    lire avant que l'organisation de la requête soit connue. C'est l'unique
+    exception à l'isolation par `org_id`, déclarée et verrouillée par
+    `tests/test_isolation.py` (TABLES_SANS_ISOLATION). Un compte de plateforme
+    (`org_id` nul) ne voit, lui, aucune donnée métier : sans périmètre, les
+    politiques ne laissent rien passer.
+    """
+
+    # Clé UUID, comme created_by / actor_id partout ailleurs.
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    org_id = models.UUIDField(null=True, blank=True, db_index=True)
+
+    def __str__(self) -> str:
+        return self.username
