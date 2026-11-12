@@ -59,3 +59,49 @@ class Taux(ModeleOrganisation):
             ),
         ]
         indexes = [models.Index(fields=["org_id", "devise", "type_taux", "-date"])]
+
+
+class SensNormal(models.TextChoices):
+    DEBIT = "debit", "Débit"
+    CREDIT = "credit", "Crédit"
+
+
+class Compte(ModeleOrganisation):
+    """Compte du plan comptable d'une organisation. Voir L2-T02.
+
+    Hiérarchie : un compte imputable est une FEUILLE. Un total (non imputable) a
+    des enfants ; un compte qui a des enfants ne devient pas imputable. La base
+    le garantit par déclencheur.
+    """
+
+    code = models.CharField(max_length=20)
+    label = models.JSONField()  # {"fr": …, "en": …, "ar": …}
+    classe = models.PositiveSmallIntegerField()  # premier chiffre du code
+    sens_normal = models.CharField(max_length=6, choices=SensNormal.choices)
+    imputable = models.BooleanField(default=True)
+    actif = models.BooleanField(default=True)
+    parent = models.ForeignKey(
+        "self", null=True, blank=True, on_delete=models.PROTECT, related_name="enfants"
+    )
+    paquet_id = models.UUIDField(null=True, blank=True)  # paquet réglementaire d'origine (L2-T05)
+
+    class Meta:
+        constraints = [
+            models.UniqueConstraint(fields=["org_id", "code"], name="uq_compte_code"),
+            models.CheckConstraint(
+                condition=Q(code__regex=r"^[1-9][0-9]*$"), name="compte_code_numerique"
+            ),
+            models.CheckConstraint(
+                condition=Q(classe__gte=1, classe__lte=9), name="compte_classe_1_9"
+            ),
+            models.CheckConstraint(
+                condition=Q(sens_normal__in=SensNormal.values), name="compte_sens_ferme"
+            ),
+            models.CheckConstraint(
+                condition=Q(parent__isnull=True) | ~Q(parent=models.F("id")),
+                name="compte_pas_son_propre_parent",
+            ),
+        ]
+
+    def __str__(self) -> str:
+        return self.code
