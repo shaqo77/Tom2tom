@@ -298,6 +298,87 @@ C'est ce qui rend le **dossier de conformité** (§6) générable automatiquemen
 
 ---
 
+## 4bis. MODÈLE DE DONNÉES — PROFIL DE DÉCAISSEMENT
+
+Porte les paramètres qui varient d'un projet à l'autre chez un même bailleur
+(spécification fonctionnelle §5.3). **Versionné avec date d'effet**, comme toute
+configuration.
+
+```sql
+CREATE TABLE disbursement_profile (
+  id uuid PRIMARY KEY, org_id uuid NOT NULL, project_id uuid NOT NULL,
+  agreement_id uuid NOT NULL REFERENCES funding_agreement,
+  version int NOT NULL,
+  valid_from date NOT NULL, valid_to date,
+  regime text NOT NULL CHECK (regime IN ('transaction_based','report_based')),
+  effectiveness_date date,        -- entrée en vigueur
+  eligibility_date  date,         -- dépenses antérieures non finançables
+  closing_date      date,
+  disbursement_deadline date,     -- clôture + période de grâce
+  requirement_id uuid REFERENCES requirement,   -- la règle qui le justifie
+  status text NOT NULL CHECK (status IN ('draft','validated','active','superseded')),
+  validated_by uuid, validated_at timestamptz,
+  UNIQUE (org_id, project_id, agreement_id, version)
+);
+
+-- Ensemble FERMÉ de méthodes. On en active, on les paramètre.
+-- On ne les programme jamais.
+CREATE TABLE disbursement_method (
+  id uuid PRIMARY KEY, profile_id uuid NOT NULL REFERENCES disbursement_profile,
+  method text NOT NULL CHECK (method IN
+      ('advance','reimbursement','direct_payment','special_commitment')),
+  is_enabled boolean NOT NULL DEFAULT true,
+  supporting_docs text[] NOT NULL,       -- soe | records | ifr | summary_sheet
+  full_doc_threshold  numeric(20,4),     -- au-delà : copies de pièces exigées
+  min_application_amount numeric(20,4),  -- montant minimum, valeur fixe…
+  min_application_pct_of_ceiling numeric(9,6), -- …ou % du plafond du compte
+  UNIQUE (profile_id, method),
+  CHECK (min_application_amount IS NULL OR min_application_pct_of_ceiling IS NULL)
+);
+
+CREATE TABLE designated_account_rule (
+  id uuid PRIMARY KEY, profile_id uuid NOT NULL REFERENCES disbursement_profile,
+  bank_account_id uuid NOT NULL REFERENCES bank_account,
+  currency_id uuid NOT NULL,
+  ceiling_kind text NOT NULL CHECK (ceiling_kind IN ('fixed','variable')),
+  ceiling_amount numeric(20,4),
+  replenishment_threshold_pct numeric(9,6)
+);
+
+-- Allocation ET taux de financement, versionnés avec le profil.
+CREATE TABLE category_funding_rule (
+  id uuid PRIMARY KEY, profile_id uuid NOT NULL REFERENCES disbursement_profile,
+  category_id uuid NOT NULL REFERENCES funding_category,
+  allocation numeric(20,4) NOT NULL,
+  funding_rate numeric(9,6) NOT NULL CHECK (funding_rate > 0 AND funding_rate <= 1),
+  tax_basis text NOT NULL CHECK (tax_basis IN ('net_of_taxes','taxes_included')),
+  eligibility_from date, eligibility_to date,
+  requires_prior_review boolean NOT NULL DEFAULT false,
+  max_per_contract numeric(20,4)
+);
+```
+
+**La règle de calcul à ne jamais contourner :**
+
+```
+montant_a_retirer = depense_eligible × funding_rate de la catégorie,
+                    sur l'assiette définie par tax_basis
+```
+
+Le `category_funding_rule.id` **est persisté sur chaque ligne de demande de
+retrait**, exactement comme `cofunding_key_version_id` l'est sur une ligne
+d'écriture (§3.5). Sans cela, une réallocation ultérieure rend inexplicable
+le montant d'une demande déjà soumise — et l'auditeur ne peut plus la vérifier.
+
+**Ce que ce modèle n'autorise pas, délibérément :** `method` et
+`supporting_docs` sont des ensembles fermés, contraints en base. Ajouter une
+méthode de décaissement est une migration, pas un paramétrage client. C'est la
+même discipline que le langage de formules restreint (§5.3) : sans elle, le
+produit devient un environnement de développement que les clients écrivent et
+que vous déboguez à leur place.
+
+---
+
 ## 5. MOTEUR DE MAPPING ET D'ÉTATS
 
 ### 5.1 Mapping

@@ -88,6 +88,37 @@ def test_aucun_objet_actif_sans_exigence_source(projet_configure):
 
 ---
 
+### L5-T03bis — Profil de décaissement du projet
+
+**But.** Porter ce qui varie d'un projet à l'autre chez un même bailleur : régime, méthodes autorisées, seuils, pièces exigées, comptes désignés, **taux de financement par catégorie**.
+
+**Fichiers.** `backend/niveau3_config/models.py` (tables du §4bis du dossier d'architecture), `services/decaissement.py`
+
+**Les trois points à ne pas rater :**
+
+1. **Ensembles fermés contraints en base.** `method` et `supporting_docs` sont des `CHECK`, pas des tables libres. Ajouter une méthode est une migration, jamais un paramétrage client.
+2. **La règle de calcul.**
+   ```
+   montant_a_retirer = depense_eligible × funding_rate, sur l'assiette tax_basis
+   ```
+   avec arrondi déterministe, comme la ventilation de cofinancement.
+3. **`category_funding_rule_id` persisté sur chaque ligne de demande de retrait.** Sans cela, une réallocation ultérieure rend inexplicable une demande déjà soumise.
+
+**Contrôles.**
+
+```
+[ ] Trois projets du MÊME bailleur avec des montants minimums de demande
+    différents (20 % du plafond, 100 000, 200 000) coexistent sans conflit
+[ ] Changer le régime de transactionnel à « sur rapport » au 01/07 laisse
+    INCHANGÉES les demandes du premier semestre
+[ ] Une réallocation modifiant un taux de 100 % à 80 % ne recalcule aucune
+    demande antérieure
+[ ] Une dépense antérieure à la date d'éligibilité est refusée, en nommant la date
+[ ] Une demande inférieure au montant minimum est bloquée, en nommant le seuil
+[ ] Une dépense au-delà du seuil de documentation exige les copies de pièces
+    et non l'état certifié
+```
+
 ### L5-T04 — Activation, versionnement, date d'effet
 
 Service `activer_exigence()` : `proposed` → `validated` → `active`, transitions tracées.

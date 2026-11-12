@@ -107,6 +107,18 @@ La plateforme **s'y connecte** par interface documentée. Elle ne les remplace p
 
 **La règle qui fait tenir l'ensemble :** un nouveau projet, un nouveau bailleur ou un nouveau modèle de rapport s'ajoute **par paramétrage des niveaux 2, 3 et 4**. Le niveau 1 ne bouge pas. Si une demande client impose de modifier le niveau 1, c'est soit un vrai manque du socle — à traiter comme tel — soit une erreur de conception du paramétrage.
 
+### 2.1 Un seul découpage, lu de deux façons
+
+Un découpage en trois niveaux est souvent proposé pour ce métier — référentiel du bailleur, configuration du projet, exécution opérationnelle. **Il ne s'oppose pas à celui-ci : c'est le même axe, vu depuis la convention de financement.**
+
+| Découpage « conventions » | Niveau correspondant ici |
+|---|---|
+| **1. Référentiel du bailleur** — règles générales Banque mondiale, BAD, FIDA, Union européenne | **Niveau 2 — Profil du bailleur** |
+| **2. Configuration du projet** — accord, catégories, taux, devises, comptes, méthodes de décaissement, seuils, formulaires, conditions particulières | **Niveau 3 — Configuration du projet**, dont le **profil de décaissement** (§5.3) |
+| **3. Exécution opérationnelle** — comptabilisation, contrôle des dépenses, DRF et paiements directs, rapprochements, justificatifs, rapports, audits | **Niveau 1 (socle) + Niveau 4 (reporting)**, en fonctionnement |
+
+> **Décision : ne pas introduire un second vocabulaire.** Deux modèles pour une même structure, c'est deux fois le coût de compréhension et une source permanente de malentendus entre spécification et code. Le découpage en quatre niveaux est conservé, et le **profil de décaissement** lui donne ce qui lui manquait côté conventions.
+
 **Sens de circulation :**
 - Le niveau 2 est une **bibliothèque d'exigences possibles**. Il ne s'applique jamais automatiquement.
 - Le niveau 3 **active** celles qui s'appliquent au projet, chacune justifiée par un paragraphe d'un document contractuel.
@@ -187,7 +199,8 @@ Bailleur ─▶ Accord (prêt | don | contrepartie) ─▶ Catégorie de dépens
               └─▶ Fonds reçus · avances · justifications
 ```
 
-- **Demandes de décaissement** : retrait, réapprovisionnement, paiement direct, engagement spécial.
+- **Demandes de décaissement** : retrait, réapprovisionnement, paiement direct, engagement spécial. Les méthodes autorisées, leurs seuils et leurs pièces justificatives sont portés par le **profil de décaissement du projet** (§5.3), jamais codés en dur.
+- **Taux de financement par catégorie** : `montant à retirer = dépense éligible × taux de la catégorie`. Le taux est versionné ; une réallocation ne recalcule jamais les demandes antérieures.
 - Suivi des **avances non justifiées** et des délais de justification applicables.
 - **Cofinancement** : une dépense ventilée entre plusieurs accords selon des pourcentages.
 
@@ -272,7 +285,97 @@ Toute exigence applicable au projet y est enregistrée, avec :
 
 C'est ce qui rend possible le **dossier de conformité traçable** (§1.2 A), et ce qui fait qu'une configuration survit au départ de celui qui l'a faite.
 
-### 5.3 Assistant d'extraction des exigences
+### 5.3 Profil de décaissement du projet
+
+> **Le point le plus souvent sous-estimé de ce métier.** Les méthodes de décaissement et de retrait **varient d'un projet à l'autre, y compris chez un même bailleur à la même période**. Elles sont convenues en fonction du projet, des catégories de dépenses et de la **capacité de l'organisme d'exécution** — et elles peuvent changer **en cours de projet**.
+>
+> Preuve chiffrée : trois accords de financement de la Banque mondiale fixent le montant minimum de demande respectivement à **20 % du plafond du compte désigné**, à **100 000 USD** et à **200 000 USD**. Même bailleur, trois paramètres différents.
+>
+> Un produit qui câble les procédures par bailleur ne peut pas suivre cela. C'est précisément ce que fait le produit de référence : **158 pages de son manuel, soit 24 %, sont quatre procédures distinctes, une par bailleur** `[SRC:manuel:601]`.
+
+Le profil de décaissement est l'objet qui porte ces paramètres. Il appartient au projet, pas au bailleur.
+
+#### A — Régime de décaissement
+
+Deux régimes, déterminés par l'évaluation de la capacité de gestion financière de l'organisme d'exécution :
+
+| Régime | Base de justification |
+|---|---|
+| **Transactionnel** | Dépense par dépense — état certifié de dépenses, ou copies de pièces au-delà d'un seuil |
+| **Sur rapport** | Rapport financier intermédiaire — l'avance est reconstituée sur prévisions, justifiée par l'IFR |
+
+**Le régime peut changer en cours de projet**, dans les deux sens : une capacité renforcée fait passer au régime sur rapport, une faiblesse constatée ramène au transactionnel. Le changement porte une date d'effet et **ne modifie jamais les demandes déjà soumises**.
+
+#### B — Méthodes de décaissement autorisées
+
+Ensemble **fermé**, activable méthode par méthode :
+
+| Méthode | Description |
+|---|---|
+| **Avance** | Versement sur compte désigné, reconstitué par justification |
+| **Remboursement** | Remboursement de dépenses déjà payées sur ressources propres |
+| **Paiement direct** | Paiement du bailleur directement au fournisseur, prestataire ou entrepreneur |
+| **Engagement spécial** | Engagement du bailleur envers une banque, au titre d'une lettre de crédit |
+
+Chaque méthode activée porte ses propres paramètres : pièces justificatives exigées, seuil de documentation complète, montant minimum de demande.
+
+#### C — Paramètres par méthode
+
+| Paramètre | Exemple |
+|---|---|
+| **Pièces exigées** | État certifié de dépenses · copies de pièces · rapport financier intermédiaire · relevé récapitulatif |
+| **Seuil de documentation complète** | Au-delà de ce montant, les copies de pièces remplacent l'état certifié |
+| **Montant minimum de demande** | Valeur fixe, **ou** pourcentage du plafond du compte désigné |
+| **Pièces particulières** | Garantie bancaire pour une avance ou une retenue · lettre de crédit avec date de validité pour un engagement spécial |
+
+#### D — Comptes désignés
+
+Devise · banque · type · **plafond fixe ou variable** · seuil de déclenchement du réapprovisionnement · méthodes de décaissement rattachées.
+
+Un projet peut en avoir plusieurs — par exemple un par agence d'exécution, comme observé sur un projet audité à deux comptes spéciaux `[SRC:audit:201]`.
+
+#### E — Catégories, allocations et taux de financement
+
+C'est ici que se trouve **la règle de calcul qui manquait à cette spécification** :
+
+```
+Montant à retirer = Dépense éligible × Taux de financement de la catégorie
+```
+
+| Paramètre par catégorie | Rôle |
+|---|---|
+| **Allocation** | Plafond de la catégorie, dans la devise de l'accord |
+| **Taux de financement** | Pourcentage de la dépense pris en charge — par exemple 100 % hors taxes, ou 80 % |
+| **Assiette** | Montant hors taxes ou toutes taxes comprises |
+| **Dates d'éligibilité** | Une dépense antérieure à la date d'éligibilité n'est pas finançable |
+| **Conditions particulières** | Non-objection préalable requise, plafond par marché, zone éligible |
+
+**Une réallocation modifie allocations et taux : elle crée une nouvelle version du profil, avec date d'effet.** Les demandes antérieures restent calculées aux taux alors en vigueur.
+
+#### F — Dates et bornes
+
+Date de signature · date d'entrée en vigueur · date d'éligibilité des dépenses · date de clôture · **date limite de décaissement** (période de grâce après clôture, au-delà de laquelle plus aucune demande n'est recevable).
+
+#### G — Versionnement : la réponse à « cela change en cours de projet »
+
+**Toute modification du profil crée une version, avec date d'effet.** Avenant à l'accord, restructuration, changement de régime, révision du plafond, réallocation entre catégories : chacun est une version datée, rattachée à son document source et à son exigence.
+
+Le mécanisme existe déjà et sert ici sans adaptation :
+
+| Besoin | Mécanisme déjà spécifié |
+|---|---|
+| Retrouver les règles en vigueur à une date | Résolution de la configuration active à la date d'effet (§5.5) |
+| Ne pas réécrire le passé | Scellement des rapports publiés (§6.3) |
+| Savoir **pourquoi** une règle est ce qu'elle est | Rattachement à l'exigence et à sa citation documentaire (§5.2) |
+| Expliquer un écart après coup | Régénération par différentiel (§6.3) |
+
+#### H — Ce que le profil ne fait pas
+
+**Le profil est un jeu de paramètres, pas un langage.** Les méthodes de décaissement forment un ensemble fermé ; on les active et on les paramètre, on ne les programme pas.
+
+Toute demande visant à exprimer une règle qu'aucun paramètre ne couvre passe par les contrôles configurables (§7), jamais par du script. C'est la même discipline que pour le moteur d'états : sans cette limite, le produit devient un environnement de développement que vos clients écrivent et que vous déboguez à leur place.
+
+### 5.4 Assistant d'extraction des exigences
 
 **Module optionnel, activable par organisation.**
 
@@ -291,7 +394,7 @@ L'assistant lit les documents de référence et **propose** un projet de registr
 
 **Gain visé :** faire passer la configuration d'un projet de plusieurs semaines à quelques jours. C'est précisément ce délai qui, aujourd'hui, fait renoncer les UGP et les ramène à Excel.
 
-### 5.4 Activation, versionnement, date d'effet
+### 5.5 Activation, versionnement, date d'effet
 
 - Activer ou désactiver états, rubriques, contrôles et champs **par projet**.
 - Associer chaque paramètre à sa source documentaire.
@@ -299,7 +402,7 @@ L'assistant lit les documents de référence et **propose** un projet de registr
 - Appliquer un changement **à partir d'une date d'effet**, sans toucher au passé.
 - **Préserver les rapports historiques avec la configuration utilisée lors de leur validation** — garanti techniquement par le scellement (§6.3).
 
-### 5.5 Le guide de configuration généré
+### 5.6 Le guide de configuration généré
 
 Le système produit automatiquement, depuis le registre, un **document lisible par un humain** : chaque exigence active, sa source, son mapping, ses contrôles, sa périodicité.
 
@@ -602,6 +705,8 @@ Les sept premiers sont repris du cahier des charges de l'UGP : ils testent **l'a
 | **T12** | **Réversibilité** | Exporter l'intégralité des données et du paramétrage, et les réimporter dans une instance vierge |
 | **T13** | **Reprise** | Migrer une base existante à **écart nul** sur la balance et sur le cumul par accord |
 | **T14** | **Connectivité dégradée** | Saisir une journée complète sans réseau, synchroniser sans doublon ni trou de séquence |
+| **T15** | **Méthodes de décaissement variables** | Configurer trois projets du **même bailleur** avec des régimes, méthodes, seuils et taux de financement **différents**, sans développement spécifique |
+| **T16** | **Changement en cours de projet** | Changer le régime de décaissement et réallouer entre catégories à une date d'effet : les demandes antérieures restent calculées aux règles alors en vigueur |
 
 ### Critère d'acceptation d'architecture
 
