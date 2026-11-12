@@ -207,3 +207,53 @@ class Tiers(ModeleOrganisation):
 
     def __str__(self) -> str:
         return self.code
+
+
+class TypeReferentielImport(models.TextChoices):
+    PLAN_COMPTABLE = "plan_comptable", "Plan comptable"
+
+
+class StatutCorrespondance(models.TextChoices):
+    PROPOSEE = "proposee", "Proposée"
+    VALIDEE = "validee", "Validée"
+
+
+class CorrespondanceImport(ModeleOrganisation):
+    """Correspondance colonnes du fichier -> champs du référentiel. Voir L2-T07.
+
+    Proposée automatiquement, VALIDÉE par un humain nommé, puis rejouable à
+    l'identique : une correspondance validée ne se modifie plus (déclencheur).
+    """
+
+    nom = models.CharField(max_length=100)
+    type_referentiel = models.CharField(max_length=20, choices=TypeReferentielImport.choices)
+    colonnes = models.JSONField()  # {"code": "N° compte", "label:fr": "Intitulé", …}
+    valeurs_defaut = models.JSONField(default=dict)  # {"sens_normal": "debit"}
+    statut = models.CharField(
+        max_length=8, choices=StatutCorrespondance.choices, default=StatutCorrespondance.PROPOSEE
+    )
+    validated_by = models.UUIDField(null=True, blank=True)
+    validated_at = models.DateTimeField(null=True, blank=True)
+
+    class Meta:
+        constraints = [
+            models.UniqueConstraint(
+                fields=["org_id", "type_referentiel", "nom"], name="uq_correspondance_nom"
+            ),
+            models.CheckConstraint(
+                condition=Q(type_referentiel__in=TypeReferentielImport.values),
+                name="correspondance_type_ferme",
+            ),
+            models.CheckConstraint(
+                condition=Q(statut__in=StatutCorrespondance.values),
+                name="correspondance_statut_ferme",
+            ),
+            models.CheckConstraint(
+                condition=~Q(statut=StatutCorrespondance.VALIDEE)
+                | Q(validated_by__isnull=False, validated_at__isnull=False),
+                name="correspondance_validation_obligatoire",
+            ),
+        ]
+
+    def __str__(self) -> str:
+        return self.nom
