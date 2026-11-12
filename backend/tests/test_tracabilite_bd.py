@@ -74,6 +74,13 @@ def jeu(org_a):
         match={"accounts": [["7000", "7999"]]},
         target_code="PRODUITS",
     )
+    RegleMapping.objects.create(
+        org_id=org_a,
+        table=table,
+        priority=90,
+        match={"accounts": [["8999", "8999"]]},  # contrepartie technique des pièces de test
+        target_code="CONTREPARTIE",
+    )
     _ligne(org_a, "6011", 2024, 12, debit="10")
     _ligne(org_a, "6011", 2026, 2, debit="100")
     _ligne(org_a, "6011", 2026, 4, debit="50.10")

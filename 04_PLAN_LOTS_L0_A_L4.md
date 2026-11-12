@@ -605,6 +605,8 @@ CREATE CONSTRAINT TRIGGER trg_ecriture_equilibree
 
 **Contrôle.** Insérer une écriture déséquilibrée dans une transaction lève l'exception **au `COMMIT`**, et rien n'est écrit.
 
+> **Réalisation de L3-T02.** Le déclencheur du plan ne contrôle que l'écriture `NEW` : une ligne déplacée vers une écriture temporaire, puis supprimée avec elle, laissait l'écriture d'origine amputée sans qu'aucun événement la cite (un test le démontre). La version livrée contrôle aussi l'écriture `OLD` quand une ligne change d'écriture. La contrainte vaut pour **tous** les statuts : un brouillon doit lui aussi être équilibré à la fin de sa transaction, donc la saisie enregistre une pièce complète à la fois. Les tests du moteur qui créaient des lignes isolées les équilibrent par une contrepartie sur le compte technique `8999` (`tests/outils.py`).
+
 ---
 
 ### L3-T03 — Immuabilité et périodes closes

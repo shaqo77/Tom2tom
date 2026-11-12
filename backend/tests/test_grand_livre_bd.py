@@ -17,6 +17,9 @@ def _poser(org_id):
         cur.execute("SET app.org_id = %s", [str(org_id)])
 
 
+PAIRE = [{"compte": "6011", "debit": "1"}, {"compte": "5211", "credit": "1"}]
+
+
 def _vue(requete="SELECT count(*) FROM moteur_ligneecriture", params=None):
     with connection.cursor() as cur:
         cur.execute(requete, params or [])
@@ -40,7 +43,7 @@ def test_la_vue_du_moteur_expose_les_noms_de_colonnes_du_prototype(org_a):
 
     (ligne,) = _vue(
         "SELECT compte, tiers, dim1, fiscal_year, period, debit, credit, accord, categorie, "
-        "site, devise, taux FROM moteur_ligneecriture"
+        "site, devise, taux FROM moteur_ligneecriture WHERE compte = '6011'"
     )
 
     assert ligne[:7] == ("6011", "FRN-001", "COMP-A", 2026, 4, Decimal("50.10"), Decimal("0"))
@@ -50,7 +53,12 @@ def test_la_vue_du_moteur_expose_les_noms_de_colonnes_du_prototype(org_a):
 
 @pytest.mark.parametrize(
     ("statut", "visible"),
-    [("draft", 0), ("validated", 0), ("posted", 1), ("locked", 1)],
+    [
+        ("draft", 0),
+        ("validated", 0),
+        ("posted", 2),
+        ("locked", 2),
+    ],  # 2 lignes : débit et contrepartie
 )
 def test_seules_les_ecritures_comptabilisees_alimentent_les_etats(org_a, statut, visible):
     _poser(org_a)
@@ -67,9 +75,11 @@ def test_la_vue_du_moteur_subit_lisolation_par_organisation(org_a, org_b):
     creer_ligne(org_b, "6011", 2026, 4, debit="999")
 
     _poser(org_a)
-    assert _vue()[0][0] == 2, "FUITE DE DONNÉES ENTRE ORGANISATIONS PAR LA VUE"
+    assert _vue()[0][0] == 4, "FUITE DE DONNÉES ENTRE ORGANISATIONS PAR LA VUE"
     _poser(org_b)
-    assert _vue("SELECT debit FROM moteur_ligneecriture") == [(Decimal("999"),)]
+    assert _vue("SELECT debit FROM moteur_ligneecriture WHERE compte = '6011'") == [
+        (Decimal("999"),)
+    ]
     with connection.cursor() as cur:
         cur.execute("RESET app.org_id")
     assert _vue()[0][0] == 0
@@ -92,7 +102,7 @@ def test_la_vue_du_moteur_est_security_invoker():
 
 def test_une_ecriture_comptabilisee_est_numerotee_horodatee_et_attribuee(org_a):
     _poser(org_a)
-    ecriture = creer_piece(org_a, 2026, 4, [{"compte": "6011", "debit": "10"}], statut="draft")
+    ecriture = creer_piece(org_a, 2026, 4, PAIRE, statut="draft")
     for champs in (
         {"status": "posted"},  # ni numéro, ni horodatage, ni auteur
         {"status": "posted", "number": "OD-2026-000001"},  # numérotée mais non horodatée
@@ -103,16 +113,12 @@ def test_une_ecriture_comptabilisee_est_numerotee_horodatee_et_attribuee(org_a):
 
 def test_le_numero_est_unique_par_journal_et_exercice_et_libre_ailleurs(org_a):
     _poser(org_a)
-    p1 = creer_piece(org_a, 2026, 1, [{"compte": "6011", "debit": "1"}])
+    p1 = creer_piece(org_a, 2026, 1, PAIRE)
     assert p1.number == "OD-2026-000001"
     with pytest.raises(IntegrityError), transaction.atomic():
-        Ecriture.objects.filter(pk=creer_piece(org_a, 2026, 2, [{"compte": "6011"}]).pk).update(
-            number=p1.number
-        )
-    assert creer_piece(org_a, 2027, 1, [{"compte": "6011"}]).number == "OD-2027-000001"
-    assert creer_piece(org_a, 2026, 1, [{"compte": "6011"}], journal="BQ").number == (
-        "BQ-2026-000001"
-    )
+        Ecriture.objects.filter(pk=creer_piece(org_a, 2026, 2, PAIRE).pk).update(number=p1.number)
+    assert creer_piece(org_a, 2027, 1, PAIRE).number == "OD-2027-000001"
+    assert creer_piece(org_a, 2026, 1, PAIRE, journal="BQ").number == ("BQ-2026-000001")
 
 
 def test_une_cle_dindempotence_ne_sert_quune_fois_par_organisation(org_a, org_b):
@@ -176,7 +182,7 @@ def test_deux_lignes_dune_meme_ecriture_ne_partagent_pas_leur_numero(org_a):
 
 def test_les_ecritures_et_leurs_lignes_sont_isolees_par_organisation(org_a, org_b):
     _poser(org_a)
-    creer_piece(org_a, 2026, 1, [{"compte": "6011", "debit": "1"}])
+    creer_piece(org_a, 2026, 1, PAIRE)
     _poser(org_b)
     assert Ecriture.objects.count() == 0
     assert LigneEcriture.objects.count() == 0

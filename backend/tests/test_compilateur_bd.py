@@ -67,6 +67,13 @@ def jeu(org_a):
         match={"accounts": [["5200", "5299"]]},
         target_code="TRESORERIE",
     )
+    RegleMapping.objects.create(
+        org_id=org_a,
+        table=table,
+        priority=90,
+        match={"accounts": [["8999", "8999"]]},  # contrepartie technique des pièces de test
+        target_code="CONTREPARTIE",
+    )
     _ligne(org_a, "6011", 2024, 12, debit="10")
     _ligne(org_a, "6011", 2026, 2, debit="100")
     _ligne(org_a, "6011", 2026, 4, debit="50")
@@ -234,6 +241,13 @@ def test_deux_mappings_sont_agreges_et_controles_dans_une_seule_requete(jeu):
         priority=10,
         match={"accounts": [["5000", "6999"]]},
         target_code="EMPLOIS",
+    )
+    RegleMapping.objects.create(
+        org_id=org_a,
+        table=autre,
+        priority=90,
+        match={"accounts": [["8999", "8999"]]},  # contrepartie technique des pièces de test
+        target_code="CONTREPARTIE",
     )
     modele["rows"].insert(
         2,

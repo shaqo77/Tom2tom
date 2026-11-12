@@ -96,7 +96,7 @@ def test_la_premiere_regle_qui_correspond_gagne(org_a):
 
     with connection.cursor() as cur:
         cur.execute(
-            f"SELECT dim1, {cas} FROM moteur_ligneecriture ORDER BY dim1",
+            f"SELECT dim1, {cas} FROM moteur_ligneecriture WHERE dim1 IS NOT NULL ORDER BY dim1",
             params,
         )
         assert cur.fetchall() == [("COMP-A", "R_PRECIS"), ("COMP-B", "R_GENERAL")]
@@ -173,6 +173,7 @@ def test_un_compte_mouvemente_non_couvert_est_nomme(org_a):
     _poser_org(org_a)
     table = _table(org_a)
     _regle(table, 10, {"accounts": [["6000", "6279"]]})
+    _regle(table, 999, {"accounts": [["8999", "8999"]]}, "CONTREPARTIE")
     _ligne(org_a, "6011")
     _ligne(org_a, "6281")
     _ligne(org_a, "9999", debit="0.0000")
@@ -187,6 +188,7 @@ def test_lexhaustivite_tient_compte_des_axes_pas_seulement_du_compte(org_a):
     _poser_org(org_a)
     table = _table(org_a)
     _regle(table, 10, {"accounts": [["6281", "6281"]], "dim1": ["COMP-A"]})
+    _regle(table, 999, {"accounts": [["8999", "8999"]]}, "CONTREPARTIE")
     _ligne(org_a, "6281", dim1="COMP-A")
     _ligne(org_a, "6281", dim1="COMP-B")
 

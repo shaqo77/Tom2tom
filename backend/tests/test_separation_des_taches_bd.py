@@ -50,7 +50,7 @@ def _piece(organisation, projet, auteur):
         organisation.id,
         2026,
         1,
-        [{"compte": "6011", "debit": "10"}],
+        [{"compte": "6011", "debit": "10"}, {"compte": "5211", "credit": "10"}],
         project_id=projet.id,
         utilisateur_id=auteur.id if auteur else None,
     )

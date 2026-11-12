@@ -25,6 +25,9 @@ from niveau1_socle.referentiels.models import Compte, Devise, PlanDimension, Tie
 from niveau1_socle.referentiels.semences import charger
 
 PROJET_PAR_DEFAUT = uuid.UUID("aaaaaaaa-0000-0000-0000-000000000001")
+# Compte technique qui équilibre les pièces d'une ligne (L3-T02). Un test dont le mapping
+# couvre tous les comptes mouvementés doit donc aussi couvrir celui-ci.
+COMPTE_CONTREPARTIE = "8999"
 _ESPACE = uuid.UUID("0b1ec7a5-0000-4000-8000-00000000f00d")
 
 
@@ -102,31 +105,39 @@ def creer_ligne(
     statut="posted",
     utilisateur_id=None,
     journal="OD",
+    contrepartie=COMPTE_CONTREPARTIE,
 ):
-    """Crée une pièce d'UNE ligne. Utile aux tests de lecture du moteur ; déséquilibrée."""
+    """Crée une pièce dont la ligne demandée est équilibrée par une contrepartie.
+
+    La ligne demandée porte les axes ; la contrepartie, sur `contrepartie` (compte technique
+    8999 par défaut), porte le sens inverse du même montant. Retourne la ligne demandée.
+    """
+    lignes = [
+        {
+            "compte": compte,
+            "debit": debit,
+            "credit": credit,
+            "accord": accord,
+            "categorie": categorie,
+            "site": site,
+            "dim1": dim1,
+            "tiers": tiers,
+        }
+    ]
+    if Decimal(str(debit)) != Decimal(str(credit)):
+        lignes.append({"compte": contrepartie, "debit": credit, "credit": debit})
     return creer_piece(
         org_id,
         annee,
         periode,
-        [
-            {
-                "compte": compte,
-                "debit": debit,
-                "credit": credit,
-                "accord": accord,
-                "categorie": categorie,
-                "site": site,
-                "dim1": dim1,
-                "tiers": tiers,
-            }
-        ],
+        lignes,
         project_id=project_id,
         devise=devise,
         taux=taux,
         statut=statut,
         utilisateur_id=utilisateur_id,
         journal=journal,
-    ).lignes.get()
+    ).lignes.get(line_no=1)
 
 
 def creer_piece(
