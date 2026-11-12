@@ -20,6 +20,26 @@ docker compose -f ../infra/docker-compose.yml up -d
 | Tests + couverture | `./.venv/bin/pytest -q --cov=core --cov=niveau4_reporting --cov-report=term` |
 | Style | `./.venv/bin/ruff check . && ./.venv/bin/ruff format .` |
 
+## Rejouer le contrôle de performance L0-T05
+
+Depuis `backend/`, générer exactement 200 000 lignes dans le périmètre du TER :
+
+```bash
+./.venv/bin/python manage.py generer_donnees \
+  --lignes 200000 --organisation A --projet 1 --purger
+```
+
+Puis, depuis la racine du dépôt :
+
+```bash
+backend/.venv/bin/python scripts/mesurer_ter.py
+```
+
+Le script échoue si le périmètre ne contient pas exactement 200 000 lignes,
+si le TER exécute plus d'une requête, ou si aucune des trois mesures ne passe
+sous 3 secondes. Les règles de mapping sont matérialisées avant la mesure :
+la sélection de configuration ne doit pas être confondue avec l'agrégation.
+
 ## Les deux rôles PostgreSQL
 
 | Rôle | Usage | Jamais pour |

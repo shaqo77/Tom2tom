@@ -80,6 +80,27 @@ def _ajouter_comptes(match: Mapping[str, Any], conds: list[str], params: list) -
     conds.append("(" + " OR ".join(ors) + ")")
 
 
+def construire_predicat(match: Mapping[str, Any]) -> tuple[str, list]:
+    """Compile une sélection paramétrée sur les colonnes de LigneEcriture."""
+    if not isinstance(match, Mapping):
+        raise MappingInvalide("match doit être un objet JSON")
+    inconnues = set(match) - {"accounts", *CHAMPS_FILTRES}
+    if inconnues:
+        raise MappingInvalide(f"clé de filtre inconnue : {sorted(inconnues)!r}")
+    if not match:
+        raise MappingInvalide("une règle doit contenir au moins un critère")
+
+    conds: list[str] = []
+    params: list = []
+    _ajouter_comptes(match, conds, params)
+    for champ, colonne in CHAMPS_FILTRES.items():
+        if champ in match:
+            valeurs = _liste_valeurs(match[champ], champ)
+            conds.append(f"{colonne} = ANY(%s)")
+            params.append(valeurs)
+    return " AND ".join(conds), params
+
+
 def construire_cas_sql(regles: Iterable[RegleMapping]) -> tuple[str, list]:
     """Compile les règles en un CASE ; la première correspondance gagne."""
     morceaux, params = [], []
@@ -88,25 +109,11 @@ def construire_cas_sql(regles: Iterable[RegleMapping]) -> tuple[str, list]:
             raise MappingInvalide(
                 "condition_expr n'est pas exécutable : utilisez les filtres match déclarés"
             )
-        if not isinstance(regle.match, Mapping):
-            raise MappingInvalide("match doit être un objet JSON")
-        inconnues = set(regle.match) - {"accounts", *CHAMPS_FILTRES}
-        if inconnues:
-            raise MappingInvalide(f"clé de filtre inconnue : {sorted(inconnues)!r}")
-        if not regle.match:
-            raise MappingInvalide("une règle doit contenir au moins un critère")
         if not isinstance(regle.target_code, str) or not regle.target_code:
             raise MappingInvalide("target_code doit être une rubrique non vide")
-
-        conds: list[str] = []
-        _ajouter_comptes(regle.match, conds, params)
-        for champ, colonne in CHAMPS_FILTRES.items():
-            if champ in regle.match:
-                valeurs = _liste_valeurs(regle.match[champ], champ)
-                conds.append(f"{colonne} = ANY(%s)")
-                params.append(valeurs)
-        morceaux.append("WHEN " + " AND ".join(conds) + " THEN %s")
-        params.append(regle.target_code)
+        predicat, params_predicat = construire_predicat(regle.match)
+        morceaux.append(f"WHEN {predicat} THEN %s")
+        params += [*params_predicat, regle.target_code]
 
     if not morceaux:
         return "NULL", []

@@ -5,7 +5,7 @@ import random
 import uuid
 from decimal import Decimal
 
-from django.core.management.base import BaseCommand
+from django.core.management.base import BaseCommand, CommandError
 from django.db import connection
 
 ORGS = [
@@ -33,34 +33,52 @@ class Command(BaseCommand):
     def add_arguments(self, parser):
         parser.add_argument("--lignes", type=int, default=200_000)
         parser.add_argument("--purger", action="store_true")
+        parser.add_argument(
+            "--organisation",
+            choices=("A", "B"),
+            help="Génère toutes les lignes dans une seule organisation (benchmark L0).",
+        )
+        parser.add_argument(
+            "--projet",
+            type=int,
+            choices=(1, 2),
+            help="Génère toutes les lignes dans le projet numéroté 1 ou 2.",
+        )
 
     def handle(self, *args, **opts):
         random.seed(1789)
         cible = opts["lignes"]
+        if cible < 2 or cible % 2:
+            raise CommandError("--lignes doit être un nombre pair d'au moins 2")
+        organisations = ORGS
+        if opts["organisation"]:
+            organisations = [ORGS[0] if opts["organisation"] == "A" else ORGS[1]]
+        projet = opts["projet"]
+        if projet and any(projet > len(PROJETS[org]) for org in organisations):
+            raise CommandError("Le projet demandé n'existe pas pour l'organisation choisie.")
 
         if opts["purger"]:
-            with connection.cursor() as cur:
-                cur.execute("SET app.org_id = %s", [str(ORGS[0])])
-                cur.execute("DELETE FROM moteur_ligneecriture")
-                cur.execute("SET app.org_id = %s", [str(ORGS[1])])
-                cur.execute("DELETE FROM moteur_ligneecriture")
+            for org in organisations:
+                with connection.cursor() as cur:
+                    cur.execute("SET app.org_id = %s", [str(org)])
+                    cur.execute("DELETE FROM moteur_ligneecriture")
 
         # L'isolation est ACTIVE : on insère organisation par organisation,
         # après avoir posé app.org_id. Une ligne portant un autre org_id
         # serait refusée par la politique WITH CHECK — c'est voulu.
-        par_org = cible // len(ORGS)
+        par_org = cible // len(organisations)
         total = 0
-        for org in ORGS:
+        for org in organisations:
             with connection.cursor() as cur:
                 cur.execute("SET app.org_id = %s", [str(org)])
-            total += self._generer_pour(org, par_org)
+            total += self._generer_pour(org, par_org, projet)
 
-        self._verifier(total)
+        self._verifier(total, organisations)
 
-    def _generer_pour(self, org, cible) -> int:
+    def _generer_pour(self, org, cible, projet=None) -> int:
         lignes, n = [], 0
         while n < cible:
-            projet = random.choice(PROJETS[org])
+            projet_id = PROJETS[org][projet - 1] if projet else random.choice(PROJETS[org])
             annee = random.choice(EXERCICES)
             periode = random.randint(1, 12)
             date = datetime.date(annee, periode, random.randint(1, 28))
@@ -69,7 +87,7 @@ class Command(BaseCommand):
             montant = Decimal(random.randint(100, 5_000_000)) / 100
             commun = dict(
                 org_id=org,
-                project_id=projet,
+                project_id=projet_id,
                 fiscal_year=annee,
                 period=periode,
                 accounting_date=date,
@@ -133,26 +151,21 @@ class Command(BaseCommand):
                 params,
             )
 
-    def _verifier(self, n):
-        with connection.cursor() as cur:
-            cur.execute("SET app.org_id = %s", [str(ORGS[0])])
-            cur.execute(
-                "SELECT count(*), COALESCE(SUM(debit) - SUM(credit), 0) FROM moteur_ligneecriture"
-            )
-            n_a, ecart_a = cur.fetchone()
-            cur.execute("SET app.org_id = %s", [str(ORGS[1])])
-            cur.execute(
-                "SELECT count(*), COALESCE(SUM(debit) - SUM(credit), 0) FROM moteur_ligneecriture"
-            )
-            n_b, ecart_b = cur.fetchone()
+    def _verifier(self, n, organisations=ORGS):
+        resultats = []
+        for org in organisations:
+            with connection.cursor() as cur:
+                cur.execute("SET app.org_id = %s", [str(org)])
+                cur.execute(
+                    "SELECT count(*), COALESCE(SUM(debit) - SUM(credit), 0) "
+                    "FROM moteur_ligneecriture"
+                )
+                resultats.append(cur.fetchone())
 
-        self.stdout.write(
-            self.style.SUCCESS(
-                f"\n{n} lignes générées.\n"
-                f"  Organisation A : {n_a} lignes visibles, écart débit-crédit = {ecart_a}\n"
-                f"  Organisation B : {n_b} lignes visibles, écart débit-crédit = {ecart_b}\n"
-                f"  Total visible par organisation : {n_a + n_b} "
-                f"(l'isolation masque le reste à chacune)"
-            )
+        details = "\n".join(
+            f"  Organisation {chr(65 + ORGS.index(org))} : {resultat[0]} lignes visibles, "
+            f"écart débit-crédit = {resultat[1]}"
+            for org, resultat in zip(organisations, resultats, strict=True)
         )
-        assert ecart_a == 0 and ecart_b == 0, "JEU DE DONNÉES DÉSÉQUILIBRÉ"
+        self.stdout.write(self.style.SUCCESS(f"\n{n} lignes générées.\n{details}"))
+        assert all(ecart == 0 for _, ecart in resultats), "JEU DE DONNÉES DÉSÉQUILIBRÉ"
