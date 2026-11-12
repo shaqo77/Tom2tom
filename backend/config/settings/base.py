@@ -30,6 +30,7 @@ INSTALLED_APPS = [
     "core",
     "niveau1_socle.organisations",
     "niveau1_socle.habilitations",
+    "niveau1_socle.exercices",
     "niveau3_config",
     "niveau4_reporting.mapping",
     "niveau4_reporting.moteur",
