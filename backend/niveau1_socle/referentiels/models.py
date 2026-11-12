@@ -105,3 +105,69 @@ class Compte(ModeleOrganisation):
 
     def __str__(self) -> str:
         return self.code
+
+
+class TypeAxe(models.TextChoices):
+    GESTION = "gestion", "Axe de gestion"
+    AUXILIAIRE = "auxiliaire", "Axe auxiliaire"
+
+
+class PlanDimension(ModeleOrganisation):
+    """Plan d'axe : relie un EMPLACEMENT fixe (1 à 4) au plan métier que l'organisation y place.
+
+    Un modèle clé-valeur serait plus souple mais interdirait l'indexation efficace
+    et les contraintes d'intégrité, alors que chaque état agrège sur ces colonnes.
+    """
+
+    kind = models.CharField(max_length=10, choices=TypeAxe.choices)
+    slot = models.PositiveSmallIntegerField()
+    code = models.CharField(max_length=32)
+    label = models.JSONField()
+    is_mandatory = models.BooleanField(default=False)
+
+    class Meta:
+        constraints = [
+            models.UniqueConstraint(
+                fields=["org_id", "kind", "slot"], name="uq_plandimension_emplacement"
+            ),
+            models.UniqueConstraint(fields=["org_id", "code"], name="uq_plandimension_code"),
+            models.CheckConstraint(
+                condition=Q(slot__gte=1, slot__lte=4), name="plandimension_slot"
+            ),
+            models.CheckConstraint(
+                condition=Q(kind__in=TypeAxe.values), name="plandimension_type_ferme"
+            ),
+        ]
+
+    def __str__(self) -> str:
+        return self.code
+
+
+class ValeurDimension(ModeleOrganisation):
+    """Valeur d'un plan d'axe, hiérarchique (composante > activité > tâche).
+
+    Seules les feuilles s'imputent ; un déclencheur le garantit en base.
+    """
+
+    plan = models.ForeignKey(PlanDimension, on_delete=models.PROTECT, related_name="valeurs")
+    parent = models.ForeignKey(
+        "self", null=True, blank=True, on_delete=models.PROTECT, related_name="enfants"
+    )
+    code = models.CharField(max_length=20)
+    label = models.JSONField()
+    is_postable = models.BooleanField(default=True)
+    is_active = models.BooleanField(default=True)
+
+    class Meta:
+        constraints = [
+            models.UniqueConstraint(
+                fields=["org_id", "plan", "code"], name="uq_valeurdimension_code"
+            ),
+            models.CheckConstraint(
+                condition=Q(parent__isnull=True) | ~Q(parent=models.F("id")),
+                name="valeurdimension_pas_son_propre_parent",
+            ),
+        ]
+
+    def __str__(self) -> str:
+        return self.code
