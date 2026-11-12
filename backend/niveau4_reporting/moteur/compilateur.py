@@ -19,8 +19,14 @@ from niveau4_reporting.mapping.resolveur import (
     construire_predicat,
 )
 
+from .assertions import (
+    AssertionPreparee,
+    AssertionsViolees,
+    analyser_assertion,
+    controler_assertion,
+)
 from .dependances import ordonner
-from .formules import FormuleInvalide, evaluer
+from .formules import evaluer
 
 ZERO = Decimal(0)
 COLONNES_SOURCE = (
@@ -60,6 +66,9 @@ class EtatCompile:
     conditions_colonnes: dict[str, tuple[str, tuple]]
     index_valeurs: dict[tuple[str, str], int]
     mappings_utilises: tuple[str, ...]
+    assertions: dict[str, AssertionPreparee]
+    prefixes_balance: tuple[str, ...]
+    index_balances: dict[tuple[str, str], int]
 
 
 @dataclass(frozen=True)
@@ -68,12 +77,16 @@ class EtatProduit:
     version: int | None
     colonnes: tuple[str, ...]
     valeurs: dict[str, dict[str, Decimal]]
+    controles: tuple
+    publiable: bool
 
     def __getitem__(self, code_rubrique: str) -> dict[str, Decimal]:
         return self.valeurs[code_rubrique]
 
 
-def _valider_modele(modele: Mapping[str, Any]) -> tuple[list, list, list, dict[str, str]]:
+def _valider_modele(
+    modele: Mapping[str, Any],
+) -> tuple[list, list, list, dict[str, str], dict[str, str]]:
     lignes = modele.get("rows")
     colonnes = modele.get("columns")
     if not isinstance(lignes, list) or not lignes:
@@ -96,14 +109,13 @@ def _valider_modele(modele: Mapping[str, Any]) -> tuple[list, list, list, dict[s
     for ligne in lignes:
         if ligne.get("type") not in {"heading", "aggregate", "computed"}:
             raise ModeleEtatInvalide(f"type de rubrique inconnu : {ligne.get('type')}")
-        if ligne.get("assert"):
-            raise FormuleInvalide("les assertions seront activées par L0-T06, jamais ignorées")
     formules = {
         ligne["code"]: ligne.get("formula") for ligne in lignes if ligne.get("type") == "computed"
     }
     if any(not isinstance(formule, str) or not formule for formule in formules.values()):
         raise ModeleEtatInvalide("une rubrique computed exige une formule")
-    return lignes, colonnes, agregats, formules
+    assertions = {ligne["code"]: ligne["assert"] for ligne in lignes if ligne.get("assert")}
+    return lignes, colonnes, agregats, formules, assertions
 
 
 def _parametres_source(parametres: Mapping[str, Any]) -> tuple[str, tuple, int, int]:
@@ -226,10 +238,21 @@ def compiler(
     parametres: Mapping[str, Any],
 ) -> EtatCompile:
     """Compile tout l'état sans exécuter de requête."""
-    lignes, colonnes, agregats, formules = _valider_modele(modele)
+    lignes, colonnes, agregats, formules, assertions_brutes = _valider_modele(modele)
     source_where, source_params, annee, courante = _parametres_source(parametres)
     codes_connus = [ligne["code"] for ligne in lignes]
     ordre_formules = tuple(ordonner(formules, codes_connus))
+    assertions = {
+        code: analyser_assertion(expression, codes_connus)
+        for code, expression in assertions_brutes.items()
+    }
+    # Un même préfixe cité par deux assertions ne donne qu'une colonne : la
+    # promesse d'une requête unique vaut aussi pour ce qui la vérifie.
+    prefixes_balance = tuple(
+        dict.fromkeys(
+            prefixe for assertion in assertions.values() for prefixe in assertion.prefixes
+        )
+    )
     mappings_utilises = tuple(
         dict.fromkeys(
             ligne["select"].get("mapping")
@@ -278,6 +301,21 @@ def compiler(
             params_valeurs += [*selection.params_source, *params_condition]
             index_valeurs[(code, code_colonne)] = len(valeurs_sql) - 1
 
+    index_balances: dict[tuple[str, str], int] = {}
+    for prefixe in prefixes_balance:
+        for colonne in colonnes:
+            code_colonne = colonne["code"]
+            condition, params_condition = conditions_colonnes[code_colonne]
+            alias = f"balance_{len(index_balances)}"
+            valeurs_sql.append(
+                f"COALESCE(SUM(CASE WHEN compte LIKE %s AND ({condition}) "
+                f"THEN (debit - credit) ELSE 0 END), 0) AS {alias}"
+            )
+            # Le préfixe est validé à l'analyse : ni « % » ni « _ » n'y survit,
+            # donc rien à échapper ici.
+            params_valeurs += [f"{prefixe}%", *params_condition]
+            index_balances[(prefixe, code_colonne)] = len(valeurs_sql) - 1
+
     for i, _ in enumerate(mappings_utilises):
         valeurs_sql.append(
             f"ARRAY_AGG(DISTINCT compte) FILTER (WHERE mapping_{i} IS NULL "
@@ -308,6 +346,9 @@ def compiler(
         conditions_colonnes=conditions_colonnes,
         index_valeurs=index_valeurs,
         mappings_utilises=mappings_utilises,
+        assertions=assertions,
+        prefixes_balance=prefixes_balance,
+        index_balances=index_balances,
     )
 
 
@@ -324,7 +365,7 @@ def generer(
     if resultat is None:  # GROUP BY () produit normalement toujours une ligne.
         raise RuntimeError("La requête d'agrégation n'a produit aucun résultat")
 
-    debut_controles = len(etat.index_valeurs)
+    debut_controles = len(etat.index_valeurs) + len(etat.index_balances)
     comptes = []
     for i, _ in enumerate(etat.mappings_utilises):
         comptes += resultat[debut_controles + i] or []
@@ -343,9 +384,33 @@ def generer(
             valeurs[code][colonne] = evaluer(
                 etat.formules[code], valeurs_colonne, etat.codes_connus
             )
+    balances: dict[str, dict[str, Decimal]] = {colonne: {} for colonne in etat.colonnes}
+    for (prefixe, colonne), index in etat.index_balances.items():
+        solde = resultat[index]
+        balances[colonne][prefixe] = solde if isinstance(solde, Decimal) else Decimal(str(solde))
+
+    controles = tuple(
+        controler_assertion(
+            assertion,
+            {code_connu: valeurs[code_connu][colonne] for code_connu in etat.codes_connus},
+            etat.codes_connus,
+            balances[colonne],
+            rubrique=code,
+            colonne=colonne,
+        )
+        for code, assertion in etat.assertions.items()
+        for colonne in etat.colonnes
+    )
+    # Une assertion fausse arrête la génération. Un état incohérent qu'on
+    # publierait en signalant l'écart ailleurs serait un état incohérent publié.
+    if any(not controle.reussi for controle in controles):
+        raise AssertionsViolees(controles)
+
     return EtatProduit(
         code=modele["code"],
         version=modele.get("version"),
         colonnes=etat.colonnes,
         valeurs=valeurs,
+        controles=controles,
+        publiable=True,
     )
