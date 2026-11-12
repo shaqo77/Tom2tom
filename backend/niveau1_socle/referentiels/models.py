@@ -171,3 +171,39 @@ class ValeurDimension(ModeleOrganisation):
 
     def __str__(self) -> str:
         return self.code
+
+
+class NatureTiers(models.TextChoices):
+    FOURNISSEUR = "fournisseur", "Fournisseur ou prestataire"
+    BENEFICIAIRE = "beneficiaire", "Bénéficiaire"
+    PERSONNEL = "personnel", "Personnel"
+    BAILLEUR = "bailleur", "Bailleur"
+    AUTRE = "autre", "Autre"
+
+
+class Tiers(ModeleOrganisation):
+    """Tiers : fournisseur, bénéficiaire, personnel… Donnée personnelle (L2-T04).
+
+    Toute lecture passe par `tiers.consulter_tiers`, qui la journalise. Le nom
+    d'un tiers est une identité, pas un libellé traduisible : un champ simple.
+    """
+
+    code = models.CharField(max_length=20)
+    nature = models.CharField(max_length=12, choices=NatureTiers.choices)
+    nom = models.CharField(max_length=255)
+    identification = models.JSONField(default=dict)  # identifiant fiscal, adresse…
+    coordonnees_bancaires = models.JSONField(null=True, blank=True)
+    actif = models.BooleanField(default=True)
+    retention_until = models.DateField(null=True, blank=True)  # fin de conservation
+    anonymise_le = models.DateTimeField(null=True, blank=True)
+
+    class Meta:
+        constraints = [
+            models.UniqueConstraint(fields=["org_id", "code"], name="uq_tiers_code"),
+            models.CheckConstraint(
+                condition=Q(nature__in=NatureTiers.values), name="tiers_nature_ferme"
+            ),
+        ]
+
+    def __str__(self) -> str:
+        return self.code
