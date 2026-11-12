@@ -1,7 +1,8 @@
 """Mesure L0-T05 : TER sur 200 000 lignes, une seule requête.
 
 Depuis la racine : backend/.venv/bin/python scripts/mesurer_ter.py
-Préparer les données : generer_donnees --lignes 200000 --organisation A --projet 1 --purger
+Préparer les données : generer_donnees --lignes 200000 --organisation A --projet 1
+(sur une base vide : TRUNCATE comptabilite_ligneecriture, comptabilite_ecriture CASCADE)
 """
 
 import datetime

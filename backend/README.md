@@ -26,7 +26,7 @@ auquel elles retirent des droits.
 | Vérifier le projet | `./.venv/bin/python manage.py check` |
 | **Appliquer les migrations** | `./.venv/bin/python manage.py migrate --settings=config.settings.migrate` |
 | Créer une migration | `./.venv/bin/python manage.py makemigrations <app>` |
-| Générer des données de test | `./.venv/bin/python manage.py generer_donnees --lignes 200000 --purger` |
+| Générer des données de test | `./.venv/bin/python manage.py generer_donnees --lignes 200000` |
 | Tests | `./.venv/bin/pytest -q` |
 | Tests + couverture | `./.venv/bin/pytest -q --cov=core --cov=niveau4_reporting --cov-report=term` |
 | Style | `./.venv/bin/ruff check . && ./.venv/bin/ruff format .` |
@@ -37,7 +37,7 @@ Depuis `backend/`, générer exactement 200 000 lignes dans le périmètre du TE
 
 ```bash
 ./.venv/bin/python manage.py generer_donnees \
-  --lignes 200000 --organisation A --projet 1 --purger
+  --lignes 200000 --organisation A --projet 1
 ```
 
 Puis, depuis la racine du dépôt :

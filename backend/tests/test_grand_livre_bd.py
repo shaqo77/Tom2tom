@@ -115,8 +115,10 @@ def test_le_numero_est_unique_par_journal_et_exercice_et_libre_ailleurs(org_a):
     _poser(org_a)
     p1 = creer_piece(org_a, 2026, 1, PAIRE)
     assert p1.number == "OD-2026-000001"
-    with pytest.raises(IntegrityError), transaction.atomic():
-        Ecriture.objects.filter(pk=creer_piece(org_a, 2026, 2, PAIRE).pk).update(number=p1.number)
+    # Un brouillon peut porter un numéro : seule la contrainte d'unicité doit le refuser.
+    brouillon = creer_piece(org_a, 2026, 2, PAIRE, statut="draft")
+    with pytest.raises(IntegrityError, match="uq_ecriture_numero"), transaction.atomic():
+        Ecriture.objects.filter(pk=brouillon.pk).update(number=p1.number)
     assert creer_piece(org_a, 2027, 1, PAIRE).number == "OD-2027-000001"
     assert creer_piece(org_a, 2026, 1, PAIRE, journal="BQ").number == ("BQ-2026-000001")
 
@@ -171,12 +173,10 @@ def test_une_ligne_a_un_seul_sens_et_des_montants_positifs(org_a, champs):
 
 def test_deux_lignes_dune_meme_ecriture_ne_partagent_pas_leur_numero(org_a):
     _poser(org_a)
-    ecriture = creer_piece(
-        org_a, 2026, 1, [{"compte": "6011", "debit": "1"}, {"compte": "5211", "credit": "1"}]
-    )
+    ecriture = creer_piece(org_a, 2026, 1, PAIRE, statut="draft")
     assert list(ecriture.lignes.order_by("line_no").values_list("line_no", flat=True)) == [1, 2]
     ligne = ecriture.lignes.get(line_no=2)
-    with pytest.raises(IntegrityError), transaction.atomic():
+    with pytest.raises(IntegrityError, match="uq_ligne_numero"), transaction.atomic():
         LigneEcriture.objects.filter(pk=ligne.pk).update(line_no=1)
 
 

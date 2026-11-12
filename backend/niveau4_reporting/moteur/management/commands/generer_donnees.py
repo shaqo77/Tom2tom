@@ -52,7 +52,6 @@ class Command(BaseCommand):
 
     def add_arguments(self, parser):
         parser.add_argument("--lignes", type=int, default=200_000)
-        parser.add_argument("--purger", action="store_true")
         parser.add_argument(
             "--organisation",
             choices=("A", "B"),
@@ -79,13 +78,19 @@ class Command(BaseCommand):
         if projet and any(projet > len(PROJETS[org]) for org in organisations):
             raise CommandError("Le projet demandé n'existe pas pour l'organisation choisie.")
 
-        if opts["purger"]:
-            for org in organisations:
-                with connection.cursor() as cur:
-                    cur.execute("SET app.org_id = %s", [str(org)])
-                    # Les lignes d'abord : les écritures qu'elles référencent sont protégées.
-                    cur.execute("DELETE FROM comptabilite_ligneecriture")
-                    cur.execute("DELETE FROM comptabilite_ecriture")
+        # Les écritures comptabilisées sont immuables (L3-T03) : on ne les purge pas, même ici.
+        # Pour repartir de zéro, le propriétaire de la base exécute :
+        #   TRUNCATE comptabilite_ligneecriture, comptabilite_ecriture CASCADE;
+        for org in organisations:
+            with connection.cursor() as cur:
+                cur.execute("SET app.org_id = %s", [str(org)])
+            projets = [PROJETS[org][projet - 1]] if projet else PROJETS[org]
+            if Ecriture.objects.filter(project_id__in=projets).exists():
+                raise CommandError(
+                    "Des écritures existent déjà et sont immuables. Pour repartir de zéro, le "
+                    "rôle propriétaire exécute : TRUNCATE comptabilite_ligneecriture, "
+                    "comptabilite_ecriture CASCADE;"
+                )
 
         # L'isolation est ACTIVE : on insère organisation par organisation,
         # après avoir posé app.org_id. Une ligne portant un autre org_id
@@ -161,18 +166,16 @@ class Command(BaseCommand):
                 exercice=exercice,
                 periode=periode,
                 journal=journal,
-                number=f"OD-{annee}-{compteurs[cle]:06d}",
                 accounting_date=datetime.date(
                     annee, periode.date_debut.month, random.randint(1, 28)
                 ),
                 label="Pièce générée",
-                status="posted",
+                status="draft",
                 currency_id=devise,
                 fx_rate=taux,
                 origin="import",
-                posted_at=timezone.now(),
-                posted_by=uuid.UUID(int=0),
             )
+            ecriture.numero_prevu = f"OD-{annee}-{compteurs[cle]:06d}"
             ecritures.append(ecriture)
             commun = dict(
                 org_id=org,
@@ -217,9 +220,20 @@ class Command(BaseCommand):
 
     @staticmethod
     def _inserer(ecritures, lignes):
+        """Brouillons, puis lignes, puis comptabilisation : une écriture comptabilisée n'accepte
+        plus de ligne (L3-T03). Le tout dans une transaction : l'équilibre est vérifié au COMMIT."""
         with transaction.atomic():
             Ecriture.objects.bulk_create(ecritures)
             LigneEcriture.objects.bulk_create(lignes)
+            maintenant = timezone.now()
+            for ecriture in ecritures:
+                ecriture.status = "posted"
+                ecriture.number = ecriture.numero_prevu
+                ecriture.posted_at = maintenant
+                ecriture.posted_by = uuid.UUID(int=0)
+            Ecriture.objects.bulk_update(
+                ecritures, ["status", "number", "posted_at", "posted_by"], batch_size=1000
+            )
 
     def _verifier(self, n, organisations=ORGS):
         resultats = []

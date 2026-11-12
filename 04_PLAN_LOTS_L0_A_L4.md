@@ -632,6 +632,14 @@ Plus un déclencheur symétrique refusant toute insertion ou modification dans u
 
 **Contrôle.** `UPDATE` sur une écriture comptabilisée → exception. `INSERT` dans une période close → exception. Aucune exception administrateur n'existe.
 
+> **Réalisation de L3-T03.** Deux déclencheurs `BEFORE` (écritures, lignes), valables pour tout rôle : un test exécute les mêmes opérations avec le rôle propriétaire (`BYPASSRLS`) et obtient le même refus. Écarts et précisions par rapport au texte du plan :
+> - **Le verrouillage reste possible.** `posted` → `locked` est autorisé, mais seulement s'il ne change que le statut (même dans une période close) : sans cela, `locked` serait inatteignable. `locked` → `posted` est refusé.
+> - **Les lignes sont protégées aussi** : on ne modifie, supprime ni n'ajoute une ligne d'une écriture comptabilisée. Une écriture naît donc en brouillon, reçoit ses lignes, puis change de statut ; la suppression en cascade d'une écriture comptabilisée est refusée.
+> - **Un brouillon laissé dans une période devenue close est figé** (ni modifié, ni comptabilisé, ni supprimé). La clôture mensuelle de L3-T08 devra donc refuser de clore tant qu'il reste des brouillons.
+> - **Cohérence date et période** : la date comptable tombe dans la période de l'écriture, et la période appartient à l'exercice de l'écriture.
+> - **Pas de retrait de droits au rôle applicatif** (prévu au §3.4 de l'architecture) : les brouillons se modifient et se suppriment, et retirer `UPDATE` au propriétaire d'une table lui retire aussi le verrou de clé étrangère.
+> - Le générateur de données ne purge plus : repartir de zéro se fait par `TRUNCATE` du propriétaire.
+
 ---
 
 ### L3-T04 — Numérotation sans trou

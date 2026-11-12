@@ -153,6 +153,7 @@ def creer_piece(
     utilisateur_id=None,
     journal="OD",
     jour=15,
+    reverses=None,
 ):
     """Crée une écriture et ses lignes. Un `statut` comptabilisé reçoit son numéro."""
     assurer_devises()
@@ -162,27 +163,23 @@ def creer_piece(
         jrn, _ = Journal.objects.get_or_create(
             org_id=org_id, code=journal, defaults={"label": {"fr": journal}}
         )
-        numero = None
         comptabilisee = statut in ("posted", "locked")
-        if comptabilisee:
-            deja = Ecriture.objects.filter(journal=jrn, exercice=exercice).count()
-            numero = f"{journal}-{annee}-{deja + 1:06d}"
+        # Une écriture naît en brouillon, reçoit ses lignes, puis change de statut : une
+        # écriture déjà comptabilisée n'accepte plus de ligne (L3-T03).
         ecriture = Ecriture.objects.create(
             org_id=org_id,
             project_id=project_id,
             exercice=exercice,
             periode=per,
             journal=jrn,
-            number=numero,
             accounting_date=datetime.date(annee, per.date_debut.month, min(jour, 28)),
             label="Pièce de test",
-            status=statut,
+            status="draft",
             currency_id=devise,
             fx_rate=Decimal(str(taux)),
             origin="saisie",
-            posted_at=timezone.now() if comptabilisee else None,
-            posted_by=(utilisateur_id or uuid.uuid4()) if comptabilisee else None,
             created_by=utilisateur_id,
+            reverses=reverses,
         )
         for numero_ligne, ligne in enumerate(lignes, start=1):
             LigneEcriture.objects.create(
@@ -209,4 +206,17 @@ def creer_piece(
                 currency_id=devise,
                 fx_rate=Decimal(str(taux)),
             )
+        if statut != "draft":
+            champs = {"status": "posted" if statut == "locked" else statut}
+            if comptabilisee:
+                deja = Ecriture.objects.filter(journal=jrn, exercice=exercice).count()
+                champs |= {
+                    "number": f"{journal}-{annee}-{deja:06d}",
+                    "posted_at": timezone.now(),
+                    "posted_by": utilisateur_id or uuid.uuid4(),
+                }
+            Ecriture.objects.filter(pk=ecriture.pk).update(**champs)
+            if statut == "locked":
+                Ecriture.objects.filter(pk=ecriture.pk).update(status="locked")
+    ecriture.refresh_from_db()
     return ecriture
