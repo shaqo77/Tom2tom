@@ -131,6 +131,63 @@ Service `activer_exigence()` : `proposed` → `validated` → `active`, transiti
 
 ---
 
+**Compléments à L5-T04 (issus de l'examen des dossiers « bailleurs et conventions »).**
+
+1. **Un seul profil actif à la fois, garanti par la base.** Contrainte `EXCLUDE USING gist` sur `(org_id, agreement_id, daterange(valid_from, valid_to, '[)'))` pour les versions `active` du profil de décaissement, et sur `(org_id, project_id, code, daterange(…))` pour les exigences. Convention de dates : guide §B.6.
+2. **Immutabilité par déclencheur.** Les tables `disbursement_method`, `designated_account_rule`, `category_funding_rule` refusent toute modification dès que le profil parent n'est plus `draft`.
+3. **Rejet motivé.** Les statuts du profil gagnent `rejected` (motif obligatoire). Pas d'autre statut : « programmé » reste une version `active` dont `valid_from` est futur.
+4. **Version persistée sur l'opération.** À chaque contrôle ou validation d'une dépense ou d'une demande, on enregistre `profile_version_id` (le profil résolu à la date de l'opération) à côté de `category_funding_rule_id`. Sans cela, on retrouve la règle de taux mais pas le régime ni les seuils en vigueur.
+
+**Contrôles.**
+
+```
+[ ] Deux versions actives qui se chevauchent : refusées par la base, pas par le code
+[ ] Version de profil approuvée : UPDATE et DELETE d'une méthode refusés, y compris en SQL direct
+[ ] Dépense du 15/06 contrôlée sous V2, accord passé en V3 en décembre : la dépense garde V2
+[ ] Activation concurrente de deux versions incompatibles : une seule aboutit
+```
+
+---
+
+### L5-T04bis — Réallocations, avenants, complétude et comparaison
+
+**Fichiers.** `backend/niveau3_config/models.py`, `services/reallocation.py`, `services/completude.py`, `services/comparaison.py`
+
+**1. La réallocation est un événement, pas une modification.** Modèle `Reallocation` : accord, catégorie source, catégorie cible, montant, devise, demandeur, **approbateur distinct du demandeur**, motif, document justificatif, statut (`demandée` · `approuvée` · `rejetée`), et **la version de profil qu'elle crée** à l'approbation, avec date d'effet. Notre principe reste : une réallocation crée une version du profil (spécification §5.3-E). Ce qui s'ajoute, c'est la trace du transfert et de son approbation.
+
+```
+approuver_reallocation(r):
+    verrouiller (FOR UPDATE) les deux catégories
+    refuser si approbateur == demandeur
+    refuser si le solde de la catégorie source < montant
+    créer la nouvelle version du profil (allocations modifiées, valid_from = date d'effet)
+    écrire l'audit et lier r à la version créée
+```
+
+**2. Avenant d'accord.** Le modèle `AvenantAccord` est défini en L4-T04. Ici on branche son effet : enregistrer un avenant crée, dans la même transaction, la nouvelle version de profil (montant, dates, allocations) et le lie à l'avenant.
+
+**3. Contrôle de complétude avant soumission.** `verifier_completude(profil)` renvoie des erreurs **bloquantes** (accord ou bailleur absent, dates incohérentes, aucune catégorie, allocations dont la somme dépasse le montant de l'accord, devise de référence absente, méthode activée sans pièces exigées, exigence critique sans source documentaire, chevauchement de période) et des **avertissements** acceptables avec justification selon les droits. Une erreur bloquante interdit la soumission. Le même service alimente l'assistant d'extraction et le guide généré (L5-T07).
+
+> Le budget du projet n'est **pas** présumé entièrement financé par les bailleurs : un écart entre budget et financements contractualisés est une information, jamais une erreur bloquante.
+
+**4. Comparaison de deux versions.** `comparer_versions(a, b)` liste les paramètres, méthodes, taux, catégories et règles **identiques, modifiés, ajoutés, supprimés**. Même mécanique que la régénération par différentiel (L6-T04), appliquée à la configuration. Elle sert au « avant / après avenant » et au dossier de conformité.
+
+**5. Concurrence.** Deux réallocations simultanées sur la même catégorie source ne peuvent pas toutes deux aboutir (verrou ci-dessus) ; deux approbations concurrentes de la même réallocation n'en produisent qu'une (contrainte d'unicité sur la version créée).
+
+**Contrôles.**
+
+```
+[ ] Réallocation approuvée : nouvelle version créée, ancienne conservée, demandes antérieures inchangées
+[ ] Demandeur == approbateur : refusé au serveur
+[ ] Deux réallocations simultanées sur une même catégorie : solde exact, une seule aboutit si le solde ne couvre pas les deux
+[ ] Double approbation concurrente : une seule version créée
+[ ] Avenant : situation avant / après affichable, ancienne version intacte
+[ ] Profil incomplet : soumission refusée, chaque manque nommé
+[ ] Comparaison V1 / V2 : les quatre catégories de différences sont détectées
+```
+
+---
+
 ### L5-T05 — Profils de bailleurs
 
 **Fichier.** `backend/niveau2_profils/`
@@ -190,6 +247,40 @@ Bibliothèque livrée — huit familles :
 
 **Contrôle.** Chaque contrôle livré a un test qui le déclenche **et** un test qui prouve qu'il ne se déclenche pas à tort.
 
+**Condition structurée, jeu d'opérateurs fermé.** L'`expression` d'un contrôle n'est jamais du texte libre : c'est une condition JSON évaluée en Python avec des `Decimal`, validée par un **schéma propre à chaque type de règle**. Opérateurs autorisés, et aucun autre :
+
+| Opérateur | Sens |
+|---|---|
+| `eq`, `neq` | égal, différent |
+| `gt`, `gte`, `lt`, `lte` | comparaisons |
+| `in`, `not_in` | appartenance à une liste |
+| `est_renseigne`, `est_absent` | valeur présente ou non |
+| `avant`, `apres`, `entre` | dates ; `entre` est semi-ouvert `[du, au[` |
+| `est_vrai`, `est_faux` | booléens |
+| `somme_lte` | somme inférieure ou égale à une limite |
+| `nombre_eq` | nombre d'éléments égal à une valeur |
+
+Aucune requête SQL, aucun JavaScript, aucun `eval`/`exec` (règle 5). Une condition qui sort du schéma est refusée à l'enregistrement.
+
+**Résultats.** `réussi` · `bloquant` · `avertissement` · `information` · **`à_vérifier`** (contrôle non automatisable, vérification humaine requise ; ne laisse pas passer l'étape 5 tant qu'il n'est pas tranché). Un contrôle conditionnel non applicable est noté `non_applicable` **dans le journal seulement**, pas dans l'interface.
+
+**Journal de chaque évaluation.** Règle, version du profil, valeur constatée, valeur attendue, résultat, message, action corrective, exigence et clause sources, date, déclencheur (utilisateur ou service). Le moteur est **appelé** par la comptabilité, les dépenses, les marchés et les demandes ; aucun module ne réimplémente ses règles.
+
+**Pièces exigées.** Une pièce requise est une règle de ce moteur (type de pièce, portée : catégorie, méthode, seuil de montant, type de dépense), pas une table de plus. Le contrôle vérifie la présence d'un document **du bon type, rattaché à l'opération**, et validé lorsque la règle l'exige. Il n'existe pas de liste universelle de justificatifs.
+
+**Contrôles de risque (sans module dédié).** Trois contrôles livrés, de sévérité `avertissement` ou `information` : catégorie consommée au-delà d'un seuil paramétré, avance non apurée depuis plus d'un délai paramétré, rejets répétés sur une même catégorie.
+
+**Codes d'erreur stables.** Énumération `CodeErreur`, en français, renvoyée par l'API : `ACCES_ORGANISATION_REFUSE`, `ACCES_PROJET_REFUSE`, `ACCORD_INTROUVABLE`, `AUCUNE_CONFIGURATION_A_LA_DATE`, `CONFIGURATION_NON_APPROUVEE`, `CONFLIT_DE_PERIODE`, `REGLE_INVALIDE`, `CONTROLE_BLOQUANT`, `PIECE_OBLIGATOIRE`, `SOLDE_CATEGORIE_INSUFFISANT`, `APPROBATION_REQUISE`, `TRANSITION_INTERDITE`. Les messages ne révèlent jamais l'existence de données d'une autre organisation.
+
+**Contrôles supplémentaires.**
+
+```
+[ ] Condition hors schéma ou opérateur inconnu : refusée à l'enregistrement
+[ ] Contrôle « à_vérifier » non tranché : étape 5 inaccessible
+[ ] Pièce du mauvais type ou non rattachée à l'opération : refusée comme absente
+[ ] Chaque évaluation laisse une ligne de journal avec la version du profil
+```
+
 ---
 
 ### L6-T02 — Le workflow de validation
@@ -208,6 +299,19 @@ Bibliothèque livrée — huit familles :
 **Blocage dur :** aucun passage à l'étape 5 tant qu'un contrôle `bloquant` est ouvert et non justifié. Une justification est obligatoirement textuelle, nominative et conservée.
 
 **Contrôle.** Un contrôle bloquant non traité rend l'étape 5 inaccessible — vérifié au serveur, pas seulement masqué dans l'interface.
+
+**Dérogation formelle.** Distincte de la justification : une justification **explique** une anomalie, une dérogation **autorise** à poursuivre malgré un contrôle bloquant. Modèle `Derogation` : contrôle et opération visés (périmètre limité à cet objet), motif, durée de validité, demandeur, **approbateur distinct et habilité**, document justificatif. Le **résultat initial du contrôle n'est jamais effacé ni réécrit** : l'opération apparaît comme « bénéficiant d'une dérogation approuvée », et les deux lignes (échec, dérogation) figurent au dossier de conformité et au journal d'audit.
+
+**Circuit borné.** Conformément à la note 06 §3.2 : 1 à 5 étapes, chacune avec un rôle requis, une condition d'entrée optionnelle (seuil de montant, catégorie, bailleur) et un motif obligatoire en cas de rejet. Pas de moteur de processus général.
+
+**Contrôles.**
+
+```
+[ ] Dérogation par son propre demandeur : refusée
+[ ] Dérogation expirée ou hors périmètre : le contrôle bloque de nouveau
+[ ] Après dérogation, le résultat initial « bloquant » reste lisible dans l'historique
+[ ] Deux approbations concurrentes d'une même demande : une seule prend effet
+```
 
 ---
 
@@ -453,6 +557,8 @@ Comptes bancaires, mouvements, prévisions par période et par axe, disponibilit
 
 **Contrôle.** L'état de reconstitution du compte désigné se rapproche du relevé bancaire, et tout écart est explicitement justifié.
 
+**Rapprochements et doublons.** Un mouvement bancaire est rapprochable d'une demande de décaissement et d'une écriture, **une seule fois** : contrainte d'unicité empêchant qu'un même mouvement soit rapproché de deux demandes. Les numéros de compte restent masqués sans l'habilitation `voir_numero_compte` (L4-T04).
+
 ---
 
 # LOT L10 — MULTI-BAILLEURS ET TABLEAU DE BORD
@@ -473,9 +579,15 @@ Chaque indicateur est **cliquable jusqu'au détail, puis jusqu'à l'écriture**.
 
 **Contrôle.** Le total d'un indicateur consolidé égale exactement la somme de ses détails par projet.
 
+**Devises.** Le tableau de bord **ne somme jamais des devises différentes sans le dire** : par défaut, montants ventilés par devise. Une consolidation dans une devise de référence affiche, à côté du chiffre, **la méthode, la date et le taux** utilisés ; sans taux disponible à la date, l'indicateur n'est pas consolidé et le dit. Filtres : organisation, projet, bailleur, accord, devise, période, statut d'accord, statut de configuration.
+
+**Contrôle.** Un portefeuille USD + EUR sans taux affiche deux totaux séparés, jamais un total mélangé.
+
 ### L10-T03 — Recette d'architecture
 
-Exécuter les quatorze tests de réception de la [spécification fonctionnelle](01_SPECIFICATION_FONCTIONNELLE.md) §17, dont les sept du cahier des charges de l'unité de gestion.
+Exécuter les dix-sept tests de réception (T1 à T17) de la [spécification fonctionnelle](01_SPECIFICATION_FONCTIONNELLE.md) §17, dont les sept du cahier des charges de l'unité de gestion.
+
+**Scénario T17, de référence (chiffres fictifs).** Un même projet financé par deux bailleurs au moyen de deux accords indépendants (par exemple 5 millions USD et 3 millions USD) : chacun avec sa configuration issue d'un profil, ses catégories, ses taux, ses pièces et son reporting ; une dépense sur chaque accord contrôlée **par ses propres règles** ; un avenant sur le premier crée une nouvelle version **sans effet sur le second** ; une dépense antérieure à l'avenant **conserve la version** qui était applicable à sa date ; un accès croisé d'une autre organisation est refusé.
 
 > **Le critère qui prime sur tous les autres :** la solution est acceptée si elle démontre qu'un nouveau projet, un nouveau bailleur ou un nouveau modèle de reporting s'ajoute **par paramétrage**, sans application distincte et sans duplication des données comptables.
 
@@ -617,7 +729,15 @@ RÉVERSIBILITÉ
 [ ] Import rejoué trois fois : aucun doublon
 [ ] Export → instance vierge → rapport régénéré identique
 
-ARCHITECTURE (les 14 tests de réception)
+CONFIGURATION DES ACCORDS
+[ ] Deux versions actives qui se chevauchent : refusées par la base
+[ ] Version approuvée : modification d'une table enfant refusée, SQL direct compris
+[ ] Réallocation : événement tracé, approbateur ≠ demandeur, version créée
+[ ] Profil incomplet : soumission refusée, manques nommés
+[ ] Dérogation : résultat initial conservé, périmètre et durée limités
+[ ] Concurrence : réallocations, soumissions, approbations, activations
+
+ARCHITECTURE (les 17 tests de réception, T1 à T17)
 [ ] Nouveau projet, nouveau bailleur, nouveau modèle : par PARAMÉTRAGE,
     sans application distincte et sans duplication des données
 ```

@@ -402,6 +402,10 @@ def test_toute_table_avec_org_id_a_sa_politique():
 
 ---
 
+> **Ajout au contrôle de L1-T02 — modification de `org_id`.** Un `UPDATE … SET org_id = <autre organisation>` doit être **refusé** (la clause `WITH CHECK` de la politique) sur chaque table. Test en `django_db(transaction=True)`, périmètre posé par `SET` de session, comme les autres tests d'isolation. Il complète le test de lecture croisée.
+
+---
+
 ### L1-T03 — Le journal d'audit chaîné
 
 **But.** Un journal que personne ne peut altérer sans que cela se voie.
@@ -738,7 +742,17 @@ Paramétrable **par axe** : `bloquant` / `avertissement` / `inactif`. Appliqué 
 
 ### L4-T04 — Bailleurs, accords, catégories
 
-`Bailleur` · `Accord` (prêt, don, contrepartie ; devise, montant, dates) · `Categorie` (plafond, réallocations) · `CompteDesigne` (devise, banque, plafond, seuil).
+`Bailleur` · `Accord` (prêt, don, contrepartie ; devise, montant initial et **montant révisé**, dates) · `Categorie` (plafond, **sous-catégories par `parent`**, devise ; identité stable d'une version de profil à l'autre) · `CompteBancaire` (devise, banque, plafond, seuil) · `AvenantAccord`.
+
+**Statuts de l'accord :** `brouillon` · `actif` · **`suspendu`** · `clos` · `annulé`. Un accord `suspendu` bloque toute **nouvelle** demande de décaissement et toute nouvelle imputation sans être clos ; ses opérations historiques restent consultables. Un accord portant des opérations ne se supprime jamais.
+
+**Contraintes.** Numéro d'accord unique par organisation ; projet et bailleur de la même organisation (clé étrangère composite `(org_id, id)`) ; montants positifs ou nuls ; dates cohérentes (date d'effet ≤ fin d'éligibilité ≤ clôture ≤ date limite de décaissement, quand elles sont renseignées).
+
+**Comptes bancaires.** Type de compte : `désigné` · `spécial` · `opérationnel` · `contrepartie` · `transit`, ensemble fermé contraint en base. Le **numéro complet** n'est visible que d'une habilitation dédiée (`voir_numero_compte`) ; partout ailleurs il est masqué. Mêmes règles d'audit en lecture que pour les données de tiers.
+
+**`AvenantAccord`.** Référence, date, `DocumentReference` signé, montant révisé de l'accord, et **la version de profil de décaissement créée à la suite** (voir L5-T04bis). L'application doit pouvoir afficher la situation de l'accord avant et après l'avenant. Un avenant ne modifie jamais un accord en place : il porte la nouvelle valeur et la nouvelle version.
+
+**Contrôle.** Deux accords du même bailleur sur le même projet coexistent sans partager ni catégories ni paramètres ; un accord suspendu refuse une nouvelle demande ; un numéro de compte n'est lisible que par l'habilitation dédiée.
 
 ---
 
@@ -791,6 +805,12 @@ def test_la_ventilation_conserve_toujours_le_total(montant, parts):
 
 **Contrôle.** Une dépense déjà justifiée dans une demande antérieure ne peut **pas** être sélectionnée une seconde fois.
 
+**Rejets et litiges.** Une demande rejetée porte un **motif de rejet obligatoire** ; une demande contestée prend le statut `contestée`. Une demande représentée référence la précédente (`reprise_de`) : le contrôle anti-doublon ci-dessus reste appliqué, la dépense rejetée redevient sélectionnable **uniquement** par ce lien. Une régularisation est une opération nouvelle, jamais la modification de la demande d'origine.
+
+**Concurrence.** Deux demandes consommant simultanément le même disponible de catégorie ne peuvent pas toutes deux aboutir : verrou de ligne sur le solde de catégorie, et clé d'idempotence sur la soumission (une double soumission ne crée qu'une demande).
+
+**Contrôle de concurrence.** Dix soumissions simultanées sur un disponible qui n'en autorise que trois : exactement trois acceptées, solde final exact au centime.
+
 ---
 
 ### L4-T07 — Suivi des avances
@@ -811,6 +831,10 @@ Avances non justifiées, délais applicables, alertes. Alimente le contrôle « 
 [ ] Ventilation de cofinancement conservative (test de propriété)
 [ ] Soldes budgétaires incrémentaux == recalcul complet
 [ ] Les états de référence de L0 passent toujours
+[ ] UPDATE de org_id vers une autre organisation refusé sur toutes les tables
+[ ] Soumissions concurrentes sur un même disponible : aucune sur-consommation
+[ ] Accord suspendu : nouvelle demande refusée
+[ ] Numéro de compte bancaire masqué sans l'habilitation dédiée
 ```
 
 ---
