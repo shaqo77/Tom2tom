@@ -145,16 +145,19 @@ cd infra && docker compose up -d && cd ..
 L'application **ne doit jamais** se connecter avec le propriétaire des tables. C'est ce qui rend l'isolation des organisations réellement étanche.
 
 ```bash
-docker compose -f infra/docker-compose.yml exec db psql -U sigf_owner -d sigf -c "
-CREATE ROLE sigf_app LOGIN PASSWORD 'dev_only_change_me';
-GRANT CONNECT ON DATABASE sigf TO sigf_app;
-GRANT USAGE ON SCHEMA public TO sigf_app;
-ALTER DEFAULT PRIVILEGES FOR ROLE sigf_owner IN SCHEMA public
-  GRANT SELECT, INSERT, UPDATE, DELETE ON TABLES TO sigf_app;
-ALTER DEFAULT PRIVILEGES FOR ROLE sigf_owner IN SCHEMA public
-  GRANT USAGE, SELECT ON SEQUENCES TO sigf_app;
-"
+scripts/bootstrap_db.sh
 ```
+
+Le script lit `backend/.env`, se connecte avec le rôle propriétaire et
+exécute `infra/sql/00_bootstrap_roles.sql` : création du schéma applicatif
+`sigf`, du rôle `sigf_app`, et des privilèges par défaut qui rendront
+lisibles au rôle applicatif les tables que les migrations créeront ensuite.
+Il est rejouable sans dommage et aligne le mot de passe du rôle applicatif
+sur celui de `DATABASE_URL` — une seule source, donc pas de désaccord
+possible entre les deux.
+
+Il s'exécute **avant la première migration**, puisque `core.0002` retire des
+droits à `sigf_app` et que `core.0004` échoue explicitement si le rôle manque.
 
 | Rôle | Usage | Jamais utilisé pour |
 |---|---|---|
@@ -164,6 +167,42 @@ ALTER DEFAULT PRIVILEGES FOR ROLE sigf_owner IN SCHEMA public
 > **Pourquoi.** Le propriétaire d'une table contourne les politiques de sécurité au niveau ligne, sauf si l'on force explicitement. Nous forçons **et** nous utilisons un rôle non propriétaire : deux barrières plutôt qu'une.
 
 **Contrôle A.4.1 :** `psql -U sigf_app -d sigf -c "select current_user"` répond `sigf_app`.
+
+### A.4.2 Si la base est hébergée sur Supabase
+
+Rien ne change au socle : Supabase est un PostgreSQL managé, et la sécurité au
+niveau ligne que nous employons y est native. Deux précautions s'imposent
+néanmoins, et elles sont la raison d'être du schéma `sigf`.
+
+Sur une instance Supabase, le schéma `public` est **servi par l'API REST au
+rôle anonyme**, dont la clé est publiée au navigateur ; et tout objet que le
+propriétaire y crée reçoit automatiquement tous les droits pour ce rôle. Les
+tables techniques de Django — sessions, utilisateurs — n'ont aucune politique
+d'isolation : les laisser dans `public` reviendrait à les publier. On pose donc
+`DB_SCHEMA=sigf`, et l'API ne voit plus rien. Le rôle `service_role`, qui
+contourne la sécurité au niveau ligne, est révoqué du schéma par `core.0004`.
+
+L'accès direct `db.<ref>.supabase.co` n'a plus d'adresse IPv4 : on passe par le
+pooler en mode session (port 5432), qui préfixe le rôle de la référence du
+projet — `sigf_app.<ref>`. Le mode transaction (port 6543) convient au service
+mais pas aux migrations.
+
+```bash
+# backend/.env
+DB_SCHEMA=sigf
+DB_SSLMODE=require
+DATABASE_URL=postgres://sigf_app.<ref>:<mdp>@aws-1-<region>.pooler.supabase.com:5432/postgres
+DATABASE_OWNER_URL=postgres://postgres.<ref>:<mdp>@aws-1-<region>.pooler.supabase.com:5432/postgres
+```
+
+**Contrôle A.4.2 :** une requête sur l'API publique répond `404` pour chacune
+des tables, qu'elle porte ou non une politique d'isolation :
+
+```bash
+curl -s -o /dev/null -w '%{http_code}\n' \
+  "https://<ref>.supabase.co/rest/v1/moteur_ligneecriture?select=*" \
+  -H "apikey: <clé anonyme>"
+```
 
 ## A.5 Projet Django
 

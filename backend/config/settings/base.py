@@ -48,9 +48,28 @@ TEMPLATES = [
     }
 ]
 
-DATABASES = {"default": env.db("DATABASE_URL")}
-# Chaque requête HTTP est UNE transaction : « SET LOCAL » ne vit pas au-delà.
-DATABASES["default"]["ATOMIC_REQUESTS"] = True
+# Le schéma applicatif ne vit pas dans « public ». Voir infra/sql/00_bootstrap_roles.sql :
+# sur une instance Supabase, « public » est servi au rôle anonyme par l'API REST.
+DB_SCHEMA = env("DB_SCHEMA", default="")
+DB_SSLMODE = env("DB_SSLMODE", default="")
+
+
+def configurer_base(variable: str) -> dict:
+    """Lit une URL de connexion et y applique les réglages communs."""
+    reglages = env.db(variable)
+    # Chaque requête HTTP est UNE transaction : « SET LOCAL » ne vit pas au-delà.
+    reglages["ATOMIC_REQUESTS"] = True
+    options = reglages.setdefault("OPTIONS", {})
+    if DB_SSLMODE:
+        options["sslmode"] = DB_SSLMODE
+    if DB_SCHEMA:
+        # Posé à la connexion, donc valable pour toute requête, y compris
+        # celles que Django émet avant tout middleware.
+        options["options"] = f"-c search_path={DB_SCHEMA},public"
+    return reglages
+
+
+DATABASES = {"default": configurer_base("DATABASE_URL")}
 
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 USE_TZ = True

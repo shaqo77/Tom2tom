@@ -23,19 +23,22 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - uses: astral-sh/setup-uv@v3
-      - name: Créer le rôle applicatif
-        run: |
-          PGPASSWORD=ci psql -h localhost -U sigf_owner -d sigf -v ON_ERROR_STOP=1 -c "
-            CREATE ROLE sigf_app LOGIN PASSWORD 'ci' CREATEDB;
-            GRANT CONNECT ON DATABASE sigf TO sigf_app;
-            GRANT USAGE ON SCHEMA public TO sigf_app;
-            ALTER DEFAULT PRIVILEGES FOR ROLE sigf_owner IN SCHEMA public
-              GRANT SELECT, INSERT, UPDATE, DELETE ON TABLES TO sigf_app;
-            ALTER DEFAULT PRIVILEGES FOR ROLE sigf_owner IN SCHEMA public
-              GRANT USAGE, SELECT ON SEQUENCES TO sigf_app;"
       - name: Dépendances
         working-directory: backend
         run: uv venv --python 3.12 .venv && uv pip install -r pyproject.toml --group dev
+      - name: Amorcer le cluster
+        run: |
+          scripts/bootstrap_db.sh
+          # La suite de tests crée sa propre base : ce droit lui est propre et
+          # n'appartient pas à l'amorçage, qui décrit un cluster de service.
+          PGPASSWORD=ci psql -h localhost -U sigf_owner -d sigf -v ON_ERROR_STOP=1 \
+            -c "ALTER ROLE sigf_app CREATEDB;
+                GRANT CONNECT ON DATABASE sigf TO sigf_app;
+                GRANT USAGE ON SCHEMA public TO sigf_app;
+                ALTER DEFAULT PRIVILEGES FOR ROLE sigf_owner IN SCHEMA public
+                  GRANT SELECT, INSERT, UPDATE, DELETE ON TABLES TO sigf_app;
+                ALTER DEFAULT PRIVILEGES FOR ROLE sigf_owner IN SCHEMA public
+                  GRANT USAGE, SELECT ON SEQUENCES TO sigf_app;"
       - name: Style
         working-directory: backend
         run: ./.venv/bin/ruff check . && ./.venv/bin/ruff format --check .
