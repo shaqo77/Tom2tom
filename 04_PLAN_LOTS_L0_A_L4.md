@@ -666,6 +666,13 @@ Le numéro est attribué **à la comptabilisation**, jamais à la création du b
 
 **Contrôle.** Comptabilisez 1 000 écritures depuis 10 processus en parallèle, dont 100 transactions annulées : la suite est `000001` à `000900`, **sans trou ni doublon**.
 
+> **Réalisation de L3-T04.** Le numéro n'est pas attribué par `attribuer_numero()` en Python mais par un **déclencheur** `BEFORE UPDATE` de la base, dans la transaction de la comptabilisation : la règle 3 (aucun trou) doit tenir quel que soit l'appelant. Même algorithme que le plan (compteur par journal et exercice, verrou consultatif, `INSERT … ON CONFLICT DO UPDATE`), avec en plus :
+> - l'appelant **ne choisit jamais** le numéro (il est refusé s'il en fournit un) ; une écriture naît en brouillon, sans numéro, et se comptabilise par changement de statut ;
+> - le compteur ne bouge que de +1 et ne se supprime pas ;
+> - `trous_de_numerotation(journal, exercice)` détecte un trou fabriqué hors des déclencheurs (administrateur qui les contourne).
+>
+> Le contrôle est exécuté avec dix **sessions** concurrentes (fils, chacun avec sa connexion), pas dix processus : pour PostgreSQL c'est équivalent. Remplacer le compteur par une séquence PostgreSQL fait échouer ce test, ce qui confirme l'argument du plan. Limite connue : une transaction qui comptabilise des écritures de deux journaux en ordre inverse d'une autre peut provoquer un interblocage (PostgreSQL en annule une).
+
 ---
 
 ### L3-T05 — Saisie, validation, comptabilisation

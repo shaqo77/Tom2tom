@@ -11,10 +11,13 @@ texte. Les tests qui filtrent sur un accord utilisent `id_objet("IDA-6789")` cô
 """
 
 import datetime
+import os
+import urllib.parse
 import uuid
 from decimal import Decimal
 from types import SimpleNamespace
 
+import psycopg
 from django.db import connection, transaction
 from django.utils import timezone
 
@@ -209,9 +212,8 @@ def creer_piece(
         if statut != "draft":
             champs = {"status": "posted" if statut == "locked" else statut}
             if comptabilisee:
-                deja = Ecriture.objects.filter(journal=jrn, exercice=exercice).count()
+                # Le numéro est attribué par la base à ce changement de statut (L3-T04).
                 champs |= {
-                    "number": f"{journal}-{annee}-{deja:06d}",
                     "posted_at": timezone.now(),
                     "posted_by": utilisateur_id or uuid.uuid4(),
                 }
@@ -220,3 +222,21 @@ def creer_piece(
                 Ecriture.objects.filter(pk=ecriture.pk).update(status="locked")
     ecriture.refresh_from_db()
     return ecriture
+
+
+def connexion_proprietaire():
+    """Une connexion du rôle propriétaire (BYPASSRLS) sur la base de test, en autocommit.
+
+    Sert à vérifier qu'une garantie vaut pour tout rôle, ou à fabriquer hors déclencheurs un
+    état que seul un administrateur malveillant pourrait produire (pour tester un détecteur).
+    """
+    url = urllib.parse.urlparse(os.environ["DATABASE_OWNER_URL"])
+    reglages = connection.settings_dict
+    return psycopg.connect(
+        host=reglages["HOST"] or url.hostname,
+        port=reglages["PORT"] or url.port,
+        dbname=reglages["NAME"],
+        user=url.username,
+        password=url.password,
+        autocommit=True,
+    )

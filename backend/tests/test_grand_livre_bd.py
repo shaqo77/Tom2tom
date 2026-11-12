@@ -3,11 +3,12 @@
 import uuid
 from decimal import Decimal
 
+import psycopg
 import pytest
 from django.db import IntegrityError, connection, transaction
 
 from niveau1_socle.comptabilite.models import Ecriture, LigneEcriture
-from tests.outils import creer_ligne, creer_piece, id_objet
+from tests.outils import connexion_proprietaire, creer_ligne, creer_piece, id_objet
 
 pytestmark = pytest.mark.django_db(transaction=True)
 
@@ -112,15 +113,21 @@ def test_une_ecriture_comptabilisee_est_numerotee_horodatee_et_attribuee(org_a):
 
 
 def test_le_numero_est_unique_par_journal_et_exercice_et_libre_ailleurs(org_a):
+    """L'attribution est testée en L3-T04 ; ici, l'index unique, déclencheurs contournés."""
     _poser(org_a)
     p1 = creer_piece(org_a, 2026, 1, PAIRE)
-    assert p1.number == "OD-2026-000001"
-    # Un brouillon peut porter un numéro : seule la contrainte d'unicité doit le refuser.
-    brouillon = creer_piece(org_a, 2026, 2, PAIRE, statut="draft")
-    with pytest.raises(IntegrityError, match="uq_ecriture_numero"), transaction.atomic():
-        Ecriture.objects.filter(pk=brouillon.pk).update(number=p1.number)
+    p2 = creer_piece(org_a, 2026, 2, PAIRE)
+    assert (p1.number, p2.number) == ("OD-2026-000001", "OD-2026-000002")
+
+    with connexion_proprietaire() as admin:
+        admin.execute("SET session_replication_role = replica")  # hors déclencheurs
+        with pytest.raises(psycopg.errors.UniqueViolation, match="uq_ecriture_numero"):
+            admin.execute(
+                "UPDATE comptabilite_ecriture SET number = %s WHERE id = %s", [p1.number, p2.pk]
+            )
+
     assert creer_piece(org_a, 2027, 1, PAIRE).number == "OD-2027-000001"
-    assert creer_piece(org_a, 2026, 1, PAIRE, journal="BQ").number == ("BQ-2026-000001")
+    assert creer_piece(org_a, 2026, 1, PAIRE, journal="BQ").number == "BQ-2026-000001"
 
 
 def test_une_cle_dindempotence_ne_sert_quune_fois_par_organisation(org_a, org_b):

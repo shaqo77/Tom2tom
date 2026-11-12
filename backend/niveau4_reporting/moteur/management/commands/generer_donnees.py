@@ -147,7 +147,6 @@ class Command(BaseCommand):
     def _generer_pour(self, org, cible, projet=None) -> int:
         projets = [PROJETS[org][projet - 1]] if projet else PROJETS[org]
         comptes, axes, journal, periodes = self._preparer(org, projets)
-        compteurs: dict[tuple, int] = {}
         ecritures, lignes, n = [], [], 0
         while n < cible:
             projet_id = projets[0] if projet else random.choice(projets)
@@ -157,8 +156,6 @@ class Command(BaseCommand):
             devise = random.choice(DEVISES)
             taux = Decimal("1") if devise == "DJF" else Decimal("177.721")
             montant = Decimal(random.randint(100, 5_000_000)) / 100
-            cle = (exercice.id,)
-            compteurs[cle] = compteurs.get(cle, 0) + 1
             ecriture = Ecriture(
                 id=uuid.uuid4(),
                 org_id=org,
@@ -175,7 +172,6 @@ class Command(BaseCommand):
                 fx_rate=taux,
                 origin="import",
             )
-            ecriture.numero_prevu = f"OD-{annee}-{compteurs[cle]:06d}"
             ecritures.append(ecriture)
             commun = dict(
                 org_id=org,
@@ -221,18 +217,18 @@ class Command(BaseCommand):
     @staticmethod
     def _inserer(ecritures, lignes):
         """Brouillons, puis lignes, puis comptabilisation : une écriture comptabilisée n'accepte
-        plus de ligne (L3-T03). Le tout dans une transaction : l'équilibre est vérifié au COMMIT."""
+        plus de ligne (L3-T03). Le numéro est attribué par la base à la comptabilisation (L3-T04).
+        Le tout dans une transaction : l'équilibre est vérifié au COMMIT."""
         with transaction.atomic():
             Ecriture.objects.bulk_create(ecritures)
             LigneEcriture.objects.bulk_create(lignes)
             maintenant = timezone.now()
             for ecriture in ecritures:
                 ecriture.status = "posted"
-                ecriture.number = ecriture.numero_prevu
                 ecriture.posted_at = maintenant
                 ecriture.posted_by = uuid.UUID(int=0)
             Ecriture.objects.bulk_update(
-                ecritures, ["status", "number", "posted_at", "posted_by"], batch_size=1000
+                ecritures, ["status", "posted_at", "posted_by"], batch_size=1000
             )
 
     def _verifier(self, n, organisations=ORGS):

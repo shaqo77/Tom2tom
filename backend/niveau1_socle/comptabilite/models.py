@@ -91,6 +91,13 @@ class Ecriture(ModeleOrganisation):
                 | Q(number__isnull=False, posted_at__isnull=False, posted_by__isnull=False),
                 name="ecriture_comptabilisee_numerotee",
             ),
+            # Réciproque : avant la comptabilisation, pas de numéro (L3-T04). Il est attribué
+            # par la base, jamais choisi par l'appelant.
+            models.CheckConstraint(
+                condition=Q(number__isnull=True)
+                | Q(status__in=[StatutEcriture.COMPTABILISEE, StatutEcriture.VERROUILLEE]),
+                name="ecriture_numero_a_la_comptabilisation",
+            ),
             models.CheckConstraint(
                 condition=Q(reverses__isnull=True) | ~Q(reverses=models.F("id")),
                 name="ecriture_ne_se_contrepasse_pas",
@@ -169,3 +176,24 @@ class LigneEcriture(ModeleOrganisation):
             models.CheckConstraint(condition=Q(debit=0) | Q(credit=0), name="ligne_un_seul_sens"),
         ]
         indexes = [models.Index(fields=["org_id", "project_id", "account"])]
+
+
+class Compteur(ModeleOrganisation):
+    """Dernier numéro attribué, par journal et par exercice. Voir L3-T04.
+
+    Il n'est jamais écrit par l'application : seul le déclencheur de comptabilisation
+    l'incrémente, dans la transaction de la comptabilisation. Annuler la transaction annule
+    le numéro, ce qu'une séquence PostgreSQL ne fait pas.
+    """
+
+    journal = models.ForeignKey(Journal, on_delete=models.PROTECT, related_name="+")
+    exercice = models.ForeignKey(Exercice, on_delete=models.PROTECT, related_name="+")
+    dernier = models.PositiveIntegerField()
+
+    class Meta:
+        constraints = [
+            models.UniqueConstraint(
+                fields=["org_id", "journal", "exercice"], name="uq_compteur_journal_exercice"
+            ),
+            models.CheckConstraint(condition=Q(dernier__gte=1), name="compteur_positif"),
+        ]

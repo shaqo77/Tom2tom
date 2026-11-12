@@ -6,8 +6,6 @@ Les déclencheurs valent pour tout rôle, propriétaire du schéma compris.
 """
 
 import datetime
-import os
-import urllib.parse
 
 import psycopg
 import pytest
@@ -16,7 +14,7 @@ from django.db import IntegrityError, connection, transaction
 from niveau1_socle.comptabilite.models import Ecriture, LigneEcriture
 from niveau1_socle.exercices.models import Periode
 from niveau1_socle.exercices.services import cloturer_periode, verrouiller_periode
-from tests.outils import creer_piece
+from tests.outils import connexion_proprietaire, creer_piece
 
 pytestmark = pytest.mark.django_db(transaction=True)
 PAIRE = [{"compte": "6011", "debit": "10"}, {"compte": "5211", "credit": "10"}]
@@ -36,20 +34,6 @@ def _periode(numero):
     return Periode.objects.get(exercice__annee=2026, numero=numero)
 
 
-def _connexion_proprietaire():
-    """Une connexion du rôle propriétaire (BYPASSRLS) sur la base de test."""
-    url = urllib.parse.urlparse(os.environ["DATABASE_OWNER_URL"])
-    reglages = connection.settings_dict
-    return psycopg.connect(
-        host=reglages["HOST"] or url.hostname,
-        port=reglages["PORT"] or url.port,
-        dbname=reglages["NAME"],
-        user=url.username,
-        password=url.password,
-        autocommit=True,
-    )
-
-
 # --- immuabilité de l'écriture ------------------------------------------------------------
 
 
@@ -67,7 +51,7 @@ def test_une_ecriture_comptabilisee_ne_se_modifie_ni_ne_se_supprime(org_a, statu
 
 def test_aucune_exception_administrateur_le_proprietaire_est_refuse_lui_aussi(org_a):
     piece = _posee(org_a)
-    with _connexion_proprietaire() as admin:
+    with connexion_proprietaire() as admin:
         with pytest.raises(psycopg.errors.IntegrityConstraintViolation, match="comptabilisée"):
             admin.execute(
                 "UPDATE comptabilite_ecriture SET label = 'Falsifiée' WHERE id = %s", [piece.pk]
@@ -176,7 +160,6 @@ def test_un_brouillon_laisse_dans_une_periode_devenue_close_est_fige(org_a):
         lambda: Ecriture.objects.filter(pk=brouillon.pk).update(label="Retouche"),
         lambda: Ecriture.objects.filter(pk=brouillon.pk).update(
             status="posted",
-            number="OD-2026-000099",
             posted_at=datetime.datetime(2026, 1, 31, tzinfo=datetime.UTC),
             posted_by=org_a,
         ),
