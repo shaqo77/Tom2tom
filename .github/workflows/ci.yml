@@ -1,0 +1,47 @@
+name: CI
+on: [push, pull_request]
+
+jobs:
+  backend:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_DB: sigf
+          POSTGRES_USER: sigf_owner
+          POSTGRES_PASSWORD: ci
+        options: >-
+          --health-cmd pg_isready --health-interval 5s --health-retries 20
+        ports: ["5432:5432"]
+    env:
+      SECRET_KEY: ci-only
+      DEBUG: "False"
+      ALLOWED_HOSTS: localhost
+      DATABASE_URL: postgres://sigf_app:ci@localhost:5432/sigf
+      DATABASE_OWNER_URL: postgres://sigf_owner:ci@localhost:5432/sigf
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v3
+      - name: Créer le rôle applicatif
+        run: |
+          PGPASSWORD=ci psql -h localhost -U sigf_owner -d sigf -v ON_ERROR_STOP=1 -c "
+            CREATE ROLE sigf_app LOGIN PASSWORD 'ci' CREATEDB;
+            GRANT CONNECT ON DATABASE sigf TO sigf_app;
+            GRANT USAGE ON SCHEMA public TO sigf_app;
+            ALTER DEFAULT PRIVILEGES FOR ROLE sigf_owner IN SCHEMA public
+              GRANT SELECT, INSERT, UPDATE, DELETE ON TABLES TO sigf_app;
+            ALTER DEFAULT PRIVILEGES FOR ROLE sigf_owner IN SCHEMA public
+              GRANT USAGE, SELECT ON SEQUENCES TO sigf_app;"
+      - name: Dépendances
+        working-directory: backend
+        run: uv venv --python 3.12 .venv && uv pip install -r pyproject.toml --group dev
+      - name: Style
+        working-directory: backend
+        run: ./.venv/bin/ruff check . && ./.venv/bin/ruff format --check .
+      - name: Migrations
+        working-directory: backend
+        run: ./.venv/bin/python manage.py migrate --settings=config.settings.migrate
+      - name: Tests
+        working-directory: backend
+        run: ./.venv/bin/pytest -q --cov=. --cov-report=term-missing

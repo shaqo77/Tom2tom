@@ -1,0 +1,16 @@
+services:
+  db:
+    image: postgres:16
+    container_name: sigf_db
+    environment:
+      POSTGRES_DB: sigf
+      POSTGRES_USER: sigf_owner
+      POSTGRES_PASSWORD: dev_only_change_me
+    ports: ["5432:5432"]
+    volumes: ["pgdata:/var/lib/postgresql/data"]
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U sigf_owner -d sigf"]
+      interval: 3s
+      retries: 20
+volumes:
+  pgdata:
