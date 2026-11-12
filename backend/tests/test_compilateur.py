@@ -5,7 +5,6 @@ import uuid
 import pytest
 
 from niveau4_reporting.moteur.compilateur import ModeleEtatInvalide, compiler
-from niveau4_reporting.moteur.formules import FormuleInvalide
 
 PARAMS = {
     "project_id": uuid.UUID("aaaaaaaa-0000-0000-0000-000000000001"),
@@ -57,8 +56,12 @@ def test_un_modele_incomplet_est_refuse_avant_sql(modele):
         compiler(modele, {}, PARAMS)
 
 
-def test_une_assertion_ne_est_jamais_silencieusement_ignoree():
+def test_une_assertion_est_compilee_avec_ses_soldes_dans_la_meme_requete():
     modele = _modele(select={"accounts": [["6000", "6299"]]})
-    modele["rows"][0]["assert"] = "R100 == 0"
-    with pytest.raises(FormuleInvalide, match="L0-T06"):
-        compiler(modele, {}, PARAMS)
+    modele["rows"][0]["assert"] = "R100 == BALANCE('6')"
+    produit = compiler(modele, {}, PARAMS)
+
+    assert produit.assertions["R100"].expression == "R100 == BALANCE('6')"
+    assert produit.prefixes_balance == ("6",)
+    assert produit.index_balances[("6", "YTD")] == 1
+    assert produit.sql.count("COALESCE(SUM") == 2
