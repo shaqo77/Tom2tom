@@ -71,6 +71,12 @@ def configurer_base(variable: str) -> dict:
 
 DATABASES = {"default": configurer_base("DATABASE_URL")}
 
+# Le rôle qui sert les requêtes doit SUBIR l'isolation, jamais la contourner.
+# Contrôlé au démarrage par core/checks.py, parce qu'une erreur ici ouvre
+# toutes les organisations les unes aux autres sans rien casser de visible.
+ROLE_APPLICATIF = env("DB_ROLE_APPLICATIF", default="sigf_app")
+VERIFIER_ROLE_APPLICATIF = True
+
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 USE_TZ = True
 LANGUAGE_CODE = "fr"
