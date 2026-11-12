@@ -23,6 +23,8 @@ class Organisation(ModeleBase):
     pays = models.CharField(max_length=2)
     monnaie_tenue = models.CharField(max_length=3)
     langues_actives = models.JSONField(default=list)
+    # Le validateur d'une pièce n'en est pas l'auteur. Activée par défaut (L1-T06).
+    separation_des_taches = models.BooleanField(default=True)
 
     class Meta:
         constraints = [
