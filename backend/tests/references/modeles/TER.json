@@ -1,0 +1,76 @@
+{
+ "code": "TER",
+ "version": 1,
+ "parametres": {
+  "fiscal_year": 2026,
+  "current_period": 6,
+  "agreement": "IDA-6789"
+ },
+ "columns": [
+  {
+   "code": "QTR",
+   "period": "current_quarter"
+  },
+  {
+   "code": "YTD",
+   "period": "year_to_date"
+  },
+  {
+   "code": "CUMUL",
+   "period": "inception_to_date"
+  }
+ ],
+ "rows": [
+  {
+   "code": "R100",
+   "type": "heading"
+  },
+  {
+   "code": "R110",
+   "type": "aggregate",
+   "select": {
+    "mapping": "WB-TER",
+    "target": "CHARGES"
+   }
+  },
+  {
+   "code": "R120",
+   "type": "aggregate",
+   "select": {
+    "mapping": "WB-TER",
+    "target": "TRESORERIE"
+   }
+  },
+  {
+   "code": "R130",
+   "type": "aggregate",
+   "sign": "credit",
+   "select": {
+    "mapping": "WB-TER",
+    "target": "PRODUITS"
+   }
+  },
+  {
+   "code": "R210",
+   "type": "aggregate",
+   "select": {
+    "mapping": "WB-TER",
+    "target": "CHARGES",
+    "filters": {
+     "agreement": "$param.agreement"
+    }
+   }
+  },
+  {
+   "code": "R300",
+   "type": "computed",
+   "formula": "R110 - R210"
+  },
+  {
+   "code": "R190",
+   "type": "computed",
+   "formula": "R130 - R110",
+   "assert": "R190 == BALANCE('5')"
+  }
+ ]
+}

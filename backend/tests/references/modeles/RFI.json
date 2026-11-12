@@ -1,0 +1,50 @@
+{
+ "code": "RFI",
+ "version": 1,
+ "parametres": {
+  "fiscal_year": 2026,
+  "current_period": 6
+ },
+ "columns": [
+  {
+   "code": "YTD",
+   "period": "year_to_date"
+  },
+  {
+   "code": "CUMUL",
+   "period": "inception_to_date"
+  }
+ ],
+ "rows": [
+  {
+   "code": "RA",
+   "type": "aggregate",
+   "select": {
+    "mapping": "BAILLEUR-RFI",
+    "target": "COMPOSANTE_A"
+   }
+  },
+  {
+   "code": "RB",
+   "type": "aggregate",
+   "select": {
+    "mapping": "BAILLEUR-RFI",
+    "target": "COMPOSANTE_B"
+   }
+  },
+  {
+   "code": "RC",
+   "type": "aggregate",
+   "select": {
+    "mapping": "BAILLEUR-RFI",
+    "target": "COMPOSANTE_C"
+   }
+  },
+  {
+   "code": "RT",
+   "type": "computed",
+   "formula": "RA + RB + RC",
+   "assert": "RT == BALANCE('6')"
+  }
+ ]
+}

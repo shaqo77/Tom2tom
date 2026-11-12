@@ -1,0 +1,35 @@
+{
+ "code": "RFI",
+ "valeurs": {
+  "RA": {
+   "YTD": "1060.10",
+   "CUMUL": "2260.60"
+  },
+  "RB": {
+   "YTD": "375.30",
+   "CUMUL": "375.30"
+  },
+  "RC": {
+   "YTD": "320.32",
+   "CUMUL": "320.32"
+  },
+  "RT": {
+   "YTD": "1755.72",
+   "CUMUL": "2956.22"
+  }
+ },
+ "controles": [
+  {
+   "rubrique": "RT",
+   "colonne": "YTD",
+   "reussi": true,
+   "ecart": "0.00"
+  },
+  {
+   "rubrique": "RT",
+   "colonne": "CUMUL",
+   "reussi": true,
+   "ecart": "0.00"
+  }
+ ]
+}

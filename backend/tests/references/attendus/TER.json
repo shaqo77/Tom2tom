@@ -1,0 +1,55 @@
+{
+ "code": "TER",
+ "valeurs": {
+  "R110": {
+   "QTR": "1230.32",
+   "YTD": "1755.72",
+   "CUMUL": "2956.22"
+  },
+  "R120": {
+   "QTR": "1769.68",
+   "YTD": "1244.28",
+   "CUMUL": "8043.78"
+  },
+  "R130": {
+   "QTR": "3000.00",
+   "YTD": "3000.00",
+   "CUMUL": "11000.00"
+  },
+  "R210": {
+   "QTR": "1130.33",
+   "YTD": "1430.58",
+   "CUMUL": "2631.08"
+  },
+  "R300": {
+   "QTR": "99.99",
+   "YTD": "325.14",
+   "CUMUL": "325.14"
+  },
+  "R190": {
+   "QTR": "1769.68",
+   "YTD": "1244.28",
+   "CUMUL": "8043.78"
+  }
+ },
+ "controles": [
+  {
+   "rubrique": "R190",
+   "colonne": "QTR",
+   "reussi": true,
+   "ecart": "0.00"
+  },
+  {
+   "rubrique": "R190",
+   "colonne": "YTD",
+   "reussi": true,
+   "ecart": "0.00"
+  },
+  {
+   "rubrique": "R190",
+   "colonne": "CUMUL",
+   "reussi": true,
+   "ecart": "0.00"
+  }
+ ]
+}

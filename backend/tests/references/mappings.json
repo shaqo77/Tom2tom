@@ -1,0 +1,105 @@
+{
+ "WB-TER": [
+  {
+   "priority": 10,
+   "match": {
+    "accounts": [
+     [
+      "6000",
+      "6999"
+     ]
+    ]
+   },
+   "target": "CHARGES"
+  },
+  {
+   "priority": 20,
+   "match": {
+    "accounts": [
+     [
+      "5200",
+      "5399"
+     ]
+    ]
+   },
+   "target": "TRESORERIE"
+  },
+  {
+   "priority": 30,
+   "match": {
+    "accounts": [
+     [
+      "7000",
+      "7999"
+     ]
+    ]
+   },
+   "target": "PRODUITS"
+  }
+ ],
+ "BAILLEUR-RFI": [
+  {
+   "priority": 10,
+   "match": {
+    "accounts": [
+     [
+      "6000",
+      "6999"
+     ]
+    ],
+    "dim1": "COMP-A"
+   },
+   "target": "COMPOSANTE_A"
+  },
+  {
+   "priority": 20,
+   "match": {
+    "accounts": [
+     [
+      "6000",
+      "6999"
+     ]
+    ],
+    "dim1": "COMP-B"
+   },
+   "target": "COMPOSANTE_B"
+  },
+  {
+   "priority": 30,
+   "match": {
+    "accounts": [
+     [
+      "6000",
+      "6999"
+     ]
+    ],
+    "dim1": "COMP-C"
+   },
+   "target": "COMPOSANTE_C"
+  },
+  {
+   "priority": 40,
+   "match": {
+    "accounts": [
+     [
+      "5200",
+      "5399"
+     ]
+    ]
+   },
+   "target": "DISPONIBILITES"
+  },
+  {
+   "priority": 50,
+   "match": {
+    "accounts": [
+     [
+      "7000",
+      "7999"
+     ]
+    ]
+   },
+   "target": "RESSOURCES"
+  }
+ ]
+}
