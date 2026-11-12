@@ -81,13 +81,22 @@ def test_sans_org_id_pose_rien_nest_visible(org_a):
 
 
 def test_toute_table_avec_org_id_a_sa_politique():
-    """Empêche qu'une nouvelle table soit créée sans isolation. Voir L1-T02."""
+    """Empêche qu'une nouvelle table soit créée sans isolation. Voir L1-T02.
+
+    Le schéma inspecté est celui où Django a RÉELLEMENT posé ses tables,
+    résolu par le chemin de recherche — « public » en intégration continue,
+    « sigf » en exploitation (DB_SCHEMA). Le coder en dur rendrait ce
+    garde-fou muet dans l'environnement même qu'il doit protéger.
+    """
     with connection.cursor() as cur:
         cur.execute(
             """SELECT c.relname FROM pg_class c
-               JOIN pg_attribute a ON a.attrelid = c.oid AND a.attname = 'org_id'
-               JOIN pg_namespace n ON n.oid = c.relnamespace
-               WHERE c.relkind = 'r' AND n.nspname = 'public'
+               JOIN pg_attribute a ON a.attrelid = c.oid
+                                  AND a.attname = 'org_id'
+                                  AND NOT a.attisdropped
+               WHERE c.relkind IN ('r', 'p')
+                 AND c.relnamespace = (SELECT relnamespace FROM pg_class
+                                        WHERE oid = to_regclass('core_auditlog'))
                  AND NOT (c.relrowsecurity AND c.relforcerowsecurity)"""
         )
         manquantes = [r[0] for r in cur.fetchall()]
