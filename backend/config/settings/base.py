@@ -29,6 +29,7 @@ INSTALLED_APPS = [
     "rest_framework",
     "core",
     "niveau1_socle.organisations",
+    "niveau1_socle.habilitations",
     "niveau3_config",
     "niveau4_reporting.mapping",
     "niveau4_reporting.moteur",
