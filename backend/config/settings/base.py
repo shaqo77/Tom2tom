@@ -34,6 +34,7 @@ INSTALLED_APPS = [
     "niveau1_socle.referentiels",
     "niveau1_socle.comptabilite",
     "niveau1_socle.budget",
+    "niveau1_socle.financements",
     "niveau3_config",
     "niveau4_reporting.mapping",
     "niveau4_reporting.moteur",

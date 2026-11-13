@@ -22,6 +22,8 @@ from rest_framework.exceptions import PermissionDenied
 from core.audit import journaliser
 from niveau1_socle.exercices.models import Periode
 from niveau1_socle.exercices.services import TransitionInterdite
+from niveau1_socle.financements.models import Accord
+from niveau1_socle.financements.services import exiger_accord_actif
 from niveau1_socle.habilitations.permissions import est_habilite
 from niveau1_socle.habilitations.separation import exiger_separation_des_taches
 from niveau1_socle.referentiels.axes import exiger_valeur_imputable
@@ -163,6 +165,10 @@ def saisir_ecriture(
         if deja is not None:
             return deja
 
+    # Un accord qui n'est pas actif (suspendu, clos…) ne reçoit aucune nouvelle imputation (L4-T04).
+    for agreement_id in {ligne["agreement_id"] for ligne in lignes if ligne.get("agreement_id")}:
+        exiger_accord_actif(agreement_id, pour="imputation")
+
     jrn = Journal.objects.filter(code=journal).first()
     if jrn is None:
         raise JournalIntrouvable(f"Le journal {journal} n'existe pas")
@@ -260,6 +266,18 @@ def _problemes_de_contenu(ecriture: Ecriture) -> list[str]:
             raisons.append(
                 "La contre-passation ne reproduit pas l'écriture d'origine en sens inverse"
             )
+    if ecriture.origin != "reversal":  # une correction de l'historique reste possible
+        statuts = dict(
+            Accord.objects.filter(
+                pk__in={ligne.agreement_id for ligne in lignes if ligne.agreement_id}
+            ).values_list("pk", "status")
+        )
+        for ligne in lignes:
+            statut = statuts.get(ligne.agreement_id)
+            if statut is not None and statut != "actif":
+                raisons.append(
+                    f"Ligne {ligne.line_no} : l'accord est {statut}, il ne reçoit plus d'imputation"
+                )
     if len(lignes) < 2:
         raisons.append("Une écriture compte au moins deux lignes")
     if lignes and sum((ligne.debit for ligne in lignes), ZERO) == ZERO:

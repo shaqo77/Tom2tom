@@ -19,6 +19,7 @@ OPERATIONS = (
     "parametrer",
     "exporter",
     "publier",
+    "voir_numero_compte",  # le numéro complet d'un compte bancaire (L4-T04)
 )
 
 
