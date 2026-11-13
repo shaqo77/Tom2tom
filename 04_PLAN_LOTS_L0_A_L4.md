@@ -683,6 +683,10 @@ Service `contre_passer()` : crée une écriture inverse, renseigne `reverses_id`
 
 **Contrôle.** Le cycle complet brouillon → validée → comptabilisée → contre-passée laisse **deux** écritures en base, toutes deux intactes.
 
+> **Réalisation de L3-T05, partie a** (saisie, validation, comptabilisation ; la contre-passation est la partie b). `saisir_ecriture`, `valider_ecriture`, `comptabiliser_ecriture` (`niveau1_socle/comptabilite/services.py`). Chaque transition, dans une transaction avec verrou de ligne : vérifie l'**habilitation** de l'utilisateur sur le projet (opérations `saisir`, `valider`, `comptabiliser`), la **séparation des tâches** (l'auteur ne valide pas sa pièce) et le **contenu** (au moins deux lignes, montant non nul, comptes et valeurs d'axe imputables et actifs, tous les manques listés d'un coup), puis journalise. Le contenu est revérifié à la comptabilisation : un compte désactivé depuis la validation la bloque. Une période close est refusée avec un message clair avant que la base ne le fasse.
+>
+> Limites connues : les montants de la saisie sont en monnaie de tenue (pas de conversion automatique de devise) ; les axes obligatoires (`PlanDimension.is_mandatory`) ne sont pas contrôlés ici mais par les contrôles de conformité de L6 ; aucune interface HTTP pour l'instant (les services sont le contrat, la vue viendra avec le front).
+
 ---
 
 ### L3-T06 — Schémas d'écritures et contrepartie automatique
