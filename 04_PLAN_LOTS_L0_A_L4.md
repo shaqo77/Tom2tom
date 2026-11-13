@@ -716,6 +716,15 @@ Rapprochement : en monnaie de tenue **et** en devise, avec génération des **é
 >
 > Pas de lettrage partiel (acompte) : un groupe est soldé ou n'existe pas.
 
+> **Réalisation de L3-T07, partie b (rapprochement bancaire)** (`niveau1_socle/rapprochement/`). `CompteBancaire` (L4-T04) permet enfin cette partie.
+> - **Deux objets.** `MouvementReleve` (ligne du relevé de la banque, dans la devise du compte, positif = encaissement, valorisée en monnaie de tenue au taux du jour de l'opération) et `Rapprochement` (groupe de lignes du grand livre portant le compte bancaire et de mouvements du relevé). Import **rejouable** par référence de la banque : une référence déjà importée avec les mêmes valeurs est ignorée, avec d'autres valeurs refusée. Les mouvements sont en ajout seul.
+> - **Même mécanique que le lettrage.** Rapprocher ne modifie aucune ligne comptabilisée : seul le marqueur `bank_match_id` change, même en période close. Un rapprochement ne se supprime pas, il **s'annule** (motif, auteur, date) ; son code (`R00001`…) n'est jamais réutilisé. Habilitation `comptabiliser`.
+> - **En devise ET en monnaie de tenue, vérifié par la base au COMMIT.** Σ lignes = Σ mouvements dans la devise du compte, exactement ; Σ lignes = Σ mouvements valorisés en monnaie de tenue. Pour un compte tenu dans la monnaie du projet, les deux coïncident.
+> - **Écart de change = écriture explicite.** Si la valorisation du relevé diffère de celle du grand livre, la différence est portée par une écriture du journal `CHG`, comptabilisée par le système, sur le compte de gain (relevé plus favorable) ou de perte. La ligne bancaire de cette écriture, sans montant en devise (c'est une revalorisation), **entre dans le groupe** : c'est ce qui rend le groupe soldé dans les deux monnaies. Sans compte de change précisé, ou en période close, on refuse (tout ou rien). Annuler le rapprochement **contre-passe** l'écriture d'écart (jamais supprimée) : le net est nul.
+> - **État de rapprochement** (`etat_de_rapprochement`) : part du solde de la banque, retrouve le solde comptable (devise du compte), et liste les éléments en suspens des deux côtés ; `ecart` est ce qu'ils n'expliquent pas, `justifie` vaut vrai quand il est nul. C'est la preuve de solde que lit le bailleur, et la matière du contrôle « écart de rapprochement non justifié » de L6.
+> - **Clôture mensuelle** : le contrôle manquant de L3-T08 est branché. Un mouvement du relevé dont la date est au plus celle de fin de période et qui n'est pas rapproché **bloque** la clôture ; une ligne du grand livre en suspens (chèque en circulation) ne bloque jamais.
+> - **Limites** : l'annulation d'un rapprochement avec écart laisse deux lignes bancaires qui se compensent (l'écart et sa contre-passation) dans les éléments en suspens de l'état ; le solde d'ouverture du relevé est fourni par l'appelant (pas encore stocké) ; pas de rapprochement automatique (suggestion d'appariements) ; l'import de relevés au format bancaire (CAMT, MT940) relève de L9.
+
 ---
 
 ### L3-T08 — Clôtures et à-nouveaux
@@ -725,7 +734,7 @@ Clôture mensuelle : liste de contrôle bloquante — écritures en brouillon, c
 > **Réalisation de L3-T08, partie a (clôture mensuelle).** `cloturer_periode` exécute une liste de contrôles et **les liste tous** d'un coup (`niveau1_socle/comptabilite/cloture.py`, branchés au démarrage sur `VERIFICATIONS_DE_CLOTURE`) :
 > - **écritures non comptabilisées** (brouillon ou validée) dans la période ;
 > - **groupes soldés non lettrés** : « comptes non lettrés » du plan est précisé ainsi. Exiger que tous les comptes de tiers soient lettrés bloquerait toute période comportant une facture impayée, ce qui est normal ; on bloque donc seulement les lignes de tiers qui **se soldent entre elles** sans être lettrées (par compte, tiers et projet, cumulées jusqu'à la fin de la période : une facture de mars et son règlement d'avril forment un groupe soldé dès avril).
-> - **rapprochements non soldés** : non implémenté, il attend le rapprochement bancaire (L3-T07b) ; il suffira d'enregistrer un contrôle de plus.
+> - **rapprochements non soldés** : branché depuis L3-T07b (mouvements du relevé non rapprochés à la fin de la période).
 >
 > Un brouillon ne peut donc plus rester dans une période close par le service (il est figé par la base s'il y est malgré tout).
 Clôture annuelle : génération des à-nouveaux, **versionnée et re-générable** tant que l'exercice d'origine n'est pas verrouillé.
@@ -961,12 +970,12 @@ Avances non justifiées, délais applicables, alertes. Alimente le contrôle « 
 > | Balance = analytique = par accord, au centime | `test_restitutions_bd.py::test_balance_generale_analytique_et_par_accord_donnent_le_meme_chiffre`, et accord avec le moteur d'états | prouvé |
 > | Numérotation sans trou sous 10 sessions concurrentes | `test_numerotation_bd.py` : 1 000 comptabilisations depuis 10 sessions PostgreSQL (des **fils** à connexions séparées, pas dix processus système) dont 100 annulées : de 000001 à 000900 | prouvé, à ce détail près |
 > | Écriture comptabilisée non modifiable, période close inviolable | `test_immuabilite_bd.py` (propriétaire de la base compris) | prouvé |
-> | **Isolation : accès croisé en échec sur TOUTES les tables** | **nouveau** : la politique de chacune des 47 tables est exactement le filtre d'organisation (USING et WITH CHECK identiques, RLS forcée) ; sur les 37 tables peuplées par un scénario qui touche tout le projet, l'autre organisation ne voit aucune ligne et une lecture sans périmètre non plus | prouvé |
+> | **Isolation : accès croisé en échec sur TOUTES les tables** | **nouveau** : la politique de chacune des 49 tables est exactement le filtre d'organisation (USING et WITH CHECK identiques, RLS forcée) ; sur les 39 tables peuplées par un scénario qui touche tout le projet, l'autre organisation ne voit aucune ligne et une lecture sans périmètre non plus | prouvé |
 > | Journal d'audit : altération détectée | `test_audit.py` | prouvé |
 > | Ventilation de cofinancement conservative | `test_cofinancement.py` (Hypothesis, 50 000 tirages) et `test_cles_cofinancement_bd.py` | prouvé |
 > | Soldes budgétaires incrémentaux == recalcul complet | `test_soldes_budgetaires_bd.py` : 10 000 opérations, trois calculs concordants | prouvé |
 > | États de référence de L0 toujours conformes | `test_etats_reference_bd.py`, `test_sortie_l0_bd.py` | prouvé |
-> | **UPDATE de org_id vers une autre organisation refusé sur toutes les tables** | **nouveau** : sur chacune des 37 tables peuplées, `UPDATE … SET org_id = autre` est refusé et les lignes gardent leur organisation (vérifié hors RLS) ; sur les 47, le WITH CHECK de la politique est identique au filtre | prouvé |
+> | **UPDATE de org_id vers une autre organisation refusé sur toutes les tables** | **nouveau** : sur chacune des 39 tables peuplées, `UPDATE … SET org_id = autre` est refusé et les lignes gardent leur organisation (vérifié hors RLS) ; sur les 49, le WITH CHECK de la politique est identique au filtre | prouvé |
 > | Soumissions concurrentes : aucune sur-consommation | `test_demandes_retrait_bd.py` : dix soumissions, trois acceptées, solde exact ; le refus ultime de la base est testé séparément | prouvé |
 > | Accord suspendu : nouvelle demande refusée | `test_demandes_retrait_bd.py` et `test_financements_bd.py` (service et base) | prouvé |
 > | Numéro de compte bancaire masqué sans l'habilitation dédiée | `test_financements_bd.py` (service, `str`, `repr`, journal d'audit) | prouvé |

@@ -32,6 +32,7 @@ from niveau1_socle.financements.services import (
     creer_avenant,
     creer_compte_bancaire,
 )
+from niveau1_socle.rapprochement.services import importer_mouvements, rapprocher
 from niveau1_socle.referentiels.models import Tiers
 from tests.outils import connexion_proprietaire
 from tests.test_cycle_ecriture_bd import decor  # noqa: F401
@@ -39,6 +40,7 @@ from tests.test_demandes_retrait_bd import DEBUT, FIN, _depense, drf  # noqa: F4
 from tests.test_financements_bd import _document, cadre  # noqa: F401
 from tests.test_isolation import TABLES_SANS_ISOLATION
 from tests.test_organisations_bd import _creer_organisation
+from tests.test_rapprochement_bancaire_bd import _ligne, _mouvement
 
 pytestmark = pytest.mark.django_db(transaction=True)
 D = Decimal
@@ -176,7 +178,7 @@ def _peupler(organisation, projet, profils, accord, categories):
         document=_document(organisation, projet),
         montant_revise="1200",
     )
-    creer_compte_bancaire(
+    compte = creer_compte_bancaire(
         utilisateur=dora,
         project_id=projet.id,
         code="CB",
@@ -186,6 +188,13 @@ def _peupler(organisation, projet, profils, accord, categories):
         numero="DJ-0000-1",
         accord=accord,
     )
+    # Relevé et rapprochement bancaire.
+    claire = profils["claire"]
+    ligne_bancaire = _ligne(organisation, projet, compte, 100)
+    (mouvement,) = importer_mouvements(
+        utilisateur=claire, compte=compte, mouvements=[_mouvement(compte, "R1", "100")]
+    )[0]
+    rapprocher(utilisateur=claire, compte=compte, lignes=[ligne_bancaire], mouvements=[mouvement])
     # Avances.
     agent = Tiers.objects.create(org_id=organisation.id, code="AG", nature="personnel", nom="AG")
     parametrer_delai(utilisateur=dora, project_id=projet.id, jours=30, date_effet=DEBUT)

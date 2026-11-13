@@ -4,8 +4,8 @@ Chaque contrôle reçoit la période et retourne `None` s'il ne s'oppose à rien
 refus. Ils sont enregistrés dans `exercices.services.VERIFICATIONS_DE_CLOTURE` au démarrage
 (`apps.ComptabiliteConfig.ready`) : `cloturer_periode` les exécute tous et liste toutes les raisons.
 
-Le troisième contrôle du plan, « rapprochements non soldés », viendra avec le rapprochement
-bancaire (L3-T07b) : il suffira d'enregistrer une fonction de plus.
+Le troisième contrôle du plan, « rapprochements non soldés », est branché par le rapprochement
+bancaire (L3-T07b, `niveau1_socle/rapprochement/cloture.py`).
 """
 
 from django.db import connection
