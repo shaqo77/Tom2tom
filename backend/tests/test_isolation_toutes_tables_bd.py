@@ -34,6 +34,7 @@ from niveau1_socle.financements.services import (
 )
 from niveau1_socle.rapprochement.services import importer_mouvements, rapprocher
 from niveau1_socle.referentiels.models import Tiers
+from niveau3_config.models import Reallocation
 from tests.outils import connexion_proprietaire
 from tests.outils_profil import creer_profil
 from tests.test_cycle_ecriture_bd import decor  # noqa: F401
@@ -236,6 +237,18 @@ def _peupler(organisation, projet, profils, accord, categories):
         regles=[(categories["serv"], "0.8")],
         comptes=[{"compte": compte, "plafond": D(1000)}],
         methodes=[{"method": "reimbursement", "supporting_docs": ["soe"]}],
+    )
+    Reallocation.objects.create(  # une demande de réallocation (L5-T04bis)
+        org_id=organisation.id,
+        project_id=projet.id,
+        accord=accord,
+        source=categories["serv"],
+        cible=categories["biens"],
+        montant=D(10),
+        devise_id="DJF",
+        date_effet=datetime.date(2026, 7, 1),
+        motif="Test d'isolation",
+        demandeur=dora.id,
     )
 
 

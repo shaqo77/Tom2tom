@@ -55,15 +55,15 @@ def creer_profil(
         donnees.setdefault("supporting_docs", ["soe"])
         MethodeDecaissement.objects.create(org_id=organisation.id, profil=profil, **donnees)
     for categorie, taux, *reste in regles:
-        RegleFinancementCategorie.objects.create(
-            org_id=organisation.id,
-            profil=profil,
-            category=categorie,
-            funding_rate=D(str(taux)),
-            allocation=D(10**9),
-            tax_basis="taxes_included",
-            **(reste[0] if reste else {}),
-        )
+        donnees = {
+            "org_id": organisation.id,
+            "profil": profil,
+            "category": categorie,
+            "funding_rate": D(str(taux)),
+            "allocation": D(100),
+            "tax_basis": "taxes_included",
+        } | (reste[0] if reste else {})
+        RegleFinancementCategorie.objects.create(**donnees)
     for compte in comptes:
         RegleCompteDesigne.objects.create(
             org_id=organisation.id,

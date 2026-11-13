@@ -31,6 +31,7 @@ from niveau1_socle.financements.models import Accord
 from niveau1_socle.habilitations.permissions import est_habilite
 
 from ..models import Exigence, ProfilDecaissement, StatutExigence, StatutProfil
+from .completude import verifier_completude
 
 
 class ActivationRefusee(ValueError):
@@ -52,9 +53,7 @@ def _motif(motif: str | None) -> str:
     return motif.strip()
 
 
-def _transition(
-    *, utilisateur, objet, type_objet, depuis, vers, action, operation, apres=None, avant=None
-):
+def _transition(*, utilisateur, objet, type_objet, depuis, vers, action, apres=None, avant=None):
     if objet.status not in depuis:
         raise ActivationRefusee(
             f"Passage de « {objet.status} » à « {vers} » impossible : l'état attendu est "
@@ -62,7 +61,8 @@ def _transition(
         )
     objet.status = vers
     for champ, valeur in (apres or {}).items():
-        setattr(objet, champ, valeur)
+        if hasattr(objet, champ):
+            setattr(objet, champ, valeur)
     objet.save()
     journaliser(
         org_id=objet.org_id,
@@ -116,7 +116,6 @@ def valider_exigence(*, utilisateur, exigence: Exigence) -> Exigence:
             depuis=[StatutExigence.PROPOSEE],
             vers=StatutExigence.VALIDEE,
             action="requirement_validated",
-            operation="valider",
             avant=StatutExigence.PROPOSEE,
             apres={"validated_by": utilisateur.id, "validated_at": timezone.now()},
         )
@@ -159,7 +158,6 @@ def activer_exigence(*, utilisateur, exigence: Exigence) -> Exigence:
                 depuis=[StatutExigence.VALIDEE],
                 vers=StatutExigence.ACTIVE,
                 action="requirement_activated",
-                operation="parametrer",
                 avant=StatutExigence.VALIDEE,
                 apres={"valid_from": exigence.valid_from},
             )
@@ -184,7 +182,6 @@ def rejeter_exigence(*, utilisateur, exigence: Exigence, motif: str) -> Exigence
             depuis=[StatutExigence.PROPOSEE, StatutExigence.VALIDEE],
             vers=StatutExigence.REJETEE,
             action="requirement_rejected",
-            operation="valider",
             avant=statut,
             apres={"motif": motif},
         )
@@ -194,17 +191,23 @@ def rejeter_exigence(*, utilisateur, exigence: Exigence, motif: str) -> Exigence
 # --- Profils de décaissement -----------------------------------------------------------------
 
 
-def valider_profil(*, utilisateur, profil: ProfilDecaissement) -> ProfilDecaissement:
-    """`draft` → `validated`. Le profil se fige : méthodes, comptes et règles ne bougent plus."""
+def valider_profil(
+    *, utilisateur, profil: ProfilDecaissement, justifications: dict | None = None
+) -> ProfilDecaissement:
+    """`draft` → `validated`. Le profil se fige : méthodes, comptes et règles ne bougent plus.
+
+    Refusé si le contrôle de complétude relève une erreur bloquante (chacune est nommée). Les
+    avertissements ne bloquent pas : ils sont tracés dans le journal avec la justification de qui
+    valide (`justifications = {code: texte}`).
+    """
     _habilite(utilisateur, "valider", profil.project_id)
     with transaction.atomic():
         profil = ProfilDecaissement.objects.select_for_update().get(pk=profil.pk)
-        if not profil.methodes.exists():
+        completude = verifier_completude(profil)
+        if not completude.complet:
             raise ActivationRefusee(
-                "Un profil sans aucune méthode de décaissement ne se valide pas"
+                "Profil incomplet : " + " ; ".join(a.message for a in completude.bloquantes)
             )
-        if not profil.regles.exists():
-            raise ActivationRefusee("Un profil sans aucune règle de financement ne se valide pas")
         _transition(
             utilisateur=utilisateur,
             objet=profil,
@@ -212,9 +215,19 @@ def valider_profil(*, utilisateur, profil: ProfilDecaissement) -> ProfilDecaisse
             depuis=[StatutProfil.BROUILLON],
             vers=StatutProfil.VALIDE,
             action="disbursement_profile_validated",
-            operation="valider",
             avant=StatutProfil.BROUILLON,
-            apres={"validated_by": utilisateur.id, "validated_at": timezone.now()},
+            apres={
+                "validated_by": utilisateur.id,
+                "validated_at": timezone.now(),
+                "avertissements": json.dumps(
+                    {
+                        a.code: (justifications or {}).get(a.code, "")
+                        for a in completude.avertissements
+                    },
+                    sort_keys=True,
+                    ensure_ascii=False,
+                ),
+            },
         )
     return profil
 
@@ -245,7 +258,6 @@ def activer_profil(*, utilisateur, profil: ProfilDecaissement) -> ProfilDecaisse
                 depuis=[StatutProfil.VALIDE],
                 vers=StatutProfil.ACTIF,
                 action="disbursement_profile_activated",
-                operation="parametrer",
                 avant=StatutProfil.VALIDE,
                 apres={"valid_from": profil.valid_from},
             )
@@ -270,7 +282,6 @@ def rejeter_profil(*, utilisateur, profil: ProfilDecaissement, motif: str) -> Pr
             depuis=[StatutProfil.BROUILLON, StatutProfil.VALIDE],
             vers=StatutProfil.REJETE,
             action="disbursement_profile_rejected",
-            operation="valider",
             avant=statut,
             apres={"rejection_reason": motif},
         )

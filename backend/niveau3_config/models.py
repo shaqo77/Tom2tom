@@ -421,3 +421,87 @@ class RegleFinancementCategorie(ModeleOrganisation):
                 name="regle_plafond_contrat_positif",
             ),
         ]
+
+
+class StatutReallocation(models.TextChoices):
+    DEMANDEE = "requested", "Demandée"
+    APPROUVEE = "approved", "Approuvée"
+    REJETEE = "rejected", "Rejetée"
+
+
+class Reallocation(ModeleOrganisation):
+    """Un transfert de montant d'une catégorie à une autre : un ÉVÉNEMENT, pas une modification.
+
+    À l'approbation, le transfert crée une nouvelle version du profil de décaissement (allocations
+    modifiées, `valid_from` = date d'effet) ; l'ancienne est conservée. L'approbateur est
+    distinct du demandeur, par le service et par la base. Une réallocation décidée ne se modifie
+    plus.
+    """
+
+    project_id = models.UUIDField(db_index=True)
+    accord = models.ForeignKey(
+        "financements.Accord", on_delete=models.PROTECT, related_name="reallocations"
+    )
+    source = models.ForeignKey("financements.Categorie", on_delete=models.PROTECT, related_name="+")
+    cible = models.ForeignKey("financements.Categorie", on_delete=models.PROTECT, related_name="+")
+    montant = MontantField()
+    devise = models.ForeignKey("referentiels.Devise", on_delete=models.PROTECT, related_name="+")
+    date_effet = models.DateField()
+    motif = models.TextField()
+    document = models.ForeignKey(
+        DocumentReference, null=True, blank=True, on_delete=models.PROTECT, related_name="+"
+    )
+    status = models.CharField(
+        max_length=10, choices=StatutReallocation.choices, default=StatutReallocation.DEMANDEE
+    )
+    demandeur = models.UUIDField()
+    approbateur = models.UUIDField(null=True, blank=True)
+    decided_at = models.DateTimeField(null=True, blank=True)
+    motif_rejet = models.TextField(blank=True, default="")
+    # La version de profil créée à l'approbation : unique, donc une double approbation concurrente
+    # n'en produit qu'une.
+    profil_cree = models.OneToOneField(
+        ProfilDecaissement,
+        null=True,
+        blank=True,
+        on_delete=models.PROTECT,
+        related_name="reallocation_origine",
+    )
+
+    class Meta:
+        constraints = [
+            models.CheckConstraint(
+                condition=Q(status__in=StatutReallocation.values), name="realloc_statut_ferme"
+            ),
+            models.CheckConstraint(condition=Q(montant__gt=0), name="realloc_montant_positif"),
+            models.CheckConstraint(
+                condition=~Q(source=models.F("cible")), name="realloc_source_differente_cible"
+            ),
+            # Approuvée : approbateur nommé, distinct du demandeur, version créée. NULL ne passe
+            # pas : on teste explicitement les trois.
+            models.CheckConstraint(
+                condition=~Q(status=StatutReallocation.APPROUVEE)
+                | (
+                    Q(
+                        approbateur__isnull=False,
+                        profil_cree__isnull=False,
+                        decided_at__isnull=False,
+                    )
+                    & ~Q(approbateur=models.F("demandeur"))
+                ),
+                name="realloc_approbation_complete",
+            ),
+            models.CheckConstraint(
+                condition=~Q(status=StatutReallocation.REJETEE)
+                | (Q(approbateur__isnull=False, decided_at__isnull=False) & ~Q(motif_rejet="")),
+                name="realloc_rejet_motive",
+            ),
+            models.CheckConstraint(
+                condition=~Q(status=StatutReallocation.DEMANDEE)
+                | Q(profil_cree__isnull=True, approbateur__isnull=True),
+                name="realloc_demandee_sans_decision",
+            ),
+        ]
+
+    def __str__(self) -> str:
+        return f"réallocation {self.montant} {self.source_id}→{self.cible_id} ({self.status})"
