@@ -70,6 +70,14 @@ class Ecriture(ModeleOrganisation):
     reverses = models.ForeignKey(
         "self", null=True, blank=True, on_delete=models.PROTECT, related_name="contrepassations"
     )
+    # La version de schéma qui a alimenté la saisie : un schéma utilisé ne change plus (L3-T06).
+    schema = models.ForeignKey(
+        "SchemaEcriture",
+        null=True,
+        blank=True,
+        on_delete=models.PROTECT,
+        related_name="ecritures",
+    )
 
     class Meta:
         constraints = [
@@ -208,4 +216,89 @@ class Compteur(ModeleOrganisation):
                 fields=["org_id", "journal", "exercice"], name="uq_compteur_journal_exercice"
             ),
             models.CheckConstraint(condition=Q(dernier__gte=1), name="compteur_positif"),
+        ]
+
+
+class SchemaEcriture(ModeleOrganisation):
+    """Une pièce type (achat avec TVA, recette…), versionnée comme toute configuration (B.6).
+
+    Validité `[valid_from, valid_to[`, sans chevauchement pour un même code. Une version utilisée
+    par au moins une écriture ne se modifie plus : on en crée une nouvelle.
+    """
+
+    code = models.CharField(max_length=32)
+    version = models.PositiveIntegerField()
+    valid_from = models.DateField()
+    valid_to = models.DateField(null=True, blank=True)  # exclu
+    label = models.JSONField()
+    journal = models.ForeignKey(
+        Journal, null=True, blank=True, on_delete=models.PROTECT, related_name="+"
+    )
+
+    class Meta:
+        constraints = [
+            models.UniqueConstraint(fields=["org_id", "code", "version"], name="uq_schema_version"),
+            models.CheckConstraint(
+                condition=Q(valid_to__isnull=True) | Q(valid_to__gt=models.F("valid_from")),
+                name="schema_dates_coherentes",
+            ),
+        ]
+
+    def __str__(self) -> str:
+        return f"{self.code} v{self.version}"
+
+
+class RegleSchema(models.TextChoices):
+    BASE = "base", "Montant saisi"
+    TAUX = "taux", "Montant × taux"
+    SOLDE = "solde", "Contrepartie automatique"
+
+
+class LigneSchema(ModeleOrganisation):
+    """Une ligne de schéma : un compte, un sens, une règle de calcul d'un ensemble fermé."""
+
+    schema = models.ForeignKey(SchemaEcriture, on_delete=models.CASCADE, related_name="lignes")
+    rang = models.PositiveSmallIntegerField()
+    compte = models.ForeignKey(Compte, on_delete=models.PROTECT, related_name="+")
+    sens = models.CharField(max_length=6, null=True, blank=True)  # nul pour la contrepartie
+    regle = models.CharField(max_length=16, choices=RegleSchema.choices)
+    # Un taux (0,18 pour 18 %) n'est pas un montant : précision propre, jamais de flottant.
+    taux = models.DecimalField(max_digits=9, decimal_places=6, null=True, blank=True)
+    axes = models.JSONField(default=dict, blank=True)  # {"dim1": "COMP-A"} : axes par défaut
+
+    class Meta:
+        constraints = [
+            models.UniqueConstraint(fields=["schema", "rang"], name="uq_ligneschema_rang"),
+            models.CheckConstraint(condition=Q(rang__gte=1), name="ligneschema_rang_positif"),
+            models.CheckConstraint(
+                condition=Q(regle__in=RegleSchema.values), name="ligneschema_regle_fermee"
+            ),
+            # La forme de chaque règle : la contrepartie déduit son sens et n'a pas de taux ;
+            # la base a un sens et pas de taux ; la règle taux a un sens et un taux > 0.
+            models.CheckConstraint(
+                # `isnull=False` est explicite : en SQL, `taux > 0` ou `sens IN (…)` sur NULL vaut
+                # NULL, et un CHECK laisse passer NULL.
+                condition=(
+                    Q(regle=RegleSchema.SOLDE, sens__isnull=True, taux__isnull=True)
+                    | Q(
+                        regle=RegleSchema.BASE,
+                        sens__isnull=False,
+                        sens__in=["debit", "credit"],
+                        taux__isnull=True,
+                    )
+                    | Q(
+                        regle=RegleSchema.TAUX,
+                        sens__isnull=False,
+                        sens__in=["debit", "credit"],
+                        taux__isnull=False,
+                        taux__gt=0,
+                    )
+                ),
+                name="ligneschema_forme",
+            ),
+            models.UniqueConstraint(
+                fields=["schema"],
+                condition=Q(regle=RegleSchema.SOLDE),
+                name="uq_ligneschema_une_contrepartie",
+            ),
         ]

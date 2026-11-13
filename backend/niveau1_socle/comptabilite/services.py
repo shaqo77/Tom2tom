@@ -150,6 +150,7 @@ def saisir_ecriture(
     taux=1,
     reference_piece: str = "",
     cle_idempotence: str | None = None,
+    schema=None,
 ) -> Ecriture:
     """Enregistre un BROUILLON équilibré. Retourne l'écriture existante si la clé est connue.
 
@@ -187,6 +188,7 @@ def saisir_ecriture(
             currency_id=devise,
             fx_rate=Decimal(str(taux)),
             origin="saisie",
+            schema=schema,
             idempotency_key=cle_idempotence,
             created_by=utilisateur.id,
         )

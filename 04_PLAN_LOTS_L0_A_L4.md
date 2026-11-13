@@ -695,6 +695,12 @@ Service `contre_passer()` : crée une écriture inverse, renseigne `reverses_id`
 
 `SchemaEcriture` : modèle de lignes avec comptes, sens et règles de calcul. Alimente la saisie, ne la remplace pas.
 
+> **Réalisation de L3-T06.** Le plan tenait en une ligne ; voici ce qui a été décidé. `SchemaEcriture` (pièce type, **versionnée** `[valid_from, valid_to[`, sans chevauchement pour un même code, garanti par la base) et `LigneSchema` (compte, sens, règle, taux, axes par défaut). La règle de calcul est un **ensemble fermé**, jamais une formule : `base` (montant saisi), `taux` (montant × taux, arrondi à la devise, moitié vers le haut), `solde` (**contrepartie automatique** : elle prend le sens qui équilibre et absorbe les arrondis, donc la pièce générée est équilibrée pour tout montant, ce que vérifie un test de propriété). Un schéma n'a qu'une contrepartie ; une ligne à montant arrondi nul n'est pas générée ; un montant qui arrondit à zéro (0,01 en devise sans décimale) est refusé avec un message exact.
+>
+> Le schéma **alimente** la saisie : `generer_lignes_du_schema` retourne des lignes modifiables, `saisir_depuis_schema` les enregistre par `saisir_ecriture` (mêmes garde-fous). La version applicable est résolue à la **date comptable**. L'écriture retient la version qui l'a alimentée (`Ecriture.schema`) ; une version **utilisée** ne se modifie plus, ni ses lignes (déclencheur), sauf la clôture de sa validité pour lui substituer une nouvelle version (règle 7).
+>
+> Un `CHECK` laisse passer `NULL` (`taux > 0` sur un taux absent vaut `NULL`) : la contrainte de forme des lignes teste explicitement la présence des valeurs. Un test l'a révélé ; les futures contraintes de ce type doivent faire de même.
+
 ---
 
 ### L3-T07 — Lettrage et rapprochement bancaire
