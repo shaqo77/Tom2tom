@@ -51,20 +51,24 @@ def _exigence(org_id, document, **champs):
         "source": "manual",
     }
     donnees.update(champs)
+    if donnees["status"] in ("validated", "active"):  # la base exige une citation vérifiée (L5-T02)
+        donnees.setdefault("citation_verifiee_sha256", document.sha256)
     return Exigence.objects.create(**donnees)
 
 
 def test_une_exigence_active_sans_validateur_est_refusee_par_la_base(org_a):
     """Contrôle de L0-T08 : l'IntegrityError vient de PostgreSQL, pas de l'application."""
     _poser_org(org_a)
-    exigence = _exigence(org_a, _document(org_a))
+    document = _document(org_a)
+    exigence = _exigence(org_a, document)
 
     with pytest.raises(IntegrityError, match="exigence_validation_obligatoire"):
         with transaction.atomic(), connection.cursor() as cur:
             # SQL direct : aucune validation Django ne peut intervenir.
             cur.execute(
-                "UPDATE niveau3_config_exigence SET status = 'active' WHERE id = %s",
-                [exigence.id],
+                "UPDATE niveau3_config_exigence SET status = 'active', "
+                "citation_verifiee_sha256 = %s WHERE id = %s",  # citation en règle : seul le
+                [document.sha256, exigence.id],  # validateur manque, et c'est lui qui est refusé
             )
 
 

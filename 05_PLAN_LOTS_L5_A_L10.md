@@ -65,6 +65,16 @@ def valider_citation(exigence):
 
 **Contrôle.** Une citation absente du document est refusée avec ce message exact.
 
+> **Réalisation de L5-T02** (`niveau3_config/services/{extraction,exigences}.py`, migrations `0004`-`0005`, dépendance `pypdf`).
+> - **`valider_citation`** : l'extrait doit être littéralement retrouvable dans le texte du document, sinon `CitationIntrouvable` avec le message exact « La citation n'a pas été retrouvée dans le document référencé. ». Comparaison **normalisée** : même Unicode (ligatures, espaces insécables), même typographie (guillemets, apostrophes, tirets, traits d'union conditionnels), espaces et retours à la ligne ramenés à un seul espace. La **casse et les accents restent significatifs** : une citation est littérale.
+> - **Formats** : PDF (par page, via `pypdf`), DOCX (lu sans dépendance, déclarations de type refusées contre les entités XML, taille décompressée bornée) et texte brut (UTF-8 puis cp1252). Tout autre contenu, un PDF chiffré ou scanné (sans texte extractible), un fichier illisible : **refusés avec leur raison**, jamais validés sur un texte mal lu.
+> - **Page** : si le document est un PDF et que la citation donne une page, l'extrait doit s'y trouver (ou y commencer et se poursuivre sur la suivante) ; sinon `CitationMalPlacee`, qui distingue « absent du document » de « présent, mais ailleurs ». Hors PDF, la page n'est pas vérifiable et ne bloque pas.
+> - **Un extrait trop court** (moins de 10 caractères) est refusé : « le » est partout, il ne désigne aucun passage. Valeur de départ à ajuster.
+> - **On ne vérifie jamais sur un fichier modifié** : l'empreinte du fichier stocké est revérifiée avant l'extraction. Un document remplacé ne se cite plus (citez la version en vigueur) ; le document doit être du projet.
+> - **`proposer_exigence`** (habilitation `parametrer`) : crée l'exigence `proposed`, un code déjà connu donnant une **nouvelle version**, jamais une modification ; trace au journal d'audit avec l'empreinte et la citation.
+> - **Ce que la base garantit en plus de L0-T08** : citation en objet avec extrait non vide et paragraphe ou page (les `COALESCE` évitent qu'un `CHECK` à valeur NULL passe) ; exigence conditionnelle avec sa condition ; confiance seulement pour une exigence assistée, entre 0 et 1 ; et **une exigence validée ou active a une citation vérifiée sur l'empreinte exacte du document référencé** (`citation_verifiee_sha256`, posée par le service). Une exigence ne peut donc pas devenir active sans que sa citation ait été retrouvée.
+> - **Limites** : la base ne relit pas le fichier (elle ne peut pas) : un chemin qui ferait `INSERT` d'une exigence `proposed` sans le service n'a pas sa citation vérifiée, et la base l'empêchera seulement d'être validée ou activée ; la détection de format se fait au contenu (pas de type MIME enregistré) ; pas d'OCR.
+
 ---
 
 ### L5-T03 — Le rattachement : la règle qui donne sa valeur au produit

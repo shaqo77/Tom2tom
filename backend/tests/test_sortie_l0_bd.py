@@ -70,6 +70,7 @@ def _enregistrer_exigences(org_id, modele, *, sauf=()):
             source="manual",
             validated_by=uuid.uuid4(),
             validated_at="2026-01-05T09:00:00Z",
+            citation_verifiee_sha256=document.sha256,
         )
         RattachementExigence.objects.create(
             org_id=org_id,

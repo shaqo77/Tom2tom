@@ -104,6 +104,10 @@ class Exigence(ModeleOrganisation):
     confidence = models.DecimalField(max_digits=4, decimal_places=3, null=True, blank=True)
     validated_by = models.UUIDField(null=True, blank=True)
     validated_at = models.DateTimeField(null=True, blank=True)
+    # L'empreinte du document sur le texte duquel la citation a été RETROUVÉE (L5-T02). La base
+    # exige qu'elle soit posée pour toute exigence validée ou active, et qu'elle soit celle du
+    # document référencé : une citation jamais vérifiée n'entre pas dans le registre actif.
+    citation_verifiee_sha256 = models.BinaryField(null=True, blank=True)
 
     class Meta:
         constraints = [
