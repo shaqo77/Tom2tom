@@ -6,9 +6,11 @@ document dont l'empreinte est conservée. Les ensembles fermés sont contraints
 EN BASE : le code applicatif s'oublie.
 """
 
+from django.contrib.postgres.fields import ArrayField
 from django.db import models
 from django.db.models import Q
 
+from core.fields import MontantField
 from core.models import ModeleOrganisation
 
 
@@ -172,5 +174,250 @@ class RattachementExigence(ModeleOrganisation):
             models.CheckConstraint(
                 condition=Q(target_type__in=TypeCible.values),
                 name="rattachement_type_cible_ferme",
+            ),
+        ]
+
+
+# --- Profil de décaissement (L5-T03bis, architecture §4bis) ---------------------------------
+
+
+class RegimeDecaissement(models.TextChoices):
+    SUR_TRANSACTIONS = "transaction_based", "Sur transactions"
+    SUR_RAPPORT = "report_based", "Sur rapport"
+
+
+class StatutProfil(models.TextChoices):
+    BROUILLON = "draft", "Brouillon"
+    VALIDE = "validated", "Validé"
+    ACTIF = "active", "Actif"
+    REMPLACE = "superseded", "Remplacé"
+    REJETE = "rejected", "Rejeté"
+
+
+class ProfilDecaissement(ModeleOrganisation):
+    """Ce qui varie d'un projet à l'autre chez un même bailleur : régime, dates, méthodes, seuils,
+    comptes désignés, taux de financement par catégorie. Versionné avec date d'effet.
+
+    Les ensembles sont FERMÉS et contraints en base : ajouter une méthode ou une pièce exigée est
+    une migration, jamais un paramétrage client.
+    """
+
+    project_id = models.UUIDField(db_index=True)
+    accord = models.ForeignKey(
+        "financements.Accord", on_delete=models.PROTECT, related_name="profils"
+    )
+    version = models.PositiveIntegerField()
+    valid_from = models.DateField()
+    valid_to = models.DateField(null=True, blank=True)  # exclu : [valid_from, valid_to[
+    regime = models.CharField(max_length=20, choices=RegimeDecaissement.choices)
+    effectiveness_date = models.DateField(null=True, blank=True)  # entrée en vigueur
+    eligibility_date = models.DateField(
+        null=True, blank=True
+    )  # dépenses antérieures non finançables
+    closing_date = models.DateField(null=True, blank=True)
+    disbursement_deadline = models.DateField(null=True, blank=True)  # clôture + période de grâce
+    requirement = models.ForeignKey(
+        Exigence, null=True, blank=True, on_delete=models.PROTECT, related_name="+"
+    )  # la règle qui le justifie
+    status = models.CharField(
+        max_length=12, choices=StatutProfil.choices, default=StatutProfil.BROUILLON
+    )
+    rejection_reason = models.TextField(blank=True, default="")
+    validated_by = models.UUIDField(null=True, blank=True)
+    validated_at = models.DateTimeField(null=True, blank=True)
+
+    class Meta:
+        constraints = [
+            models.UniqueConstraint(
+                fields=["org_id", "project_id", "accord", "version"], name="uq_profil_version"
+            ),
+            models.CheckConstraint(
+                condition=Q(regime__in=RegimeDecaissement.values), name="profil_regime_ferme"
+            ),
+            models.CheckConstraint(
+                condition=Q(status__in=StatutProfil.values), name="profil_statut_ferme"
+            ),
+            models.CheckConstraint(
+                condition=Q(valid_to__isnull=True) | Q(valid_to__gt=models.F("valid_from")),
+                name="profil_dates_coherentes",
+            ),
+            # Les dates du profil se suivent, quand elles sont renseignées (toutes les paires).
+            *(
+                models.CheckConstraint(
+                    condition=Q(**{f"{a}__isnull": True})
+                    | Q(**{f"{b}__isnull": True})
+                    | Q(**{f"{a}__lte": models.F(b)}),
+                    name=f"profil_jalons_{i}",
+                )
+                for i, (a, b) in enumerate(
+                    [
+                        ("effectiveness_date", "eligibility_date"),
+                        ("eligibility_date", "closing_date"),
+                        ("closing_date", "disbursement_deadline"),
+                        ("eligibility_date", "disbursement_deadline"),
+                    ]
+                )
+            ),
+            models.CheckConstraint(
+                condition=~Q(status__in=[StatutProfil.VALIDE, StatutProfil.ACTIF])
+                | Q(validated_by__isnull=False, validated_at__isnull=False),
+                name="profil_validation_obligatoire",
+            ),
+            models.CheckConstraint(
+                condition=~Q(status=StatutProfil.REJETE) | ~Q(rejection_reason=""),
+                name="profil_rejet_motive",
+            ),
+        ]
+
+    def __str__(self) -> str:
+        return f"profil {self.accord_id} v{self.version} ({self.status})"
+
+
+class MethodeDecaissementCode(models.TextChoices):
+    AVANCE = "advance", "Avance"
+    REMBOURSEMENT = "reimbursement", "Remboursement"
+    PAIEMENT_DIRECT = "direct_payment", "Paiement direct"
+    ENGAGEMENT_SPECIAL = "special_commitment", "Engagement spécial"
+
+
+PIECES_EXIGEES = ("soe", "records", "ifr", "summary_sheet")  # état certifié, copies, RFI, fiche
+
+
+class MethodeDecaissement(ModeleOrganisation):
+    profil = models.ForeignKey(
+        ProfilDecaissement, on_delete=models.CASCADE, related_name="methodes"
+    )
+    method = models.CharField(max_length=20, choices=MethodeDecaissementCode.choices)
+    is_enabled = models.BooleanField(default=True)
+    supporting_docs = ArrayField(models.CharField(max_length=16), default=list)
+    full_doc_threshold = MontantField(null=True, blank=True)  # au-delà : copies de pièces exigées
+    min_application_amount = MontantField(null=True, blank=True)  # montant minimum, valeur fixe…
+    min_application_pct_of_ceiling = models.DecimalField(
+        max_digits=9, decimal_places=6, null=True, blank=True
+    )  # …ou % du plafond du compte désigné
+
+    class Meta:
+        constraints = [
+            models.UniqueConstraint(fields=["profil", "method"], name="uq_methode_par_profil"),
+            models.CheckConstraint(
+                condition=Q(method__in=MethodeDecaissementCode.values),
+                name="methode_ensemble_ferme",
+            ),
+            models.CheckConstraint(
+                condition=Q(min_application_amount__isnull=True)
+                | Q(min_application_pct_of_ceiling__isnull=True),
+                name="methode_un_seul_minimum",
+            ),
+            models.CheckConstraint(
+                condition=Q(min_application_amount__isnull=True) | Q(min_application_amount__gte=0),
+                name="methode_minimum_positif",
+            ),
+            models.CheckConstraint(
+                condition=Q(min_application_pct_of_ceiling__isnull=True)
+                | Q(min_application_pct_of_ceiling__gte=0, min_application_pct_of_ceiling__lte=1),
+                name="methode_pourcentage_borne",
+            ),
+            models.CheckConstraint(
+                condition=Q(full_doc_threshold__isnull=True) | Q(full_doc_threshold__gte=0),
+                name="methode_seuil_documentation_positif",
+            ),
+            models.CheckConstraint(
+                condition=Q(supporting_docs__contained_by=list(PIECES_EXIGEES)),
+                name="methode_pieces_ensemble_ferme",
+            ),
+        ]
+
+
+class PlafondCompte(models.TextChoices):
+    FIXE = "fixed", "Fixe"
+    VARIABLE = "variable", "Variable"
+
+
+class RegleCompteDesigne(ModeleOrganisation):
+    profil = models.ForeignKey(ProfilDecaissement, on_delete=models.CASCADE, related_name="comptes")
+    bank_account = models.ForeignKey(
+        "financements.CompteBancaire", on_delete=models.PROTECT, related_name="+"
+    )
+    currency = models.ForeignKey("referentiels.Devise", on_delete=models.PROTECT, related_name="+")
+    ceiling_kind = models.CharField(max_length=8, choices=PlafondCompte.choices)
+    ceiling_amount = MontantField(null=True, blank=True)
+    replenishment_threshold_pct = models.DecimalField(
+        max_digits=9, decimal_places=6, null=True, blank=True
+    )
+
+    class Meta:
+        constraints = [
+            models.UniqueConstraint(fields=["profil", "bank_account"], name="uq_regle_compte"),
+            models.CheckConstraint(
+                condition=Q(ceiling_kind__in=PlafondCompte.values),
+                name="regle_compte_plafond_ferme",
+            ),
+            # Un plafond fixe a un montant ; un plafond variable n'en porte pas.
+            models.CheckConstraint(
+                condition=(
+                    Q(ceiling_kind=PlafondCompte.FIXE, ceiling_amount__isnull=False)
+                    | Q(ceiling_kind=PlafondCompte.VARIABLE, ceiling_amount__isnull=True)
+                ),
+                name="regle_compte_plafond_coherent",
+            ),
+            models.CheckConstraint(
+                condition=Q(ceiling_amount__isnull=True) | Q(ceiling_amount__gte=0),
+                name="regle_compte_plafond_positif",
+            ),
+            models.CheckConstraint(
+                condition=Q(replenishment_threshold_pct__isnull=True)
+                | Q(replenishment_threshold_pct__gte=0, replenishment_threshold_pct__lte=1),
+                name="regle_compte_seuil_borne",
+            ),
+        ]
+
+
+class AssietteTaxes(models.TextChoices):
+    HORS_TAXES = "net_of_taxes", "Hors taxes"
+    TAXES_COMPRISES = "taxes_included", "Taxes comprises"
+
+
+class RegleFinancementCategorie(ModeleOrganisation):
+    """Allocation ET taux de financement d'une catégorie, versionnés avec le profil.
+
+        montant_a_retirer = dépense éligible × funding_rate, sur l'assiette `tax_basis`
+
+    Son identifiant est persisté sur chaque ligne de demande de retrait : sans cela, une
+    réallocation ultérieure rendrait inexplicable le montant d'une demande déjà soumise.
+    """
+
+    profil = models.ForeignKey(ProfilDecaissement, on_delete=models.CASCADE, related_name="regles")
+    category = models.ForeignKey(
+        "financements.Categorie", on_delete=models.PROTECT, related_name="+"
+    )
+    allocation = MontantField()
+    funding_rate = models.DecimalField(max_digits=9, decimal_places=6)
+    tax_basis = models.CharField(max_length=16, choices=AssietteTaxes.choices)
+    eligibility_from = models.DateField(null=True, blank=True)
+    eligibility_to = models.DateField(null=True, blank=True)  # incluse
+    requires_prior_review = models.BooleanField(default=False)
+    max_per_contract = MontantField(null=True, blank=True)
+
+    class Meta:
+        constraints = [
+            models.UniqueConstraint(fields=["profil", "category"], name="uq_regle_categorie"),
+            models.CheckConstraint(
+                condition=Q(funding_rate__gt=0, funding_rate__lte=1), name="regle_taux_dans_0_1"
+            ),
+            models.CheckConstraint(
+                condition=Q(tax_basis__in=AssietteTaxes.values), name="regle_assiette_fermee"
+            ),
+            models.CheckConstraint(
+                condition=Q(allocation__gte=0), name="regle_allocation_positive"
+            ),
+            models.CheckConstraint(
+                condition=Q(eligibility_from__isnull=True)
+                | Q(eligibility_to__isnull=True)
+                | Q(eligibility_from__lte=models.F("eligibility_to")),
+                name="regle_eligibilite_coherente",
+            ),
+            models.CheckConstraint(
+                condition=Q(max_per_contract__isnull=True) | Q(max_per_contract__gte=0),
+                name="regle_plafond_contrat_positif",
             ),
         ]

@@ -58,7 +58,21 @@ class DemandeRetrait(ModeleOrganisation):
     )
     periode_debut = models.DateField()
     periode_fin = models.DateField()
+    # Somme de ce qui est demandé au bailleur (`montant_a_retirer` des lignes).
     montant_total = MontantField(default=0)
+    # Le profil de décaissement résolu à la date de la demande (L5-T03bis) : régime, seuils, taux.
+    # Il est FIGÉ à la préparation ; sans profil (accord jamais paramétré), il reste vide.
+    profil_version = models.ForeignKey(
+        "niveau3_config.ProfilDecaissement",
+        null=True,
+        blank=True,
+        on_delete=models.PROTECT,
+        related_name="+",
+    )
+    pieces_exigees = models.JSONField(
+        default=list, blank=True
+    )  # soe | records | ifr | summary_sheet
+    pieces_fournies = models.JSONField(default=list, blank=True)
     # La demande représentée pointe vers la rejetée dont elle reprend les dépenses.
     reprise_de = models.ForeignKey(
         "self", null=True, blank=True, on_delete=models.PROTECT, related_name="reprises"
@@ -132,7 +146,27 @@ class LigneDemande(ModeleOrganisation):
     demande = models.ForeignKey(DemandeRetrait, on_delete=models.PROTECT, related_name="lignes")
     ligne_ecriture_id = models.UUIDField(db_index=True)
     categorie = models.ForeignKey(Categorie, on_delete=models.PROTECT, related_name="+")
-    montant = MontantField()
+    montant = MontantField()  # la dépense éligible, telle que le grand livre la porte
+    # Ce qui est demandé au bailleur : dépense × taux de la règle (L5-T03bis). Sans profil, la
+    # base le fixe à la dépense (taux de 100 %).
+    montant_a_retirer = MontantField(default=0)
+    # La règle de financement et le profil qui ont produit ce montant, PERSISTÉS : une réallocation
+    # ultérieure ne rend jamais inexplicable une demande déjà soumise.
+    regle_financement = models.ForeignKey(
+        "niveau3_config.RegleFinancementCategorie",
+        null=True,
+        blank=True,
+        on_delete=models.PROTECT,
+        related_name="+",
+    )
+    profil_version = models.ForeignKey(
+        "niveau3_config.ProfilDecaissement",
+        null=True,
+        blank=True,
+        on_delete=models.PROTECT,
+        related_name="+",
+    )
+    taux_applique = models.DecimalField(max_digits=9, decimal_places=6, null=True, blank=True)
     piece = models.CharField(max_length=100, blank=True, default="")  # numéro de la pièce
     date_piece = models.DateField()
     etat = models.CharField(
@@ -151,6 +185,27 @@ class LigneDemande(ModeleOrganisation):
                 fields=["demande", "ligne_ecriture_id"], name="uq_lignedemande_une_fois"
             ),
             models.CheckConstraint(condition=Q(montant__gt=0), name="lignedemande_montant_positif"),
+            models.CheckConstraint(
+                condition=Q(montant_a_retirer__gte=0, montant_a_retirer__lte=models.F("montant")),
+                name="lignedemande_retrait_dans_la_depense",
+            ),
+            # `isnull` explicite : une ligne sous profil porte sa règle, son profil et son taux,
+            # une ligne hors profil n'en porte aucun (un CHECK laisse passer NULL).
+            models.CheckConstraint(
+                condition=(
+                    Q(
+                        regle_financement__isnull=True,
+                        profil_version__isnull=True,
+                        taux_applique__isnull=True,
+                    )
+                    | Q(
+                        regle_financement__isnull=False,
+                        profil_version__isnull=False,
+                        taux_applique__isnull=False,
+                    )
+                ),
+                name="lignedemande_regle_profil_taux_ensemble",
+            ),
             models.CheckConstraint(
                 condition=Q(etat__in=EtatLigneDemande.values), name="lignedemande_etat_ferme"
             ),

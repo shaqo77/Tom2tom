@@ -29,6 +29,8 @@ from niveau1_socle.financements.services import exiger_accord_actif
 from niveau1_socle.habilitations.permissions import est_habilite
 from niveau1_socle.habilitations.separation import exiger_separation_des_taches
 from niveau1_socle.organisations.models import Projet
+from niveau1_socle.referentiels.models import Devise
+from niveau3_config.services import decaissement as profil_services
 
 from .models import (
     DemandeRetrait,
@@ -214,6 +216,60 @@ def _verrou_accord(accord_id) -> None:
         )
 
 
+def _appliquer_le_profil(accord: Accord, type_demande: str, depenses: list, date: datetime.date):
+    """Contrôle et calcule la demande selon le profil de décaissement en vigueur à `date`.
+
+    Retourne `(profil, {ligne: (règle, montant_a_retirer)}, pièces_exigées)`. Sans profil (accord
+    jamais paramétré), le montant demandé est la dépense entière et rien n'est contrôlé : c'est
+    l'état antérieur à L5. Si un profil a existé mais qu'aucun n'est en vigueur à `date`, on
+    refuse : l'absence de règle n'est pas une règle.
+    """
+    profil = profil_services.profil_en_vigueur(accord, date)
+    if profil is None:
+        if profil_services.accord_a_un_profil(accord):
+            raise profil_services.ProfilViole(
+                f"Aucun profil de décaissement n'est en vigueur pour l'accord {accord.numero} "
+                f"le {date}"
+            )
+        return None, {d.ligne_id: (None, d.montant) for d in depenses}, []
+    methode = profil_services.methode_pour(profil, type_demande)
+    if methode is None or not methode.is_enabled:
+        raise profil_services.ProfilViole(
+            f"La méthode « {profil_services.METHODE_DU_TYPE[type_demande]} » n'est pas autorisée "
+            f"par le profil v{profil.version} de l'accord {accord.numero}"
+        )
+    profil_services.verifier_delai(profil, date)
+    base = Devise.objects.get(pk=Projet.objects.get(pk=accord.project_id).base_currency)
+    pas = Decimal(1).scaleb(-base.decimales)
+    calcul = {}
+    for depense in depenses:
+        categorie = Categorie.objects.select_related("parent").get(pk=depense.categorie_id)
+        regle = profil_services.regle_pour(profil, categorie)
+        if regle is None:
+            raise profil_services.ProfilViole(
+                f"La catégorie {categorie.code} n'a pas de règle de financement dans le profil "
+                f"v{profil.version}"
+            )
+        profil_services.verifier_eligibilite(profil, regle, depense.date)
+        retrait = profil_services.montant_a_retirer(
+            depense.montant, regle.funding_rate, regle.tax_basis, pas=pas
+        )
+        if retrait <= 0:
+            raise profil_services.ProfilViole(
+                f"La dépense {depense.piece or depense.ligne_id} ({depense.montant}) donne un "
+                f"montant à retirer nul après application du taux de {regle.funding_rate}"
+            )
+        calcul[depense.ligne_id] = (regle, retrait)
+    total = sum((retrait for _, retrait in calcul.values()), ZERO)
+    minimum = profil_services.minimum_de_demande(profil, methode)
+    if minimum is not None and total < minimum.montant:
+        raise profil_services.ProfilViole(
+            f"La demande ({total}) est inférieure au minimum du profil : {minimum.explication}"
+        )
+    pieces = profil_services.documents_exiges(methode, [d.montant for d in depenses])
+    return profil, calcul, pieces
+
+
 def preparer_demande(
     *,
     utilisateur,
@@ -224,9 +280,16 @@ def preparer_demande(
     lignes: list,
     ecarts: dict | None = None,
     reprise_de: DemandeRetrait | None = None,
+    date_demande: datetime.date | None = None,
 ) -> DemandeRetrait:
     """Produit une demande PRÉPARÉE à partir des dépenses choisies (`lignes` : identifiants de
-    lignes d'écriture). `ecarts` : `{ligne: motif}`, dépenses éligibles écartées avec leur motif."""
+    lignes d'écriture). `ecarts` : `{ligne: motif}`, dépenses éligibles écartées avec leur motif.
+
+    Si l'accord a un profil de décaissement en vigueur à `date_demande` (aujourd'hui par défaut),
+    la demande est CONTRÔLÉE ET CALCULÉE par lui (L5-T03bis) : méthode autorisée, délai, date
+    d'éligibilité, règle de financement de chaque catégorie, montant minimum, pièces exigées. Le
+    profil est figé sur la demande, et sa règle sur chaque ligne.
+    """
     _habilite(utilisateur, "saisir", accord.project_id)
     if type not in TypeDemande.values:
         raise DemandeInvalide(f"type de demande inconnu : {type}")
@@ -262,6 +325,9 @@ def preparer_demande(
                 raise DepenseNonSelectionnable(
                     f"La dépense {ligne_id} ne peut être écartée : elle n'est pas sélectionnable"
                 )
+        profil, calcul, pieces_exigees = _appliquer_le_profil(
+            accord, type, [choisies[i] for i in lignes], date_demande or datetime.date.today()
+        )
         numero = (
             f"DRF-{accord.numero}-{DemandeRetrait.objects.filter(accord=accord).count() + 1:03d}"
         )
@@ -274,6 +340,7 @@ def preparer_demande(
             periode_debut=periode_debut,
             periode_fin=periode_fin,
             reprise_de=reprise_de,
+            profil_version=profil,
             created_by=utilisateur.id,
         )
         for ligne_id in lignes:
@@ -284,6 +351,10 @@ def preparer_demande(
                 ligne_ecriture_id=ligne_id,
                 categorie_id=depense.categorie_id,
                 montant=depense.montant,
+                montant_a_retirer=calcul[ligne_id][1],
+                regle_financement=calcul[ligne_id][0],
+                profil_version=profil if calcul[ligne_id][0] else None,
+                taux_applique=calcul[ligne_id][0].funding_rate if calcul[ligne_id][0] else None,
                 piece=depense.piece,
                 date_piece=depense.date,
             )
@@ -295,8 +366,10 @@ def preparer_demande(
                 motif=motif.strip(),
                 created_by=utilisateur.id,
             )
-        total = sum((choisies[i].montant for i in lignes), ZERO)
-        DemandeRetrait.objects.filter(pk=demande.pk).update(montant_total=total)
+        total = sum((calcul[i][1] for i in lignes), ZERO)
+        DemandeRetrait.objects.filter(pk=demande.pk).update(
+            montant_total=total, pieces_exigees=pieces_exigees
+        )
         journaliser(
             org_id=demande.org_id,
             actor_id=utilisateur.id,
@@ -308,6 +381,9 @@ def preparer_demande(
                 "numero": numero,
                 "lignes": len(lignes),
                 "montant": str(total),
+                "depenses": str(sum((choisies[i].montant for i in lignes), ZERO)),
+                "profil": f"v{profil.version}" if profil else None,
+                "pieces_exigees": pieces_exigees,
                 "ecartees": {str(i): m.strip() for i, m in ecarts.items()},
                 "reprise_de": reprise_de.numero if reprise_de else None,
             },
@@ -400,9 +476,11 @@ def etat_certifie_de(demande: DemandeRetrait, lignes: list[LigneDemande]) -> dic
                 "piece": ligne.piece,
                 "date": ligne.date_piece.isoformat(),
                 "montant": str(ligne.montant),
+                "a_retirer": str(ligne.montant_a_retirer),
+                "taux": str(ligne.taux_applique) if ligne.taux_applique is not None else None,
             }
         )
-        entree["total"] += ligne.montant
+        entree["total"] += ligne.montant_a_retirer
     categories = [
         {**entree, "total": str(entree["total"])} for _, entree in sorted(par_categorie.items())
     ]
@@ -412,7 +490,9 @@ def etat_certifie_de(demande: DemandeRetrait, lignes: list[LigneDemande]) -> dic
         "accord": demande.accord.numero,
         "periode": [demande.periode_debut.isoformat(), demande.periode_fin.isoformat()],
         "categories": categories,
-        "total": str(sum((ligne.montant for ligne in lignes), ZERO)),
+        "total": str(sum((ligne.montant_a_retirer for ligne in lignes), ZERO)),
+        "total_depenses": str(sum((ligne.montant for ligne in lignes), ZERO)),
+        "profil": f"v{demande.profil_version.version}" if demande.profil_version_id else None,
         "reprise_de": demande.reprise_de.numero if demande.reprise_de_id else None,
     }
 
@@ -424,7 +504,12 @@ def empreinte_de(etat: dict) -> str:
 
 
 def soumettre_demande(
-    demande: DemandeRetrait, *, utilisateur, cle_idempotence: str | None = None
+    demande: DemandeRetrait,
+    *,
+    utilisateur,
+    cle_idempotence: str | None = None,
+    pieces_fournies: list[str] | None = None,
+    date_soumission: datetime.date | None = None,
 ) -> DemandeRetrait:
     """Préparée -> soumise, ou rien. L'état certifié est figé avec son empreinte.
 
@@ -448,12 +533,29 @@ def soumettre_demande(
         exiger_accord_actif(accord.pk, pour="demande de décaissement")
         _exiger_devise(accord)
 
+        # Le profil figé à la préparation : son délai de décaissement vaut au jour de la soumission,
+        # et les pièces qu'il impose doivent toutes être fournies.
+        if courante.profil_version_id:
+            profil_services.verifier_delai(
+                courante.profil_version, date_soumission or datetime.date.today()
+            )
+        pieces = sorted(set(pieces_fournies or []))
+        manquantes = sorted(set(courante.pieces_exigees) - set(pieces))
+        if manquantes:
+            raise DemandeInvalide(
+                "Pièces exigées par le profil non fournies : "
+                + ", ".join(manquantes)
+                + " (une dépense au-delà du seuil de documentation exige les copies de pièces)"
+            )
+
         categories, utilises, (courant, utilise_accord), lignes = _verrouiller_soldes(courante)
         par_categorie: dict = {}
         for ligne in lignes:
             for categorie in _chaine(Categorie.objects.get(pk=ligne.categorie_id)):
-                par_categorie[categorie.pk] = par_categorie.get(categorie.pk, ZERO) + ligne.montant
-        total = sum((ligne.montant for ligne in lignes), ZERO)
+                par_categorie[categorie.pk] = (
+                    par_categorie.get(categorie.pk, ZERO) + ligne.montant_a_retirer
+                )
+        total = sum((ligne.montant_a_retirer for ligne in lignes), ZERO)
         problemes = []
         for categorie_id, demande_montant in par_categorie.items():
             plafond = categories[categorie_id].plafond
@@ -476,6 +578,7 @@ def soumettre_demande(
             with transaction.atomic():  # le refus ultime de la base ne doit pas laisser de trace
                 DemandeRetrait.objects.filter(pk=courante.pk).update(
                     status=StatutDemande.SOUMISE,
+                    pieces_fournies=pieces,
                     soumise_le=timezone.now(),
                     soumise_par=utilisateur.id,
                     cle_idempotence=cle_idempotence or None,

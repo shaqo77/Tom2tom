@@ -35,6 +35,7 @@ from niveau1_socle.financements.services import (
 from niveau1_socle.rapprochement.services import importer_mouvements, rapprocher
 from niveau1_socle.referentiels.models import Tiers
 from tests.outils import connexion_proprietaire
+from tests.outils_profil import creer_profil
 from tests.test_cycle_ecriture_bd import decor  # noqa: F401
 from tests.test_demandes_retrait_bd import DEBUT, FIN, _depense, drf  # noqa: F401
 from tests.test_financements_bd import _document, cadre  # noqa: F401
@@ -227,6 +228,15 @@ def _peupler(organisation, projet, profils, accord, categories):
         ecarts={b: "Justificatif manquant"},
     )
     soumettre_demande(demande, utilisateur=bruno)
+    # Profil de décaissement (créé en dernier : il changerait les demandes préparées après lui).
+    creer_profil(
+        organisation,
+        projet,
+        accord,
+        regles=[(categories["serv"], "0.8")],
+        comptes=[{"compte": compte, "plafond": D(1000)}],
+        methodes=[{"method": "reimbursement", "supporting_docs": ["soe"]}],
+    )
 
 
 def _compter(cur, table):
