@@ -409,3 +409,23 @@ def test_la_base_refuse_un_profil_publie_sans_trace_et_un_element_hors_ensemble(
             label={"fr": "t"},
             contenu=["pas", "un", "objet"],
         )
+
+
+def test_le_document_designe_doit_etre_celui_du_projet_vise(base):
+    """dora est habilitée sur les deux projets : seul le document ne convient pas au projet visé."""
+    organisation, projet, profils = base
+    second = _creer_projet(organisation, "P2")
+    role = Role.objects.get(org_id=organisation.id, code="DORA")
+    Habilitation.objects.create(
+        org_id=organisation.id, user_id=profils["dora"].id, project_id=second.id, role=role
+    )
+    profil = _profil_publie(profils)
+    document_du_premier = _document_projet(profils, projet)
+    with pytest.raises(ProfilInvalide, match="n'appartient pas au projet"):
+        importer_profil(
+            utilisateur=profils["dora"],
+            profil=profil,
+            project_id=second.id,
+            document=document_du_premier,
+        )
+    assert Exigence.objects.count() == 0
