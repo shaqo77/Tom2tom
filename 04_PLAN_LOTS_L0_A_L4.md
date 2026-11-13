@@ -769,6 +769,14 @@ Balance (générale, auxiliaire, analytique) · grand livre · journaux. **Toute
 
 **Contrôle.** Une version approuvée est immuable ; une révision crée une nouvelle version et conserve l'ancienne.
 
+> **Réalisation de L4-T01** (`niveau1_socle/budget/`).
+> - **Une version est un instantané complet** : ses lignes disent tout le budget, pas un écart. Une révision ou une réallocation reprend les lignes de la version courante dans un brouillon, qu'on modifie ; à l'approbation l'ancienne passe à `clos` dans la même transaction, intacte (un test compare ses lignes avant/après). Ce choix évite de reconstituer le budget en empilant des deltas.
+> - **Règles** : un seul budget initial par projet ; **une seule version approuvée « courante »** et **un seul brouillon à la fois** (index uniques partiels) ; motif obligatoire hors budget initial ; une révision doit partir de la version courante, sinon l'approbation est refusée (elle écraserait une approbation plus récente). Numéros de version sans trou, sérialisés par verrou consultatif par projet.
+> - **Lignes** : combinaison d'axes de gestion (`dim1..4`), accord, catégorie, site (UUID jusqu'à L4-T04) ; année entière ou période 1-12 ; **devise et taux de budget** propres à la ligne, avec le **montant en monnaie de tenue** calculé (montant × taux, arrondi aux décimales de la devise du projet). Une combinaison n'apparaît qu'une fois par version, NULL compris (`NULLS NOT DISTINCT`). À l'approbation, on refuse une combinaison qui mêle ligne annuelle et lignes par période (budget compté deux fois).
+> - **Droits** : créer et éditer = `saisir` ; approuver = `valider`, par une autre personne que l'auteur (séparation des tâches).
+> - **Immutabilité garantie en base, pour tout rôle** : lignes d'une version non brouillon figées (insertion, modification, suppression) ; version approuvée modifiable seulement pour passer à `clos` ; version close figée ; seul un brouillon se supprime ; une version naît en brouillon ; on n'approuve pas une version vide ; une révision porte sur le même projet que son parent. RLS sur les deux tables.
+> - **Limites** : un budget par combinaison d'axes de gestion (pas d'axes auxiliaires) ; les lignes sur une valeur d'axe regroupement sont admises (le budget se pose souvent sur une composante, les dépenses sur une activité) ; le rattachement à la catégorie et à l'accord par clé étrangère viendra avec L4-T04 ; le disponible est l'objet de L4-T02.
+
 ---
 
 ### L4-T02 — Le disponible
