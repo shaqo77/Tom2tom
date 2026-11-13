@@ -139,7 +139,7 @@ def test_le_numero_de_version_est_unique_par_accord(drf):  # noqa: F811
 )
 def test_la_base_refuse_une_methode_hors_des_ensembles_fermes(drf, champs, contrainte):  # noqa: F811
     organisation, projet, profils, accord, cat = drf
-    profil = creer_profil(organisation, projet, accord, methodes=())
+    profil = creer_profil(organisation, projet, accord, methodes=(), statut="draft")
     donnees = {"supporting_docs": ["soe"]} | champs
     with pytest.raises(IntegrityError, match=contrainte), transaction.atomic():
         MethodeDecaissement.objects.create(org_id=organisation.id, profil=profil, **donnees)
@@ -152,6 +152,7 @@ def test_une_methode_n_apparait_qu_une_fois_par_profil_et_les_quatre_existent(dr
         projet,
         accord,
         methodes=("advance", "reimbursement", "direct_payment", "special_commitment"),
+        statut="draft",
     )
     assert profil.methodes.count() == 4
     with pytest.raises(IntegrityError, match="uq_methode_par_profil"), transaction.atomic():
@@ -162,7 +163,7 @@ def test_une_methode_n_apparait_qu_une_fois_par_profil_et_les_quatre_existent(dr
 
 def test_les_quatre_pieces_exigees_sont_acceptees(drf):  # noqa: F811
     organisation, projet, profils, accord, cat = drf
-    profil = creer_profil(organisation, projet, accord, methodes=())
+    profil = creer_profil(organisation, projet, accord, methodes=(), statut="draft")
     methode = MethodeDecaissement.objects.create(
         org_id=organisation.id,
         profil=profil,
@@ -194,7 +195,7 @@ def test_les_quatre_pieces_exigees_sont_acceptees(drf):  # noqa: F811
 )
 def test_la_base_refuse_une_regle_de_financement_incoherente(drf, champs, contrainte):  # noqa: F811
     organisation, projet, profils, accord, cat = drf
-    profil = creer_profil(organisation, projet, accord)
+    profil = creer_profil(organisation, projet, accord, statut="draft")
     donnees = {"funding_rate": D(1), "allocation": D(100), "tax_basis": "taxes_included"} | champs
     with pytest.raises(IntegrityError, match=contrainte), transaction.atomic():
         RegleFinancementCategorie.objects.create(
@@ -218,7 +219,7 @@ def test_une_regle_vise_une_categorie_de_l_accord_du_profil(drf):  # noqa: F811
     categorie_etrangere = Categorie.objects.create(
         org_id=organisation.id, accord=autre_accord, code="X", label={"fr": "X"}, devise_id="DJF"
     )
-    profil = creer_profil(organisation, projet, accord)
+    profil = creer_profil(organisation, projet, accord, statut="draft")
     with (
         pytest.raises(IntegrityError, match="catégorie d'une règle de financement appartient"),
         transaction.atomic(),
@@ -284,7 +285,7 @@ def test_la_base_refuse_une_regle_de_compte_incoherente(drf, champs, contrainte)
         numero="N-1",
         accord=accord,
     )
-    profil = creer_profil(organisation, projet, accord)
+    profil = creer_profil(organisation, projet, accord, statut="draft")
     with pytest.raises(IntegrityError, match=contrainte), transaction.atomic():
         RegleCompteDesigne.objects.create(
             org_id=organisation.id, profil=profil, bank_account=compte, currency_id="DJF", **champs
@@ -305,7 +306,7 @@ def test_un_compte_designe_est_du_meme_projet_et_sans_autre_accord(drf):  # noqa
         devise_id="DJF",
         montant_initial=1,
     )
-    profil = creer_profil(organisation, projet, accord)
+    profil = creer_profil(organisation, projet, accord, statut="draft")
     comptes = {
         "autre_projet": CompteBancaire.objects.create(
             org_id=organisation.id,

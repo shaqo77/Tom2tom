@@ -44,15 +44,10 @@ def creer_profil(
         valid_from=valid_from,
         valid_to=valid_to,
         regime=regime,
-        status=statut,
+        status="draft",  # les enfants ne s'ajoutent qu'à un brouillon (L5-T04) ; on fige ensuite
         eligibility_date=eligibility_date,
         closing_date=closing_date,
         disbursement_deadline=disbursement_deadline,
-        **(
-            {"validated_by": uuid.uuid4(), "validated_at": timezone.now()}
-            if statut in ("validated", "active")
-            else {}
-        ),
         **champs,
     )
     for methode in methodes:
@@ -78,4 +73,12 @@ def creer_profil(
             ceiling_kind="fixed" if compte.get("plafond") is not None else "variable",
             ceiling_amount=compte.get("plafond"),
         )
+    if statut != "draft":
+        validation = (
+            {"validated_by": uuid.uuid4(), "validated_at": timezone.now()}
+            if statut in ("validated", "active")
+            else {}
+        )
+        ProfilDecaissement.objects.filter(pk=profil.pk).update(status=statut, **validation)
+        profil.refresh_from_db()
     return profil
