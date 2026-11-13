@@ -8,6 +8,7 @@ sont des UUID sans clé étrangère pour l'instant ; L4 et L9 y poseront leurs c
 
 from django.db import models
 from django.db.models import Q
+from django.utils import timezone
 
 from core.fields import MontantField, TauxField
 from core.models import ModeleOrganisation
@@ -302,3 +303,59 @@ class LigneSchema(ModeleOrganisation):
                 name="uq_ligneschema_une_contrepartie",
             ),
         ]
+
+
+class StatutLettrage(models.TextChoices):
+    ACTIF = "actif", "Actif"
+    ANNULE = "annule", "Annulé"
+
+
+class Lettrage(ModeleOrganisation):
+    """Un groupe de lignes de solde nul sur un même compte, un même tiers, un même projet.
+
+    Lettrer MARQUE des lignes comptabilisées (`LigneEcriture.reconciliation_id`) sans les
+    modifier : elles restent immuables. Un lettrage ne se supprime pas ; on le dé-lettre, ce qui
+    l'annule avec son auteur, sa date et son motif, et son code n'est jamais réutilisé.
+    """
+
+    code = models.CharField(max_length=10)
+    account = models.ForeignKey(Compte, on_delete=models.PROTECT, related_name="+")
+    partner = models.ForeignKey(Tiers, on_delete=models.PROTECT, related_name="+")
+    project_id = models.UUIDField(db_index=True)
+    status = models.CharField(
+        max_length=6, choices=StatutLettrage.choices, default=StatutLettrage.ACTIF
+    )
+    lettre_at = models.DateTimeField(default=timezone.now)
+    lettre_by = models.UUIDField(null=True, blank=True)
+    annule_at = models.DateTimeField(null=True, blank=True)
+    annule_by = models.UUIDField(null=True, blank=True)
+    motif_annulation = models.TextField(null=True, blank=True)
+
+    class Meta:
+        constraints = [
+            models.UniqueConstraint(fields=["org_id", "account", "code"], name="uq_lettrage_code"),
+            models.CheckConstraint(
+                condition=Q(status__in=StatutLettrage.values), name="lettrage_statut_ferme"
+            ),
+            # `isnull=False` explicite : un CHECK laisse passer NULL (voir L3-T06).
+            models.CheckConstraint(
+                condition=(
+                    Q(
+                        status=StatutLettrage.ACTIF,
+                        annule_at__isnull=True,
+                        annule_by__isnull=True,
+                        motif_annulation__isnull=True,
+                    )
+                    | Q(
+                        status=StatutLettrage.ANNULE,
+                        annule_at__isnull=False,
+                        annule_by__isnull=False,
+                        motif_annulation__isnull=False,
+                    )
+                ),
+                name="lettrage_annulation_coherente",
+            ),
+        ]
+
+    def __str__(self) -> str:
+        return self.code

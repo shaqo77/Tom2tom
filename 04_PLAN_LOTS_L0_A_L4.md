@@ -710,6 +710,12 @@ Rapprochement : en monnaie de tenue **et** en devise, avec génération des **é
 
 **Contrôle.** Lettrer puis dé-lettrer laisse les lignes dans leur état initial, et les deux opérations sont au journal d'audit.
 
+> **Réalisation de L3-T07, partie a (lettrage).** Le **rapprochement bancaire** (partie b) n'est pas fait : il suppose des comptes bancaires et des mouvements de relevé, que le plan ne crée qu'en L4-T04 (`CompteBancaire`) et L9-T05 (trésorerie).
+>
+> `lettrer` et `delettrer` (`niveau1_socle/comptabilite/lettrage.py`). Un `Lettrage` regroupe au moins deux lignes **comptabilisées**, de même compte, même tiers (obligatoire) et même projet, de solde nul en monnaie de tenue (et nul en devise si la devise est unique). **Lettrer ne modifie pas les lignes** : seul leur marqueur `reconciliation_id` change, et elles restent immuables (le déclencheur d'immuabilité autorise un UPDATE qui ne touche que `reconciliation_id` et `bank_match_id`, même en période close, car le lettrage se poursuit après la clôture). La base vérifie le groupe **au COMMIT** : un lettrage posé sans le service, non soldé, partiel ou hétérogène, est refusé. Un lettrage ne se supprime pas ; on le **dé-lettre**, ce qui l'annule (auteur, date, motif obligatoire) ; son code (`AA`, `AB`…) n'est jamais réutilisé. Un dé-lettrage emporte tout le groupe. Habilitation requise : `comptabiliser`. Deux lettrages simultanés des mêmes lignes n'en laissent qu'un (verrou de ligne).
+>
+> Pas de lettrage partiel (acompte) : un groupe est soldé ou n'existe pas.
+
 ---
 
 ### L3-T08 — Clôtures et à-nouveaux

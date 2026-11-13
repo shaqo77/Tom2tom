@@ -206,6 +206,8 @@ def creer_piece(
                 site_id=id_objet(ligne.get("site")),
                 debit=Decimal(str(ligne.get("debit", "0"))),
                 credit=Decimal(str(ligne.get("credit", "0"))),
+                debit_cur=Decimal(str(ligne.get("debit_cur", "0"))),
+                credit_cur=Decimal(str(ligne.get("credit_cur", "0"))),
                 currency_id=devise,
                 fx_rate=Decimal(str(taux)),
             )
