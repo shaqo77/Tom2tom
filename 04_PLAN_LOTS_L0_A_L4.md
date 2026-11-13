@@ -953,6 +953,30 @@ Avances non justifiées, délais applicables, alertes. Alimente le contrôle « 
 [ ] Numéro de compte bancaire masqué sans l'habilitation dédiée
 ```
 
+> **Réalisation du contrôle de sortie des fondations.** Chaque case est rattachée au test qui la prouve ; deux d'entre elles étaient jusqu'ici prouvées trop étroitement et ont reçu un test dédié (`tests/test_isolation_toutes_tables_bd.py`).
+>
+> | Case | Preuve | Verdict |
+> |---|---|---|
+> | Exercice complet saisi, clôturé, à-nouveaux générés | `test_cloture_annuelle_bd.py` (douze périodes closes, à-nouveaux versionnés, régénération identique) | prouvé |
+> | Balance = analytique = par accord, au centime | `test_restitutions_bd.py::test_balance_generale_analytique_et_par_accord_donnent_le_meme_chiffre`, et accord avec le moteur d'états | prouvé |
+> | Numérotation sans trou sous 10 sessions concurrentes | `test_numerotation_bd.py` : 1 000 comptabilisations depuis 10 sessions PostgreSQL (des **fils** à connexions séparées, pas dix processus système) dont 100 annulées : de 000001 à 000900 | prouvé, à ce détail près |
+> | Écriture comptabilisée non modifiable, période close inviolable | `test_immuabilite_bd.py` (propriétaire de la base compris) | prouvé |
+> | **Isolation : accès croisé en échec sur TOUTES les tables** | **nouveau** : la politique de chacune des 47 tables est exactement le filtre d'organisation (USING et WITH CHECK identiques, RLS forcée) ; sur les 37 tables peuplées par un scénario qui touche tout le projet, l'autre organisation ne voit aucune ligne et une lecture sans périmètre non plus | prouvé |
+> | Journal d'audit : altération détectée | `test_audit.py` | prouvé |
+> | Ventilation de cofinancement conservative | `test_cofinancement.py` (Hypothesis, 50 000 tirages) et `test_cles_cofinancement_bd.py` | prouvé |
+> | Soldes budgétaires incrémentaux == recalcul complet | `test_soldes_budgetaires_bd.py` : 10 000 opérations, trois calculs concordants | prouvé |
+> | États de référence de L0 toujours conformes | `test_etats_reference_bd.py`, `test_sortie_l0_bd.py` | prouvé |
+> | **UPDATE de org_id vers une autre organisation refusé sur toutes les tables** | **nouveau** : sur chacune des 37 tables peuplées, `UPDATE … SET org_id = autre` est refusé et les lignes gardent leur organisation (vérifié hors RLS) ; sur les 47, le WITH CHECK de la politique est identique au filtre | prouvé |
+> | Soumissions concurrentes : aucune sur-consommation | `test_demandes_retrait_bd.py` : dix soumissions, trois acceptées, solde exact ; le refus ultime de la base est testé séparément | prouvé |
+> | Accord suspendu : nouvelle demande refusée | `test_demandes_retrait_bd.py` et `test_financements_bd.py` (service et base) | prouvé |
+> | Numéro de compte bancaire masqué sans l'habilitation dédiée | `test_financements_bd.py` (service, `str`, `repr`, journal d'audit) | prouvé |
+>
+> **Ce que ce contrôle ne prouve pas, dit sans détour :**
+> - Le test comportemental ne couvre pas dix tables du schéma (à-nouveaux, lettrage, schémas d'écriture, mapping, exigences, imports, taux) : le scénario ne les peuple pas. Elles sont **nommées dans le test avec la raison**, chacune a son propre test d'isolation, et la preuve structurelle (politique identique au filtre) vaut pour elles ; une table nouvelle et vide fait échouer le test tant qu'on ne l'a pas déclarée ou peuplée.
+> - « Accès croisé » est établi en lecture et en déplacement de ligne ; l'INSERT pour une autre organisation repose sur le WITH CHECK, vérifié structurellement sur toutes les tables et par comportement sur la table des journaux (`test_isolation.py`).
+> - Tout cela vaut pour le rôle applicatif ; le rôle propriétaire, qui contourne la RLS, est exclu de la production par le contrôle de démarrage (`core/checks.py`), lui-même testé.
+> - Les soldes budgétaires et le suivi des demandes reposent sur des tests où la concurrence est simulée par des fils : ils prouvent l'absence de sur-consommation sur PostgreSQL, pas la tenue en charge.
+
 ---
 
 **Suite :** [lots L5 à L10](05_PLAN_LOTS_L5_A_L10.md).
