@@ -747,6 +747,14 @@ Balance (générale, auxiliaire, analytique) · grand livre · journaux. **Toute
 
 **Contrôle.** Balance générale = balance analytique = balance par accord, au centime, sur le même périmètre. Trois chemins, un seul chiffre.
 
+> **Réalisation de L3-T09** (`niveau4_reporting/restitutions.py`).
+> - **Même socle que le moteur** : toutes les restitutions lisent la vue `moteur_ligneecriture` (comptabilisées et verrouillées seulement, sous la RLS), jamais le grand livre à côté. La vue reçoit, **en fin de liste**, le numéro de pièce, le journal, les libellés et le rang de ligne (migration `moteur/0004`) ; les colonnes existantes, leur ordre et `security_invoker` ne bougent pas. Un test confronte la balance aux chiffres de `generer` (le moteur d'états) pour les mêmes comptes.
+> - **Balances** : `balance(..., nature=)` avec `generale`, `auxiliaire` (tiers), `analytique_1..4` (un axe à la fois) et `accord` ; ouverture (avant la période, exercices antérieurs compris), débits et crédits de la période, solde. Chaque ventilation porte une ligne **« non ventilé »** (`None`) : sans elle, une écriture sans tiers, sans axe ou sans accord disparaîtrait de la balance correspondante et les totaux divergeraient. La colonne de ventilation vient d'une **liste blanche**.
+> - **Contrôle** : `controler_balances` calcule toutes les natures et exige (1) chaque balance équilibrée, ouverture nulle au total ; (2) pour chaque compte, mêmes ouverture, débits et crédits dans toutes les balances. Sinon `BalancesIncoherentes` **énumère tous les écarts** et rien n'est rendu.
+> - **Grand livre** (par compte, et par tiers si demandé) : report, solde cumulé, ordre date → journal → numéro → ligne. **Journal** : lignes par pièce, débits = crédits.
+> - Habilitation `consulter` sur le projet (le projet n'est pas isolé par la RLS : la restitution le cloisonne, comme prévu en L1).
+> - **Limites** : une balance analytique par axe (pas de croisement d'axes) ; accord affiché en UUID jusqu'à L4 ; pas encore d'export ni de point d'accès HTTP ; consolidation multi-projets non traitée.
+
 ---
 
 # LOT L4 — BUDGET ET FINANCEMENTS
