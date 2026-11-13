@@ -927,6 +927,12 @@ def test_la_ventilation_conserve_toujours_le_total(montant, parts):
 
 Avances non justifiées, délais applicables, alertes. Alimente le contrôle « avance non justifiée au-delà du délai » du lot L6.
 
+> **Réalisation de L4-T07** (`niveau1_socle/avances/`).
+> - **Modèle sans dérive.** Une avance (tiers, montant, date de versement, délai) et ses justifications (dépense prouvée par une pièce, ou remboursement de l'excédent) sont en **ajout seul**, pour tout rôle ; le **reste à justifier se calcule** (`montant − Σ justifications`), il n'est stocké nulle part, donc ne peut pas diverger. Une justification ne dépasse jamais l'avance ni ne précède le versement : la base le vérifie sous **verrou de ligne de l'avance** (dix justifications simultanées sur une avance de 300 : trois passent, le total est exactement 300).
+> - **Délai applicable versionné** (`DelaiAvance`, `[valid_from, valid_to[`, sans chevauchement garanti par la base, habilitation `parametrer`). Le délai en vigueur **le jour du versement est figé sur l'avance** : changer la règle ne rend pas rétroactivement en retard ce qui était dans les temps. **Aucun délai par défaut** : sans paramétrage, verser une avance sans préciser son délai est refusé (une règle contractuelle ne se devine pas).
+> - **Situation, suivi, alertes.** `situation_avance`, `suivi`, `alertes`, `encours_par_tiers` se lisent **à une date donnée** (le passé reste lisible : une avance soldée tardivement était bien échue la veille). Niveaux : `soldee`, `en_cours`, `a_echeance` (dans le préavis, 7 jours par défaut), `echue` (strictement après l'échéance, avec son nombre de jours de retard). `avances_non_justifiees_au_dela_du_delai` est la ressource que **consomme le contrôle du même nom de L6**. Lecture : habilitation `consulter` ; verser et justifier : `saisir`. Le suivi n'expose que le **code** du tiers, pas son identité.
+> - **Limites** : une avance versée par erreur ne s'annule pas (ajout seul) : on la régularise par un remboursement ; les montants sont en monnaie de tenue ; l'avance et ses justifications peuvent citer une ligne d'écriture (clé étrangère) mais ne sont pas **générées** par la comptabilité (un versement comptabilisé ne crée pas encore l'avance tout seul) ; les alertes sont **calculées à la demande**, la diffusion (courriel, tableau de bord) relève de L6 et L10.
+
 ---
 
 ## Contrôle de sortie des fondations
