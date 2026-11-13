@@ -31,6 +31,14 @@
 
 **Contrôle.** Téléverser deux fois le même fichier produit la même empreinte ; un fichier modifié d'un octet en produit une différente et le système le signale.
 
+> **Réalisation de L5-T01** (`niveau3_config/{stockage,services/documents}.py`, migration `0003`).
+> - **Stockage adressé par le contenu** : la clé d'un fichier est son SHA-256, préfixée par l'organisation (deux organisations qui téléversent les mêmes octets n'ont pas le même objet, donc aucune ne devine ce que l'autre détient). Même fichier, même référence, aucun doublon ; un octet de différence, un autre objet ; l'ancien reste intact. Les chemins sont validés (pas de `..`). Ici un dossier local (`STOCKAGE_DOCUMENTS_ROOT`, `backend/var/documents`, ignoré par git) ; en production le stockage objet souverain tiendra la même interface, seule la classe change.
+> - **`enregistrer_document`** : idempotent (mêmes octets sous le même type, titre et version : le document existant) ; des octets DIFFÉRENTS sous les mêmes type, titre et version sont refusés par `DocumentModifie`, qui nomme les deux empreintes : un document modifié est une nouvelle version. Habilitation `parametrer`.
+> - **`remplacer_document`** : nouvelle version, ancien chaîné par `superseded_by`, sans jamais toucher à l'ancien ni à son fichier ; `exigences_a_reverifier` liste les exigences qui citent encore l'ancien texte.
+> - **`verifier_integrite`** relit le fichier stocké et le compare à l'empreinte enregistrée (fichier altéré ou disparu : `IntegriteDocument`, constatation tracée au journal d'audit) ; `verifier_integrite_du_projet` les passe tous.
+> - **En base, pour tout rôle** : un document ne se supprime jamais ; empreinte, fichier, titre, version, type ne changent jamais ; seul `superseded_by` se pose, UNE fois, vers un document du même projet qui n'est pas lui-même remplacé (donc jamais de cycle) ; unicité (projet, type, titre, version).
+> - **Limites** : l'extraction du texte, nécessaire à la validation des citations, est l'objet de L5-T02 ; pas de stockage objet réel branché (seulement l'interface et le dossier local) ; la taille maximale (50 Mio) est une valeur de départ.
+
 ---
 
 ### L5-T02 — Le registre des exigences
