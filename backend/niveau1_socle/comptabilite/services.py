@@ -349,6 +349,49 @@ def comptabiliser_ecriture(ecriture: Ecriture, *, utilisateur) -> Ecriture:
     )
 
 
+def _creer_inverse(originale: Ecriture, *, auteur_id, date, periode, libelle: str) -> Ecriture:
+    """Le BROUILLON de l'écriture inverse : mêmes comptes, axes et devises, sens contraire.
+
+    Partagé par `contre_passer` et par la régénération des à-nouveaux (clôture annuelle). L'appelant
+    a déjà vérifié les droits, que l'originale est comptabilisée et que la période est ouverte.
+    """
+    inverse = Ecriture.objects.create(
+        org_id=originale.org_id,
+        project_id=originale.project_id,
+        exercice=periode.exercice,
+        periode=periode,
+        journal=originale.journal,
+        accounting_date=date,
+        document_ref=originale.number or "",
+        label=libelle,
+        status="draft",
+        currency_id=originale.currency_id,
+        fx_rate=originale.fx_rate,
+        origin="reversal",
+        reverses=originale,
+        created_by=auteur_id,
+    )
+    LigneEcriture.objects.bulk_create(
+        [
+            LigneEcriture(
+                org_id=ligne.org_id,
+                project_id=ligne.project_id,
+                entry=inverse,
+                line_no=ligne.line_no,
+                debit=ligne.credit,
+                credit=ligne.debit,
+                debit_cur=ligne.credit_cur,
+                credit_cur=ligne.debit_cur,
+                fx_rate=ligne.fx_rate,
+                label=ligne.label,
+                **{champ: getattr(ligne, champ) for champ in CHAMPS_DE_LIGNE},
+            )
+            for ligne in originale.lignes.order_by("line_no")
+        ]
+    )
+    return inverse
+
+
 def contre_passer(
     ecriture: Ecriture,
     *,
@@ -394,39 +437,12 @@ def contre_passer(
                 f"{erreur}. Précisez une date comptable dans une période ouverte."
             ) from erreur
 
-        inverse = Ecriture.objects.create(
-            org_id=originale.org_id,
-            project_id=originale.project_id,
-            exercice=periode.exercice,
+        inverse = _creer_inverse(
+            originale,
+            auteur_id=utilisateur.id,
+            date=date,
             periode=periode,
-            journal=originale.journal,
-            accounting_date=date,
-            document_ref=originale.number or "",
-            label=libelle or f"Contre-passation de {originale.number} : {originale.label}",
-            status="draft",
-            currency_id=originale.currency_id,
-            fx_rate=originale.fx_rate,
-            origin="reversal",
-            reverses=originale,
-            created_by=utilisateur.id,
-        )
-        LigneEcriture.objects.bulk_create(
-            [
-                LigneEcriture(
-                    org_id=ligne.org_id,
-                    project_id=ligne.project_id,
-                    entry=inverse,
-                    line_no=ligne.line_no,
-                    debit=ligne.credit,
-                    credit=ligne.debit,
-                    debit_cur=ligne.credit_cur,
-                    credit_cur=ligne.debit_cur,
-                    fx_rate=ligne.fx_rate,
-                    label=ligne.label,
-                    **{champ: getattr(ligne, champ) for champ in CHAMPS_DE_LIGNE},
-                )
-                for ligne in originale.lignes.order_by("line_no")
-            ]
+            libelle=libelle or f"Contre-passation de {originale.number} : {originale.label}",
         )
         journaliser(
             org_id=inverse.org_id,

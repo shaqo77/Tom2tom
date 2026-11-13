@@ -359,3 +359,61 @@ class Lettrage(ModeleOrganisation):
 
     def __str__(self) -> str:
         return self.code
+
+
+class StatutANouveau(models.TextChoices):
+    ACTIF = "actif", "Actif"
+    REMPLACE = "remplace", "Remplacé"
+
+
+class ANouveau(ModeleOrganisation):
+    """Une génération des à-nouveaux d'un exercice. Voir L3-T08 (b).
+
+    Versionnée : régénérer, tant que l'exercice d'origine n'est pas verrouillé, crée une version
+    de plus. L'écriture de l'ancienne version est contre-passée (une écriture comptabilisée ne se
+    modifie jamais) et la nouvelle la remplace. Une seule version est active par exercice.
+    """
+
+    project_id = models.UUIDField(db_index=True)
+    exercice_source = models.ForeignKey(Exercice, on_delete=models.PROTECT, related_name="+")
+    exercice_cible = models.ForeignKey(Exercice, on_delete=models.PROTECT, related_name="+")
+    version = models.PositiveIntegerField()
+    status = models.CharField(
+        max_length=8, choices=StatutANouveau.choices, default=StatutANouveau.ACTIF
+    )
+    ecriture = models.ForeignKey(Ecriture, on_delete=models.PROTECT, related_name="+")
+    ecriture_annulation = models.ForeignKey(
+        Ecriture, null=True, blank=True, on_delete=models.PROTECT, related_name="+"
+    )
+    compte_resultat = models.CharField(max_length=20)
+    resultat = MontantField()  # bénéfice positif, perte négative
+    empreinte = models.CharField(max_length=64)  # SHA-256 des lignes : deux versions se comparent
+    genere_at = models.DateTimeField(default=timezone.now)
+    genere_by = models.UUIDField(null=True, blank=True)
+
+    class Meta:
+        constraints = [
+            models.UniqueConstraint(
+                fields=["org_id", "exercice_source", "version"], name="uq_anouveau_version"
+            ),
+            models.UniqueConstraint(
+                fields=["exercice_source"],
+                condition=Q(status=StatutANouveau.ACTIF),
+                name="uq_anouveau_un_actif",
+            ),
+            models.CheckConstraint(condition=Q(version__gte=1), name="anouveau_version_positive"),
+            models.CheckConstraint(
+                condition=Q(status__in=StatutANouveau.values), name="anouveau_statut_ferme"
+            ),
+            # `isnull=False` explicite : un CHECK laisse passer NULL (voir L3-T06).
+            models.CheckConstraint(
+                condition=(
+                    Q(status=StatutANouveau.ACTIF, ecriture_annulation__isnull=True)
+                    | Q(status=StatutANouveau.REMPLACE, ecriture_annulation__isnull=False)
+                ),
+                name="anouveau_annulation_coherente",
+            ),
+        ]
+
+    def __str__(self) -> str:
+        return f"À-nouveaux {self.exercice_source} v{self.version}"

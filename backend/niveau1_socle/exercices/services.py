@@ -12,10 +12,12 @@ import datetime
 from collections.abc import Callable
 
 from django.db import transaction
+from rest_framework.exceptions import PermissionDenied
 
 from core.audit import journaliser
+from niveau1_socle.habilitations.permissions import est_habilite
 
-from .models import Exercice, Periode, StatutPeriode
+from .models import Exercice, Periode, StatutExercice, StatutPeriode
 
 VERIFICATIONS_DE_CLOTURE: list[Callable[[Periode], str | None]] = []
 
@@ -113,3 +115,43 @@ def verrouiller_periode(periode: Periode, *, utilisateur) -> Periode:
     return _changer_statut(
         periode, StatutPeriode.CLOSE, StatutPeriode.VERROUILLEE, "period_locked", utilisateur
     )
+
+
+def exercice_verrouille(exercice: Exercice) -> bool:
+    """Un exercice est verrouillé quand toutes ses périodes le sont : plus rien ne s'y corrige."""
+    return not exercice.periodes.exclude(status=StatutPeriode.VERROUILLEE).exists()
+
+
+def rouvrir_periode(periode: Periode, *, utilisateur, motif: str) -> Periode:
+    """Rouvre une période CLOSE pour y passer une correction. Tracé, avec son motif.
+
+    Une période verrouillée ne se rouvre jamais (la base le refuse aussi). Rouvrir une période d'un
+    exercice clos le fait redevenir ouvert : la clôture annuelle est à refaire, et elle régénérera
+    les à-nouveaux. Opération sensible : elle exige l'habilitation `parametrer`.
+    """
+    if not (motif or "").strip():
+        raise ValueError("La réouverture d'une période exige un motif")
+    with transaction.atomic():
+        courante = Periode.objects.select_for_update().select_related("exercice").get(pk=periode.pk)
+        if not est_habilite(utilisateur, "parametrer", courante.exercice.project_id):
+            raise PermissionDenied("Vous n'êtes pas habilité à « parametrer » sur ce projet.")
+        if courante.status != StatutPeriode.CLOSE:
+            raise TransitionInterdite(
+                f"La période {courante.numero} est {courante.status} : "
+                "seule une période close peut être rouverte"
+            )
+        Periode.objects.filter(pk=courante.pk).update(status=StatutPeriode.OUVERTE)
+        if courante.exercice.status == StatutExercice.CLOS:
+            Exercice.objects.filter(pk=courante.exercice_id).update(status=StatutExercice.OUVERT)
+        journaliser(
+            org_id=courante.org_id,
+            actor_id=getattr(utilisateur, "id", None),
+            action="period_reopened",
+            object_type="periode",
+            object_id=courante.id,
+            project_id=courante.exercice.project_id,
+            before={"status": courante.status},
+            after={"status": StatutPeriode.OUVERTE, "motif": motif.strip()},
+        )
+    periode.status = StatutPeriode.OUVERTE
+    return periode

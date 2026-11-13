@@ -732,6 +732,13 @@ Clôture annuelle : génération des à-nouveaux, **versionnée et re-générabl
 
 **Contrôle.** Clôturer, régénérer les à-nouveaux, comparer : résultat identique.
 
+> **Réalisation de L3-T08, partie b (clôture annuelle).** `cloturer_exercice(exercice, utilisateur, compte_resultat)` (`niveau1_socle/comptabilite/annuelle.py`) :
+> - **Ce qui est reporté** : les soldes des classes 1 à 5, **par compte, tiers et accord de financement** (sans axes analytiques : ils n'ont pas de sens au bilan), soldes nuls exclus. Le résultat (classes 6 et 7) est porté sur un **compte paramètre** (`compte_resultat`, imputable), au crédit pour un bénéfice. Les classes 8 et 9 ne sont pas reportées ; si elles ne se soldent pas entre elles, **on refuse de générer** (`ANouveauxIncoherents`) plutôt que de produire un résultat faux.
+> - **Conditions** (habilitation `comptabiliser`, puis) : exercice non verrouillé, **toutes** les périodes closes (la liste des périodes ouvertes est donnée), exercice suivant existant dont la **première période est ouverte**, compte de résultat imputable.
+> - **Versions** : l'écriture d'à-nouveaux (journal `AN`, origine `module`, numéro attribué par la base) est datée du premier jour de l'exercice suivant. `ANouveau` garde la version, l'empreinte des lignes et le résultat. Régénérer **sans changement** n'écrit rien (statut `inchange`). Après correction (`rouvrir_periode`, qui exige `parametrer` et un motif), l'ancienne écriture est **contre-passée** (même mécanique que `contre_passer`, factorisée dans `_creer_inverse`), sa version passe à `remplace`, la nouvelle devient la seule active (index unique partiel). `difference` donne les lignes ajoutées, supprimées, modifiées.
+> - **Garde-fous en base** : un à-nouveau ne se supprime pas ; son seul changement possible est `actif` → `remplace` avec son écriture d'annulation ; une version remplacée est figée ; RLS.
+> - **Limites assumées** : le report est en monnaie de tenue (pas de conversion des soldes en devise) ; le compte de résultat est donné à chaque appel, non mémorisé ; l'exercice rouvert par une correction redevient `ouvert` et doit être reclôturé.
+
 ---
 
 ### L3-T09 — Restitutions
