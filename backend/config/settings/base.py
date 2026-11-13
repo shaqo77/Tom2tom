@@ -38,6 +38,7 @@ INSTALLED_APPS = [
     "niveau1_socle.decaissements",
     "niveau1_socle.avances",
     "niveau1_socle.rapprochement",
+    "niveau2_profils",
     "niveau3_config",
     "niveau4_reporting.mapping",
     "niveau4_reporting.moteur",

@@ -34,6 +34,7 @@ from niveau1_socle.financements.services import (
 )
 from niveau1_socle.rapprochement.services import importer_mouvements, rapprocher
 from niveau1_socle.referentiels.models import Tiers
+from niveau2_profils.services.profils import ajouter_element, creer_profil_bailleur
 from niveau3_config.models import Reallocation
 from tests.outils import connexion_proprietaire
 from tests.outils_profil import creer_profil
@@ -249,6 +250,17 @@ def _peupler(organisation, projet, profils, accord, categories):
         date_effet=datetime.date(2026, 7, 1),
         motif="Test d'isolation",
         demandeur=dora.id,
+    )
+    bibliotheque = creer_profil_bailleur(
+        utilisateur=dora, code="IDA", label={"fr": "Banque mondiale"}
+    )
+    ajouter_element(  # un profil de bailleur et son élément (L5-T05)
+        utilisateur=dora,
+        profil=bibliotheque,
+        kind="periodicity",
+        code="RFI",
+        label={"fr": "RFI trimestriel"},
+        exigence={"subject": "RFI", "periodicity": "quarterly", "due_offset_days": 45},
     )
 
 

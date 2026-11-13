@@ -181,3 +181,37 @@ def proposer_exigence(
             },
         )
     return exigence
+
+
+def etayer_exigence(*, utilisateur, exigence: Exigence, citation: dict) -> Exigence:
+    """Pose, sur une exigence PROPOSÉE (typiquement importée d'un profil), la citation que le
+    document du projet contient réellement. Sans cela, elle ne se valide pas (L5-T04).
+
+    La citation est retrouvée littéralement dans le document de l'exigence, comme à la proposition.
+    """
+    _habilite(utilisateur, exigence.project_id)
+    try:
+        valider_citation(exigence.document, citation)
+    except ExtractionImpossible as erreur:
+        raise CitationInvalide(f"Citation invérifiable : {erreur}") from erreur
+    with transaction.atomic():
+        exigence = Exigence.objects.select_for_update().get(pk=exigence.pk)
+        if exigence.status != "proposed":
+            raise ExigenceInvalide(
+                f"Seule une exigence proposée s'étaye (celle-ci est « {exigence.status} »)"
+            )
+        avant = exigence.citation
+        exigence.citation = citation
+        exigence.citation_verifiee_sha256 = bytes(exigence.document.sha256)
+        exigence.save(update_fields=["citation", "citation_verifiee_sha256", "updated_at"])
+        journaliser(
+            org_id=exigence.org_id,
+            actor_id=utilisateur.id,
+            action="requirement_supported",
+            object_type="exigence",
+            object_id=exigence.id,
+            project_id=exigence.project_id,
+            before={"citation": avant},
+            after={"citation": citation, "sha256": bytes(exigence.document.sha256).hex()},
+        )
+    return exigence
