@@ -104,6 +104,14 @@ def test_aucun_objet_actif_sans_exigence_source(projet_configure):
     assert not orphelins, f"Configuration sans exigence source : {orphelins}"
 ```
 
+> **Réalisation de L5-T03** (`niveau3_config/services/rattachement.py`, commande `verifier_configuration`, migration `0006`).
+> - **La règle, appliquée** : `detecter_configuration_orpheline(projet, date)` liste les objets de configuration ACTIFS à `date` sans exigence source **active, du projet, valable à `date`** (`valid_to` exclu). La raison distingue **« aucun rattachement »** (un oubli) de **« rattaché seulement à des exigences non actives ou hors validité »** (un défaut de suivi) : un rattachement à une exigence seulement proposée ou validée ne justifie rien, puisque ce sont les exigences actives que les documents contractuels du projet ont fait entrer.
+> - **Point d'extension** : chaque type d'objet déclare comment lister ses objets actifs et comment vérifier qu'un identifiant existe (`enregistrer_cible`). Les **mappings** sont branchés ; les modèles d'états, rubriques, contrôles et périodicités, qui n'existent pas encore comme objets (les modèles d'états sont des fichiers JSON jusqu'à L6), s'y brancheront avec L6 sans rien changer ici. Un test enregistre un type fictif pour prouver que la règle s'y applique.
+> - **`rattacher`** (habilitation `parametrer`) : idempotent, tracé ; quand le type est branché, l'objet doit exister **dans le projet de l'exigence** ; une exigence remplacée ou rejetée ne justifie plus rien et n'accepte plus de rattachement.
+> - **En base, pour tout rôle** : un rattachement est en **ajout seul** (ni modification, ni suppression : on remplace l'objet ou l'exigence par une version nouvelle) et ne se pose pas sur une exigence remplacée ou rejetée.
+> - **`verifier_configuration --organisation --projet [--date]`** : liste les orphelins et sort en code 1 s'il y en a, pour l'ordonnanceur et la chaîne d'intégration.
+> - **Limites** : l'anomalie est **signalée**, elle ne bloque pas l'activation d'un mapping (la règle du plan dit « signalée par le système lui-même ») ; les types non branchés se rattachent sans vérification d'existence ; les mappings d'organisation (sans projet) ne sont pas couverts par la détection d'un projet.
+
 ---
 
 ### L5-T03bis — Profil de décaissement du projet
