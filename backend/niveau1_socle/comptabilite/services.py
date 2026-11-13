@@ -12,6 +12,7 @@ La numérotation n'est pas faite ici : elle est attribuée par la base au passag
 """
 
 import datetime
+from collections import Counter
 from decimal import Decimal
 
 from django.db import transaction
@@ -63,6 +64,14 @@ class JournalIntrouvable(LookupError):
     """Aucun journal de ce code dans l'organisation courante."""
 
 
+class DejaContrepassee(ValueError):
+    """L'écriture a déjà sa contre-passation (une seule par écriture)."""
+
+
+class ContrepassationImpossible(ValueError):
+    """Cette écriture ne se contre-passe pas."""
+
+
 def _exiger_habilitation(utilisateur, operation: str, project_id) -> None:
     if not est_habilite(utilisateur, operation, project_id):
         raise PermissionDenied(f"Vous n'êtes pas habilité à « {operation} » sur ce projet.")
@@ -74,6 +83,23 @@ def _exiger_periode_ouverte(periode: Periode) -> None:
             f"La période {periode.numero} est {periode.status} : aucune écriture ne peut y être "
             "saisie ni comptabilisée"
         )
+
+
+def _periode_pour(project_id, date_comptable: datetime.date) -> Periode:
+    periode = (
+        Periode.objects.select_related("exercice")
+        .filter(
+            exercice__project_id=project_id,
+            date_debut__lte=date_comptable,
+            date_fin__gte=date_comptable,
+        )
+        .first()
+    )
+    if periode is None:
+        raise PeriodeIntrouvable(
+            f"Aucune période du projet ne couvre le {date_comptable.isoformat()}"
+        )
+    return periode
 
 
 def _valeur_dimension(champ: str, type_axe: str, emplacement: int, code: str):
@@ -139,19 +165,7 @@ def saisir_ecriture(
     jrn = Journal.objects.filter(code=journal).first()
     if jrn is None:
         raise JournalIntrouvable(f"Le journal {journal} n'existe pas")
-    periode = (
-        Periode.objects.select_related("exercice")
-        .filter(
-            exercice__project_id=project_id,
-            date_debut__lte=date_comptable,
-            date_fin__gte=date_comptable,
-        )
-        .first()
-    )
-    if periode is None:
-        raise PeriodeIntrouvable(
-            f"Aucune période du projet ne couvre le {date_comptable.isoformat()}"
-        )
+    periode = _periode_pour(project_id, date_comptable)
     _exiger_periode_ouverte(periode)
 
     debit = sum((Decimal(str(ligne.get("debit", 0))) for ligne in lignes), ZERO)
@@ -193,6 +207,41 @@ def saisir_ecriture(
     return ecriture
 
 
+CHAMPS_DE_LIGNE = (
+    "account_id",
+    "partner_id",
+    "dim1_id",
+    "dim2_id",
+    "dim3_id",
+    "dim4_id",
+    "aux1_id",
+    "aux2_id",
+    "aux3_id",
+    "aux4_id",
+    "site_id",
+    "agreement_id",
+    "category_id",
+    "contract_id",
+    "bank_account_id",
+    "currency_id",
+)
+
+
+def _signature(ligne: LigneEcriture, *, inverse: bool = False) -> tuple:
+    """Ce qui identifie une ligne ; `inverse` échange débit et crédit (montants en devise aussi)."""
+    debit, credit = (ligne.credit, ligne.debit) if inverse else (ligne.debit, ligne.credit)
+    debit_cur, credit_cur = (
+        (ligne.credit_cur, ligne.debit_cur) if inverse else (ligne.debit_cur, ligne.credit_cur)
+    )
+    return (
+        *(getattr(ligne, champ) for champ in CHAMPS_DE_LIGNE),
+        debit,
+        credit,
+        debit_cur,
+        credit_cur,
+    )
+
+
 def _problemes_de_contenu(ecriture: Ecriture) -> list[str]:
     """Toutes les raisons pour lesquelles la pièce n'est pas valide, pas seulement la première."""
     lignes = list(
@@ -201,6 +250,14 @@ def _problemes_de_contenu(ecriture: Ecriture) -> list[str]:
         ).order_by("line_no")
     )
     raisons = []
+    if ecriture.reverses_id:
+        miroir = Counter(
+            _signature(ligne, inverse=True) for ligne in ecriture.reverses.lignes.all()
+        )
+        if miroir != Counter(_signature(ligne) for ligne in lignes):
+            raisons.append(
+                "La contre-passation ne reproduit pas l'écriture d'origine en sens inverse"
+            )
     if len(lignes) < 2:
         raisons.append("Une écriture compte au moins deux lignes")
     if lignes and sum((ligne.debit for ligne in lignes), ZERO) == ZERO:
@@ -288,3 +345,94 @@ def comptabiliser_ecriture(ecriture: Ecriture, *, utilisateur) -> Ecriture:
         action="entry_posted",
         controle_supplementaire=lambda courante: _exiger_periode_ouverte(courante.periode),
     )
+
+
+def contre_passer(
+    ecriture: Ecriture,
+    *,
+    utilisateur,
+    date_comptable: datetime.date | None = None,
+    libelle: str | None = None,
+) -> Ecriture:
+    """Crée le BROUILLON de contre-passation d'une écriture comptabilisée.
+
+    L'écriture d'origine n'est jamais touchée : elle est immuable. L'inverse reprend chaque
+    ligne en sens contraire, avec les mêmes comptes, axes et devises, et suit le circuit
+    habituel (validation par un autre, puis comptabilisation). Sans date, elle reprend celle
+    de l'originale : si sa période est close, on précise une date dans une période ouverte.
+    """
+    with transaction.atomic():
+        # Verrou de ligne : deux demandes simultanées ne créent pas deux contre-passations.
+        originale = (
+            Ecriture.objects.select_for_update().select_related("journal").get(pk=ecriture.pk)
+        )
+        _exiger_habilitation(utilisateur, "saisir", originale.project_id)
+        if originale.status not in ("posted", "locked"):
+            raise TransitionInterdite(
+                f"L'écriture est {originale.status} : on ne contre-passe qu'une écriture "
+                "comptabilisée"
+            )
+        if originale.origin == "reversal":
+            raise ContrepassationImpossible(
+                "Une contre-passation ne se contre-passe pas : saisissez une nouvelle écriture"
+            )
+        existante = Ecriture.objects.filter(reverses=originale).first()
+        if existante is not None:
+            raise DejaContrepassee(
+                f"L'écriture {originale.number} est déjà contre-passée "
+                f"({existante.number or 'brouillon ' + str(existante.pk)})"
+            )
+
+        date = date_comptable or originale.accounting_date
+        periode = _periode_pour(originale.project_id, date)
+        try:
+            _exiger_periode_ouverte(periode)
+        except PeriodeNonOuverte as erreur:
+            raise PeriodeNonOuverte(
+                f"{erreur}. Précisez une date comptable dans une période ouverte."
+            ) from erreur
+
+        inverse = Ecriture.objects.create(
+            org_id=originale.org_id,
+            project_id=originale.project_id,
+            exercice=periode.exercice,
+            periode=periode,
+            journal=originale.journal,
+            accounting_date=date,
+            document_ref=originale.number or "",
+            label=libelle or f"Contre-passation de {originale.number} : {originale.label}",
+            status="draft",
+            currency_id=originale.currency_id,
+            fx_rate=originale.fx_rate,
+            origin="reversal",
+            reverses=originale,
+            created_by=utilisateur.id,
+        )
+        LigneEcriture.objects.bulk_create(
+            [
+                LigneEcriture(
+                    org_id=ligne.org_id,
+                    project_id=ligne.project_id,
+                    entry=inverse,
+                    line_no=ligne.line_no,
+                    debit=ligne.credit,
+                    credit=ligne.debit,
+                    debit_cur=ligne.credit_cur,
+                    credit_cur=ligne.debit_cur,
+                    fx_rate=ligne.fx_rate,
+                    label=ligne.label,
+                    **{champ: getattr(ligne, champ) for champ in CHAMPS_DE_LIGNE},
+                )
+                for ligne in originale.lignes.order_by("line_no")
+            ]
+        )
+        journaliser(
+            org_id=inverse.org_id,
+            actor_id=utilisateur.id,
+            action="entry_reversed",
+            object_type="ecriture",
+            object_id=inverse.id,
+            project_id=inverse.project_id,
+            after={"reverses": str(originale.id), "number": originale.number},
+        )
+    return inverse

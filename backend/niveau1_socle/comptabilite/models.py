@@ -102,6 +102,18 @@ class Ecriture(ModeleOrganisation):
                 condition=Q(reverses__isnull=True) | ~Q(reverses=models.F("id")),
                 name="ecriture_ne_se_contrepasse_pas",
             ),
+            # Une écriture ne se contre-passe qu'une fois (L3-T05b).
+            models.UniqueConstraint(
+                fields=["reverses"],
+                condition=Q(reverses__isnull=False),
+                name="uq_ecriture_une_contrepassation",
+            ),
+            # `origin = reversal` et `reverses` vont ensemble, dans les deux sens.
+            models.CheckConstraint(
+                condition=(Q(origin=OrigineEcriture.CONTREPASSATION) & Q(reverses__isnull=False))
+                | (~Q(origin=OrigineEcriture.CONTREPASSATION) & Q(reverses__isnull=True)),
+                name="ecriture_contrepassation_coherente",
+            ),
         ]
         indexes = [models.Index(fields=["org_id", "project_id", "periode"])]
 

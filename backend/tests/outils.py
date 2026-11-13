@@ -180,7 +180,7 @@ def creer_piece(
             status="draft",
             currency_id=devise,
             fx_rate=Decimal(str(taux)),
-            origin="saisie",
+            origin="reversal" if reverses else "saisie",
             created_by=utilisateur_id,
             reverses=reverses,
         )
