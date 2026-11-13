@@ -162,3 +162,96 @@ class LigneBudget(ModeleOrganisation):
 
     def __str__(self) -> str:
         return f"{self.annee}/{self.periode or 'A'} {self.montant}"
+
+
+class StatutEngagement(models.TextChoices):
+    OUVERT = "ouvert", "Ouvert"
+    SOLDE = "solde", "Soldé (entièrement apuré)"
+    ANNULE = "annule", "Annulé"
+
+
+class Engagement(ModeleOrganisation):
+    """Une réservation de budget : une dépense décidée, pas encore comptabilisée. Voir L4-T02.
+
+    Version minimale : le rattachement à un marché, l'avis de non-objection et l'apurement par les
+    décomptes arrivent avec le lot L9. Montants en monnaie de tenue du projet. Le montant non
+    apuré (`montant - apure`, tant que l'engagement est ouvert) réduit le disponible budgétaire.
+    """
+
+    project_id = models.UUIDField(db_index=True)
+    reference = models.CharField(max_length=60)
+    libelle = models.CharField(max_length=255, blank=True, default="")
+    annee = models.PositiveSmallIntegerField()
+    periode = models.PositiveSmallIntegerField(null=True, blank=True)  # 1..12 ; nul = année entière
+    dim1 = models.ForeignKey(
+        ValeurDimension, null=True, blank=True, on_delete=models.PROTECT, related_name="+"
+    )
+    dim2 = models.ForeignKey(
+        ValeurDimension, null=True, blank=True, on_delete=models.PROTECT, related_name="+"
+    )
+    dim3 = models.ForeignKey(
+        ValeurDimension, null=True, blank=True, on_delete=models.PROTECT, related_name="+"
+    )
+    dim4 = models.ForeignKey(
+        ValeurDimension, null=True, blank=True, on_delete=models.PROTECT, related_name="+"
+    )
+    agreement_id = models.UUIDField(null=True, blank=True)
+    category_id = models.UUIDField(null=True, blank=True)
+    site_id = models.UUIDField(null=True, blank=True)
+    montant = MontantField()
+    apure = MontantField(default=0)
+    status = models.CharField(
+        max_length=6, choices=StatutEngagement.choices, default=StatutEngagement.OUVERT
+    )
+
+    class Meta:
+        constraints = [
+            models.UniqueConstraint(
+                fields=["org_id", "project_id", "reference"], name="uq_engagement_reference"
+            ),
+            models.CheckConstraint(condition=Q(montant__gt=0), name="engagement_montant_positif"),
+            models.CheckConstraint(
+                condition=Q(apure__gte=0, apure__lte=models.F("montant")),
+                name="engagement_apure_borne",
+            ),
+            models.CheckConstraint(
+                condition=Q(status__in=StatutEngagement.values), name="engagement_statut_ferme"
+            ),
+            models.CheckConstraint(
+                condition=~Q(status=StatutEngagement.SOLDE) | Q(apure=models.F("montant")),
+                name="engagement_solde_coherent",
+            ),
+            models.CheckConstraint(
+                condition=Q(periode__isnull=True) | Q(periode__gte=1, periode__lte=12),
+                name="engagement_periode_bornee",
+            ),
+        ]
+
+    @property
+    def non_apure(self):
+        return self.montant - self.apure if self.status == StatutEngagement.OUVERT else 0
+
+    def __str__(self) -> str:
+        return f"{self.reference} ({self.status})"
+
+
+class SoldeBudgetaire(ModeleOrganisation):
+    """Le consommé et l'engagé d'une ligne de la version approuvée courante. Voir L4-T02.
+
+    Maintenu PAR LA BASE, dans la transaction de ce qui le fait bouger (comptabilisation d'une
+    écriture, création ou apurement d'un engagement). `recalculer_soldes` le reconstruit depuis
+    les écritures et les engagements, et `verifier_soldes` compare les deux : un solde
+    pré-agrégé qui dérive en silence serait pire que pas de solde du tout.
+
+    disponible = montant_base de la ligne − engagé (non apuré) − consommé (comptabilisé)
+    """
+
+    project_id = models.UUIDField(db_index=True)
+    version = models.ForeignKey(VersionBudget, on_delete=models.PROTECT, related_name="+")
+    ligne = models.OneToOneField(LigneBudget, on_delete=models.PROTECT, related_name="solde")
+    consomme = MontantField(default=0)
+    engage = MontantField(default=0)
+
+    @property
+    def disponible(self):
+        return self.ligne.montant_base - self.engage - self.consomme
