@@ -721,6 +721,13 @@ Rapprochement : en monnaie de tenue **et** en devise, avec génération des **é
 ### L3-T08 — Clôtures et à-nouveaux
 
 Clôture mensuelle : liste de contrôle bloquante — écritures en brouillon, comptes non lettrés, rapprochements non soldés.
+
+> **Réalisation de L3-T08, partie a (clôture mensuelle).** `cloturer_periode` exécute une liste de contrôles et **les liste tous** d'un coup (`niveau1_socle/comptabilite/cloture.py`, branchés au démarrage sur `VERIFICATIONS_DE_CLOTURE`) :
+> - **écritures non comptabilisées** (brouillon ou validée) dans la période ;
+> - **groupes soldés non lettrés** : « comptes non lettrés » du plan est précisé ainsi. Exiger que tous les comptes de tiers soient lettrés bloquerait toute période comportant une facture impayée, ce qui est normal ; on bloque donc seulement les lignes de tiers qui **se soldent entre elles** sans être lettrées (par compte, tiers et projet, cumulées jusqu'à la fin de la période : une facture de mars et son règlement d'avril forment un groupe soldé dès avril).
+> - **rapprochements non soldés** : non implémenté, il attend le rapprochement bancaire (L3-T07b) ; il suffira d'enregistrer un contrôle de plus.
+>
+> Un brouillon ne peut donc plus rester dans une période close par le service (il est figé par la base s'il y est malgré tout).
 Clôture annuelle : génération des à-nouveaux, **versionnée et re-générable** tant que l'exercice d'origine n'est pas verrouillé.
 
 **Contrôle.** Clôturer, régénérer les à-nouveaux, comparer : résultat identique.
