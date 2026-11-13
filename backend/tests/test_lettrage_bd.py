@@ -18,9 +18,7 @@ from rest_framework.exceptions import PermissionDenied
 from core.audit import verifier_chaine
 from niveau1_socle.comptabilite.lettrage import LettrageImpossible, delettrer, lettrer
 from niveau1_socle.comptabilite.models import Lettrage, LigneEcriture
-from niveau1_socle.exercices.models import Periode
-from niveau1_socle.exercices.services import cloturer_periode
-from tests.outils import connexion_proprietaire, creer_piece
+from tests.outils import connexion_proprietaire, creer_piece, fermer_sans_controle
 from tests.test_cycle_ecriture_bd import _poser, decor  # noqa: F401
 from tests.test_organisations_bd import _creer_organisation
 
@@ -265,7 +263,7 @@ def test_lettrer_reste_possible_en_periode_close_sans_rouvrir_les_lignes(decor):
     organisation, projet, profils = decor
     facture, reglement = _facture(organisation, projet), _reglement(organisation, projet)
     for numero in (3, 4):
-        cloturer_periode(Periode.objects.get(exercice__annee=2026, numero=numero), utilisateur=None)
+        fermer_sans_controle(numero)
 
     lettrage = lettrer(
         [_ligne_tiers(facture), _ligne_tiers(reglement)], utilisateur=profils["claire"]

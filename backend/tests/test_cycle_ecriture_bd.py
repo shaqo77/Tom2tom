@@ -30,7 +30,7 @@ from niveau1_socle.organisations.models import Organisation
 from niveau1_socle.referentiels.axes import ValeurNonImputable
 from niveau1_socle.referentiels.comptes import CompteNonImputable
 from niveau1_socle.referentiels.models import Compte, ValeurDimension
-from tests.outils import _compte, _valeur_axe, assurer_devises
+from tests.outils import _compte, _valeur_axe, assurer_devises, fermer_sans_controle
 from tests.test_organisations_bd import _creer_organisation, _creer_projet
 
 pytestmark = pytest.mark.django_db(transaction=True)
@@ -271,7 +271,7 @@ def test_comptabiliser_refuse_une_periode_close_avec_un_message_clair(decor):
     _, projet, profils = decor
     ecriture = _saisir(projet, profils["amina"])
     valider_ecriture(ecriture, utilisateur=profils["bruno"])
-    cloturer_periode(Periode.objects.get(exercice__annee=2026, numero=3), utilisateur=None)
+    fermer_sans_controle(3)
 
     with pytest.raises(PeriodeNonOuverte, match="période 3"):
         comptabiliser_ecriture(ecriture, utilisateur=profils["claire"])

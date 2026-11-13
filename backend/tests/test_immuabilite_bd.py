@@ -14,7 +14,7 @@ from django.db import IntegrityError, connection, transaction
 from niveau1_socle.comptabilite.models import Ecriture, LigneEcriture
 from niveau1_socle.exercices.models import Periode
 from niveau1_socle.exercices.services import cloturer_periode, verrouiller_periode
-from tests.outils import connexion_proprietaire, creer_piece
+from tests.outils import connexion_proprietaire, creer_piece, fermer_sans_controle
 
 pytestmark = pytest.mark.django_db(transaction=True)
 PAIRE = [{"compte": "6011", "debit": "10"}, {"compte": "5211", "credit": "10"}]
@@ -153,7 +153,7 @@ def test_une_periode_verrouillee_refuse_aussi_les_ecritures(org_a):
 
 def test_un_brouillon_laisse_dans_une_periode_devenue_close_est_fige(org_a):
     brouillon = _posee(org_a, statut="draft")
-    cloturer_periode(_periode(1), utilisateur=None)
+    fermer_sans_controle(1)
     ligne = brouillon.lignes.get(line_no=1)
 
     for action in (

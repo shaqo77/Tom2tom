@@ -242,3 +242,15 @@ def connexion_proprietaire():
         password=url.password,
         autocommit=True,
     )
+
+
+def fermer_sans_controle(numero, annee=2026):
+    """Ferme une période SANS passer par la liste de contrôle de la clôture mensuelle.
+
+    Pour les tests dont l'objet est ce qui se passe APRÈS la fermeture (une écriture refusée, un
+    brouillon figé, un lettrage en période close) : la liste de contrôle, elle, refuserait de la
+    fermer. La base n'oppose rien à ce changement de statut, seulement la clôture par le service.
+    """
+    from niveau1_socle.exercices.models import Periode
+
+    Periode.objects.filter(exercice__annee=annee, numero=numero).update(status="close")
