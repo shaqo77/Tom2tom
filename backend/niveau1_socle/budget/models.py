@@ -255,3 +255,50 @@ class SoldeBudgetaire(ModeleOrganisation):
     @property
     def disponible(self):
         return self.ligne.montant_base - self.engage - self.consomme
+
+
+class ModeControle(models.TextChoices):
+    BLOQUANT = "bloquant", "Bloquant"
+    AVERTISSEMENT = "avertissement", "Avertissement"
+    INACTIF = "inactif", "Inactif"
+
+
+# Axes sur lesquels un mode se paramètre ; « projet » vaut pour une ligne de budget sans axe.
+AXES_CONTROLE = ("projet", "dim1", "dim2", "dim3", "dim4", "agreement", "category", "site")
+
+
+class ControleBudgetaire(ModeleOrganisation):
+    """Le mode de contrôle du disponible pour un axe d'un projet. Voir L4-T03.
+
+    Versionné comme toute configuration (guide B.6) : validité `[valid_from, valid_to[`, sans
+    chevauchement pour un même projet et un même axe. Changer de mode, c'est clore la version
+    en cours et en ouvrir une autre : les décisions passées restent explicables.
+    """
+
+    project_id = models.UUIDField(db_index=True)
+    axe = models.CharField(max_length=10)
+    mode = models.CharField(max_length=13, choices=ModeControle.choices)
+    version = models.PositiveIntegerField()
+    valid_from = models.DateField()
+    valid_to = models.DateField(null=True, blank=True)  # exclu
+    motif = models.TextField(blank=True, default="")
+
+    class Meta:
+        constraints = [
+            models.UniqueConstraint(
+                fields=["org_id", "project_id", "axe", "version"], name="uq_controlebudget_version"
+            ),
+            models.CheckConstraint(
+                condition=Q(valid_to__isnull=True) | Q(valid_to__gt=models.F("valid_from")),
+                name="controlebudget_dates_coherentes",
+            ),
+            models.CheckConstraint(
+                condition=Q(mode__in=ModeControle.values), name="controlebudget_mode_ferme"
+            ),
+            models.CheckConstraint(
+                condition=Q(axe__in=AXES_CONTROLE), name="controlebudget_axe_ferme"
+            ),
+        ]
+
+    def __str__(self) -> str:
+        return f"{self.axe}: {self.mode} v{self.version}"

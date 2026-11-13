@@ -322,18 +322,40 @@ def _transition(
 
 
 def valider_ecriture(ecriture: Ecriture, *, utilisateur) -> Ecriture:
-    """Brouillon -> validée. L'auteur de la pièce ne la valide pas (séparation des tâches)."""
-    return _transition(
+    """Brouillon -> validée. L'auteur de la pièce ne la valide pas (séparation des tâches).
+
+    Le contrôle budgétaire s'applique ici (L4-T03) : un dépassement `bloquant` refuse la
+    validation ; un `avertissement` la laisse passer et se lit dans
+    `ecriture.avertissements_budgetaires`.
+    """
+    avertissements: list[str] = []
+
+    def controle(courante):
+        exiger_separation_des_taches(utilisateur, courante.created_by)
+        # Import local : le budget lit le grand livre en SQL et ne doit pas l'importer.
+        from niveau1_socle.budget.controle import appliquer, evaluer_ecriture
+
+        avertissements.extend(
+            appliquer(
+                evaluer_ecriture(courante),
+                utilisateur=utilisateur,
+                objet_type="ecriture",
+                objet_id=courante.id,
+                project_id=courante.project_id,
+            )
+        )
+
+    resultat = _transition(
         ecriture,
         utilisateur,
         attendu="draft",
         nouveau="validated",
         operation="valider",
         action="entry_validated",
-        controle_supplementaire=lambda courante: exiger_separation_des_taches(
-            utilisateur, courante.created_by
-        ),
+        controle_supplementaire=controle,
     )
+    resultat.avertissements_budgetaires = avertissements
+    return resultat
 
 
 def comptabiliser_ecriture(ecriture: Ecriture, *, utilisateur) -> Ecriture:

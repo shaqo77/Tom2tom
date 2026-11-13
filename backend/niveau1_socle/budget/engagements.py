@@ -12,6 +12,7 @@ from django.db import transaction
 from core.audit import journaliser
 from niveau1_socle.exercices.services import TransitionInterdite
 
+from .controle import appliquer, evaluer_engagement
 from .models import Engagement, StatutEngagement
 from .services import (
     IDENTIFIANTS_LIBRES,
@@ -48,6 +49,29 @@ def creer_engagement(
     if inconnus:
         raise BudgetInvalide(f"identifiant inconnu : {sorted(inconnus)}")
     with transaction.atomic():
+        axes_resolus = _axes(axes)
+        # Contrôle budgétaire (L4-T03), avec verrou sur les soldes : deux engagements simultanés
+        # sur le même disponible ne passent pas ensemble.
+        avertissements = appliquer(
+            evaluer_engagement(
+                project_id,
+                annee=annee,
+                periode=periode,
+                montant=montant,
+                dim_ids=tuple(
+                    getattr(axes_resolus.get(champ), "id", None)
+                    for champ in ("dim1", "dim2", "dim3", "dim4")
+                ),
+                agreement_id=identifiants.get("agreement_id"),
+                category_id=identifiants.get("category_id"),
+                site_id=identifiants.get("site_id"),
+                verrouiller=True,
+            ),
+            utilisateur=utilisateur,
+            objet_type="engagement",
+            objet_id=None,
+            project_id=project_id,
+        )
         engagement = Engagement.objects.create(
             org_id=utilisateur.org_id,
             project_id=project_id,
@@ -57,7 +81,7 @@ def creer_engagement(
             periode=periode,
             montant=montant,
             created_by=utilisateur.id,
-            **_axes(axes),
+            **axes_resolus,
             **{cle: valeur for cle, valeur in identifiants.items() if valeur},
         )
         journaliser(
@@ -69,6 +93,7 @@ def creer_engagement(
             project_id=project_id,
             after={"reference": engagement.reference, "montant": str(montant)},
         )
+    engagement.avertissements_budgetaires = avertissements
     return engagement
 
 

@@ -814,6 +814,14 @@ Paramétrable **par axe** : `bloquant` / `avertissement` / `inactif`. Appliqué 
 
 **Contrôle.** Les trois modes se comportent correctement sur un même dépassement.
 
+> **Réalisation de L4-T03** (`niveau1_socle/budget/controle.py`, migrations `0005`-`0006`).
+> - **Où le contrôle s'applique** : à la **validation** d'une écriture (`valider_ecriture`, comme demandé) et à l'**ouverture d'un engagement** (c'est lui que l'objectif du lot dit « bloqué sur dépassement, débloqué par l'option paramétrée »). Une opération dépasse une ligne de budget quand son effet net dépasse le disponible de cette ligne (budget − engagé − consommé), **atteindre exactement le disponible n'est pas dépasser** ; une opération qui restitue du budget (contre-passation, crédit) ne dépasse jamais, même sur une ligne déjà dépassée.
+> - **Quel mode pour quelle ligne** (le plan ne le disait pas) : celui des axes que la ligne de budget renseigne, **le plus strict l'emporte** ; une ligne sans axe suit l'axe « projet ». Une dépense couverte par deux lignes est contrôlée ligne par ligne, chacune avec son mode.
+> - **Défaut : `avertissement`.** Le blocage est une exigence qu'une organisation choisit (d'autres bailleurs l'interdisent) : aucune exigence n'est activée d'office (règle 9), mais on n'éteint pas l'information non plus.
+> - **Paramétrage versionné** (`ControleBudgetaire`, `[valid_from, valid_to[`, sans chevauchement garanti par la base) : changer de mode clôt la version en cours et en ouvre une autre, sous l'habilitation `parametrer`, avec motif et trace d'audit ; une version ne se supprime pas et ne change que par la clôture de sa validité. Le mode appliqué à une écriture est celui de **sa date comptable**.
+> - **Résultat** : `bloquant` -> `DepassementBudgetaire` (la pièce reste en brouillon) ; `avertissement` -> validation acceptée, avertissements lisibles dans `ecriture.avertissements_budgetaires` (ou `engagement.avertissements_budgetaires`) et tracés au journal d'audit (`budget_overrun_warning`) ; `inactif` -> rien. La création d'engagement pose un **verrou de ligne** sur les soldes concernés.
+> - **Limites connues** : (1) seules les lignes de budget qui **couvrent** l'opération sont contrôlées : une dépense qu'aucune ligne ne couvre échappe au contrôle ; (2) un refus ne laisse pas de trace d'audit, car il annule la transaction qui la porterait ; (3) le contrôle à la validation ne voit pas les autres pièces validées mais pas encore comptabilisées (elles ne consomment qu'à la comptabilisation) ; le blocage par verrou de catégorie des demandes de retrait est l'objet de L4-T06.
+
 ---
 
 ### L4-T04 — Bailleurs, accords, catégories
