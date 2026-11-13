@@ -233,3 +233,75 @@ def masquer_numero(numero: str) -> str:
     """Ne laisse voir que les quatre derniers caractères."""
     reste = (numero or "")[-4:]
     return "•" * max(len(numero or "") - len(reste), 0) + reste
+
+
+class CleCofinancement(ModeleOrganisation):
+    """Une clé de répartition d'une dépense entre accords (cofinancement). Voir L4-T05.
+
+    La clé n'a pas de contenu : ce sont ses VERSIONS (`VersionCle`) qui portent les parts. Une
+    version utilisée par au moins une ligne d'écriture ne change plus ; on en crée une nouvelle.
+    """
+
+    project_id = models.UUIDField(db_index=True)
+    code = models.CharField(max_length=32)
+    label = models.JSONField()  # {"fr": …, "en": …}
+
+    class Meta:
+        constraints = [
+            models.UniqueConstraint(
+                fields=["org_id", "project_id", "code"], name="uq_clecofinancement_code"
+            ),
+        ]
+
+    def __str__(self) -> str:
+        return self.code
+
+
+class VersionCle(ModeleOrganisation):
+    """Une version d'une clé : validité `[valid_from, valid_to[`, sans chevauchement pour une clé.
+
+    `rounding_residual_agreement` porte le reliquat d'arrondi : il est TOUJOURS le même accord,
+    désigné dans la clé, jamais tiré au hasard.
+    """
+
+    cle = models.ForeignKey(CleCofinancement, on_delete=models.PROTECT, related_name="versions")
+    version = models.PositiveIntegerField()
+    valid_from = models.DateField()
+    valid_to = models.DateField(null=True, blank=True)  # exclu
+    rounding_residual_agreement = models.ForeignKey(
+        Accord, on_delete=models.PROTECT, related_name="+"
+    )
+    motif = models.TextField(blank=True, default="")
+
+    class Meta:
+        constraints = [
+            models.UniqueConstraint(fields=["cle", "version"], name="uq_versioncle_version"),
+            models.CheckConstraint(
+                condition=Q(valid_to__isnull=True) | Q(valid_to__gt=models.F("valid_from")),
+                name="versioncle_dates_coherentes",
+            ),
+        ]
+
+    def __str__(self) -> str:
+        return f"{self.cle.code} v{self.version}"
+
+
+class PartCle(ModeleOrganisation):
+    """La part d'un accord dans une version de clé. Les parts d'une version somment EXACTEMENT à 1
+    (vérifié par la base au COMMIT) : la dernière est calculée par différence, jamais par division.
+    """
+
+    version = models.ForeignKey(VersionCle, on_delete=models.CASCADE, related_name="parts")
+    accord = models.ForeignKey(Accord, on_delete=models.PROTECT, related_name="+")
+    share = models.DecimalField(max_digits=12, decimal_places=10)
+
+    class Meta:
+        constraints = [
+            models.UniqueConstraint(fields=["version", "accord"], name="uq_partcle_accord"),
+            models.CheckConstraint(
+                condition=Q(share__gt=0, share__lte=1), name="partcle_part_dans_0_1"
+            ),
+        ]
+
+    def __str__(self) -> str:
+        return f"{self.accord.numero} {self.share}"

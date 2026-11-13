@@ -173,6 +173,8 @@ class LigneEcriture(ModeleOrganisation):
     category_id = models.UUIDField(null=True, blank=True)  # catégorie (L4-T04)
     contract_id = models.UUIDField(null=True, blank=True)  # marché (L9)
     bank_account_id = models.UUIDField(null=True, blank=True)
+    # La version de clé de cofinancement qui a produit la ligne (L4-T05) : sans elle, modifier la
+    # clé plus tard rendrait l'historique inexplicable. Clé étrangère posée en SQL (financements).
     cofunding_key_version_id = models.UUIDField(null=True, blank=True)  # L4-T05
 
     # Monnaie de tenue, puis devise d'origine.

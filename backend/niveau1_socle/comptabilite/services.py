@@ -43,7 +43,14 @@ AXES = (  # champ de la ligne -> (type d'axe, emplacement)
     ("aux3", "auxiliaire", 3),
     ("aux4", "auxiliaire", 4),
 )
-IDENTIFIANTS_LIBRES = ("site_id", "agreement_id", "category_id", "contract_id", "bank_account_id")
+IDENTIFIANTS_LIBRES = (
+    "site_id",
+    "agreement_id",
+    "category_id",
+    "contract_id",
+    "bank_account_id",
+    "cofunding_key_version_id",
+)
 
 
 class EcritureInvalide(ValueError):
@@ -231,6 +238,7 @@ CHAMPS_DE_LIGNE = (
     "category_id",
     "contract_id",
     "bank_account_id",
+    "cofunding_key_version_id",
     "currency_id",
 )
 
