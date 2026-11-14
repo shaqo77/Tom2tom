@@ -2,13 +2,15 @@
 
 Un profil met des exigences À DISPOSITION d'un projet ; ce sont les documents contractuels du projet
 qui décident lesquelles s'appliquent. Importer un profil ne produit donc que des exigences
-`proposed` (voir `services.importer_profil` et le déclencheur de la migration 0001).
+`proposed` (voir `services.importer_profil` et le déclencheur de la migration 0002).
 """
 
 from django.db import models
 from django.db.models import Q
 
 from core.models import ModeleOrganisation
+
+MENTION_LORSQUE_REQUIS = "lorsque requis"
 
 
 class StatutProfilBailleur(models.TextChoices):
@@ -87,6 +89,11 @@ class ElementProfil(ModeleOrganisation):
                 condition=Q(kind__in=TypeElement.values), name="element_profil_type_ferme"
             ),
         ]
+
+    @property
+    def mention(self) -> str:
+        """Aucun élément n'est un modèle universel : le document du projet décide (L5-T06)."""
+        return MENTION_LORSQUE_REQUIS
 
     def __str__(self) -> str:
         return f"{self.profil_id}/{self.kind}/{self.code}"

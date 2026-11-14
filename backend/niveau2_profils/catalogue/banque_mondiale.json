@@ -1,0 +1,87 @@
+{
+  "code": "BANQUE_MONDIALE",
+  "version": 1,
+  "label": {"fr": "Banque mondiale (IDA)", "en": "World Bank (IDA)"},
+  "description": "Bibliothèque d'exigences POSSIBLES pour un projet financé par la Banque mondiale. Ce n'est pas un modèle universel : le DFIL et l'accord de financement du projet décident de ce qui s'applique, avec quelle périodicité et selon quel modèle. Chaque élément se lit « lorsque requis ».",
+  "elements": [
+    {
+      "kind": "document_reference",
+      "code": "CG-IDA",
+      "label": {"fr": "Conditions générales de l'IDA pour le financement des projets d'investissement"},
+      "contenu": {"note": "À rapprocher de la version citée par l'accord de financement du projet."}
+    },
+    {
+      "kind": "report_family",
+      "code": "RFI",
+      "label": {"fr": "Rapport financier intermédiaire (RFI)"},
+      "contenu": {"delai_type": "45 jours après la fin de chaque trimestre civil, sous les conditions générales de l'IDA"},
+      "exigence": {
+        "subject": "Rapport financier intermédiaire",
+        "rule": {"kind": "report", "template": "IFR"},
+        "obligation": "optional",
+        "periodicity": "quarterly",
+        "due_offset_days": 45
+      }
+    },
+    {
+      "kind": "report_family",
+      "code": "RESSOURCES-EMPLOIS",
+      "label": {"fr": "État des ressources et emplois"},
+      "exigence": {
+        "subject": "État des ressources et emplois",
+        "rule": {"kind": "report", "template": "SOURCES_USES"},
+        "obligation": "optional"
+      }
+    },
+    {
+      "kind": "report_family",
+      "code": "DEPENSES-AXES",
+      "label": {"fr": "Dépenses par composante, activité, catégorie et source de financement"},
+      "exigence": {
+        "subject": "Dépenses par composante, activité, catégorie et source de financement",
+        "rule": {"kind": "report", "template": "EXPENDITURE_BY_AXIS"},
+        "obligation": "optional"
+      }
+    },
+    {
+      "kind": "report_family",
+      "code": "COMPTE-DESIGNE",
+      "label": {"fr": "Activité et rapprochement du compte désigné"},
+      "exigence": {
+        "subject": "Activité et rapprochement du compte désigné",
+        "rule": {"kind": "report", "template": "DESIGNATED_ACCOUNT"},
+        "obligation": "optional"
+      }
+    },
+    {
+      "kind": "report_family",
+      "code": "TRESORERIE-AVANCES",
+      "label": {"fr": "Prévisions de trésorerie et suivi des avances"},
+      "exigence": {
+        "subject": "Prévisions de trésorerie et suivi des avances",
+        "rule": {"kind": "report", "template": "CASH_FORECAST"},
+        "obligation": "optional"
+      }
+    },
+    {
+      "kind": "report_family",
+      "code": "DEMANDES-RETRAIT",
+      "label": {"fr": "Demandes de retrait"},
+      "exigence": {
+        "subject": "Demandes de retrait",
+        "rule": {"kind": "report", "template": "WITHDRAWAL_APPLICATION"},
+        "obligation": "optional"
+      }
+    },
+    {
+      "kind": "report_family",
+      "code": "ETATS-AUDIT",
+      "label": {"fr": "États annuels pour l'audit"},
+      "exigence": {
+        "subject": "États annuels pour l'audit",
+        "rule": {"kind": "report", "template": "ANNUAL_AUDIT_STATEMENTS"},
+        "obligation": "optional"
+      }
+    }
+  ]
+}

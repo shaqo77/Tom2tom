@@ -269,6 +269,12 @@ Délai type : **45 jours après la fin de chaque trimestre civil** sous les cond
 
 ---
 
+> **Réalisation de L5-T06** (`backend/niveau2_profils/{catalogue/banque_mondiale.json,services/{catalogue,presentation}.py,management/commands/charger_profil_bailleur.py}`).
+> - **Un profil livré est une donnée, pas du code** : un fichier du catalogue, chargé par `charger_profil` (commande `charger_profil_bailleur`) à travers les mêmes services que la saisie manuelle (mêmes contrôles, même journal). Il se charge en **brouillon** ; le publier est un acte distinct de `parametrer`. Recharger ne duplique rien. Ajouter un autre bailleur (L10) = ajouter un fichier.
+> - **Contenu Banque mondiale** : la référence aux conditions générales de l'IDA et les **sept familles d'états** du plan (rapport financier intermédiaire ; état des ressources et emplois ; dépenses par composante, activité, catégorie et source ; activité et rapprochement du compte désigné ; prévisions de trésorerie et suivi des avances ; demandes de retrait ; états annuels pour l'audit). **Seul délai renseigné : 45 jours après la fin de chaque trimestre civil, pour le rapport financier intermédiaire** ; aucun autre délai ni périodicité n'est inventé, le DFIL du projet les fixera. Toutes les exigences livrées sont `facultatives` : le profil ne rend rien obligatoire d'office.
+> - **« Lorsque requis » sur chaque élément** : `ElementProfil.mention` ; `presenter_profil` (point de passage de tout écran, guide ou export) ajoute la mention à chaque élément et l'avertissement « ce profil n'est pas un modèle universel » en tête ; la description du profil le dit aussi. Des tests de catalogue (logique pure) interdisent d'y glisser une exigence obligatoire, un second délai, ou une description qui présenterait le profil comme universel.
+> - **Limites** : (1) il n'y a pas encore d'interface : la mention vit dans la couche de présentation, que l'interface devra emprunter ; (2) seule la famille « rapport financier intermédiaire » a un délai ; les modèles de rapport (structure, rubriques, formules) ne sont pas livrés avec le profil : ils relèvent des modèles de L7 ; (3) la mention est constante : une base ne l'impose pas (un profil saisi à la main sans passer par `presenter_profil` ne la porterait pas).
+
 ### L5-T07 — Le guide de configuration généré
 
 Depuis le registre, produire un PDF lisible : chaque exigence active, sa source, son mapping, ses contrôles, sa périodicité, son validateur.
