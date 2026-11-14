@@ -545,6 +545,10 @@ Enregistrer le résultat des soumissions réelles pour alimenter l'**indicateur 
 
 **Contrôle.** Un rapport avec une avance non justifiée au-delà du délai reçoit un avis `no-go` qui nomme l'avance et le nombre de jours de retard.
 
+> **Contrôle de sortie de L6** (`backend/tests/test_sortie_l6_bd.py`, 2 tests ; suite complète verte en 6 shards). Le premier test vérifie que chacun des contrôles du plan de L6 (T01 à T07 et l'annexe D « assertion fausse : publication bloquée ») renvoie à un test qui existe. Le second déroule le scénario de bout en bout, chaque étape par un humain habilité : bibliothèque installée en brouillon puis validée et activée, motif de rejet connu, exigence trimestrielle (quatre échéances, la première le 15 mai), circuit de validation en deux étapes, avance qui traîne ; la revue dit `no_go` en nommant l'avance et son retard et en reconnaissant le motif, passe en `go` après justification ; publication scellée rejouée à l'identique ; validation par le responsable financier puis le coordonnateur ; export Excel et PDF vérifiés par empreinte ; remise de l'échéance, premier envoi accepté, taux 1 ; une écriture tardive est ensuite NOMMÉE (pièce et montant) par le rejeu, le rapport remis ne bouge pas.
+> - **Ce que le scénario ne prouve pas** (couvert par les tests propres de chaque tâche, mutations vérifiées) : le blocage de l'étape de validation par un contrôle bloquant, l'altération d'un fichier exporté, les concurrences.
+> - **Restent hors de ce contrôle** (annexe D) : « dossier de conformité : 100 % des rubriques couvertes » (lot L7), « export → instance vierge → rapport régénéré identique » (lot L8), « aucun objet de configuration actif sans exigence source » pour les contrôles (signalé par `detecter_configuration_orpheline`, testé en L6-T01, non bloquant à l'activation), et les contrôles de performance (TER sur 200 000 lignes) qui relèvent de la campagne de charge.
+
 ---
 
 # LOT L7 — DOSSIER DE CONFORMITÉ ET ACCÈS AUDITEUR
