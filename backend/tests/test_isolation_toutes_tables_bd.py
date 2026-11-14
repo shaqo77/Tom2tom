@@ -50,6 +50,7 @@ from niveau4_reporting.controles.services import (
     trancher,
     valider_controle,
 )
+from niveau4_reporting.publication.models import RapportPublie
 from tests.outils import connexion_proprietaire
 from tests.outils_profil import creer_profil
 from tests.test_cycle_ecriture_bd import decor  # noqa: F401
@@ -285,6 +286,19 @@ def _peupler(organisation, projet, profils, accord, categories):
         service="isolation",
     )
     trancher(utilisateur=profils["bruno"], evaluation=evaluation, decision="conforme", motif="Vu")
+    RapportPublie.objects.create(  # un rapport publié et scellé (L6-T04)
+        org_id=organisation.id,
+        project_id=projet.id,
+        template_code="TER",
+        modele={"code": "TER"},
+        period_from=datetime.date(2026, 1, 1),
+        period_to=datetime.date(2026, 3, 31),
+        values={"R110/QTR": "1"},
+        dataset_hash=b"\x01" * 32,
+        seal=b"\x02" * 32,
+        published_by=dora.id,
+        published_at=datetime.datetime(2026, 4, 1, tzinfo=datetime.UTC),
+    )
     # Justification, dérogation et circuit de validation (L6-T02).
     justifier(utilisateur=amina, evaluation=evaluation, texte="Pièces attendues du fournisseur")
     depassement = creer_controle(

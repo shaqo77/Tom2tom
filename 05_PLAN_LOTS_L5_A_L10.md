@@ -487,6 +487,12 @@ def regenerer(rapport_publie) -> ResultatRegeneration:
     )
 ```
 
+> **Réalisation de L6-T04** (`backend/niveau4_reporting/publication/{models,rapports}.py`, migrations `publication/0001-0002` et `moteur/0005`, `tests/test_regeneration_bd.py`, 9 tests, 5 mutations vérifiées ; suite complète verte en 6 shards).
+> - `RapportPublie` : ajout seul pour tout rôle (trigger), RLS, clé composite vers le projet. Il garde une COPIE du modèle d'état (pas une référence), les paramètres, les versions de mappings (id et numéro) et les valeurs `rubrique/colonne` en montants canoniques ; `seal` = `sceller()` de T03.
+> - `publier_rapport` (habilitation `publier`) génère, scelle, enregistre, journalise ; une assertion fausse ou un mapping incomplet empêche toute publication. `regenerer` rejoue avec le modèle, les mappings (chargés PAR ID, même remplacés depuis) et les paramètres d'alors : même scellé = identique ; sinon écarts par rubrique et colonne (`Ecart.difference`) et **causes nommées** : chaque écriture comptabilisée après la publication dans le périmètre, avec numéro de pièce, compte, montant signé et, pour une contre-passation, le numéro de la pièce contre-passée.
+> - La vue `moteur_ligneecriture` gagne `comptabilisee_le` et `contrepasse_ecriture_id` (colonnes ajoutées en fin, `security_invoker` conservé).
+> - **Limites assumées** : le différentiel ne nomme que les écritures arrivées depuis ; une exigence révisée ou un mapping remplacé n'apparaît pas comme cause (le rejeu les ignore par construction). Un écart SANS écriture nouvelle (altération hors déclencheurs) est signalé `inexpliquee` plutôt qu'expliqué. La `config_version` est fournie par l'appelant (pas encore résolue depuis le registre) ; la période (`period_from/to`) aussi. Pas d'interface HTTP.
+
 **Contrôle.** Publier un rapport, ajouter une écriture dans la période, régénérer : le différentiel **nomme l'écriture ajoutée et son montant**. Ne vous contentez pas d'un « écart détecté ».
 
 ---

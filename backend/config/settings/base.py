@@ -43,6 +43,7 @@ INSTALLED_APPS = [
     "niveau4_reporting.mapping",
     "niveau4_reporting.moteur",
     "niveau4_reporting.controles",
+    "niveau4_reporting.publication",
 ]
 
 MIDDLEWARE = [
