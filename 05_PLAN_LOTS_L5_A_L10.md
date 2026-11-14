@@ -454,6 +454,10 @@ def empreinte_jeu_de_donnees(cur, predicat_sql, params) -> bytes:
     return bytes.fromhex(cur.fetchone()[0] or "0" * 32)
 ```
 
+> **Réalisation de L6-T03** (`backend/niveau4_reporting/publication/scellement.py`, `tests/test_scellement.py`, 18 tests, 5 mutations vérifiées). Écarts avec l'esquisse, voulus : SHA-256 aussi pour le jeu de données (le plan proposait MD5) ; lecture dans la vue `moteur_ligneecriture` (jamais le grand livre) ; montants sous forme canonique (`10.50`, `10.5` et `1E+1` ne donnent pas deux empreintes) ; `float` et ensembles refusés ; charge versionnée (`schema`).
+> - « Modifier une ligne source » : les lignes comptabilisées sont immuables, donc le test ajoute ou contre-passe une écriture dans le périmètre. L'altération directe d'un montant (administrateur hors déclencheurs, `session_replication_role = replica`) est aussi détectée, en débit comme en crédit.
+> - **Limites assumées** : il n'existe pas encore d'objet « rapport publié » ni de modèle d'état en base ; `sceller` accepte tout objet qui expose les champs du plan (protocole `Scellable`). Le modèle `published_report`, `generer` et l'enregistrement du scellé viennent avec T04. L'empreinte du jeu de données porte id, compte, date, débit, crédit, devise, taux, accord et catégorie : une colonne ajoutée plus tard à la vue ne la change pas sans montée de `schema`.
+
 **Contrôle.** Sceller, modifier une ligne source, re-sceller : les empreintes diffèrent.
 
 ---
