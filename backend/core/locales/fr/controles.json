@@ -1,0 +1,22 @@
+{
+  "controles.code_libelle_controle_requis": "Le code et le libellé du contrôle sont requis",
+  "controles.controle_actif": "Le contrôle {code} n'est pas actif le {date_operation}",
+  "controles.controle_automatique_expression": "Un contrôle automatique a une expression",
+  "controles.controle_bloquant": "contrôle bloquant",
+  "controles.controle_verifier_main_expression": "Un contrôle à vérifier à la main n'a pas d'expression",
+  "controles.controle_version_active_couvre_deja": "Contrôle {code} : une version active couvre déjà cette période",
+  "controles.controles_inconnus_bibliotheque": "Contrôles inconnus de la bibliothèque : {inconnus}",
+  "controles.controles_traiter": "Contrôles à traiter : {detail}",
+  "controles.decision_inconnue": "Décision inconnue : {decision}",
+  "controles.decision_motivee": "Une décision est motivée",
+  "controles.declare_non_conforme": "déclaré non conforme",
+  "controles.declencheur_exige_utilisateur_service_deux": "Un déclencheur est exigé : un utilisateur ou un service, pas les deux",
+  "controles.en_attente_ligne": "{code} ({raison})",
+  "controles.regle_invalide": "Règle invalide : {erreur}",
+  "controles.rejet_exige_motif": "Un rejet exige un motif",
+  "controles.seul_controle_verifier_tranche_celui": "Seul un contrôle « à vérifier » se tranche (celui-ci est « {resultat} »)",
+  "controles.severite_inconnue": "Sévérité inconnue : {severity}",
+  "controles.type_regle_inconnu": "type de règle « {type_regle} » inconnu",
+  "controles.verification_humaine_non_tranchee": "vérification humaine non tranchée",
+  "controles.vous_etes_habilite_projet": "Vous n'êtes pas habilité à « {operation} » sur ce projet."
+}

@@ -15,6 +15,7 @@ from django.db import transaction
 from rest_framework.exceptions import PermissionDenied
 
 from core.audit import journaliser
+from core.i18n import Liste, msg
 from niveau1_socle.habilitations.permissions import est_habilite
 
 from .models import Exercice, Periode, StatutExercice, StatutPeriode
@@ -31,7 +32,7 @@ class ClotureImpossible(ValueError):
 
     def __init__(self, raisons: list[str]):
         self.raisons = raisons
-        super().__init__("Clôture impossible : " + " ; ".join(raisons))
+        super().__init__(msg("exercices.cloture_impossible", details=Liste(raisons)))
 
 
 def _ajouter_mois(date: datetime.date, mois: int) -> datetime.date:
@@ -42,7 +43,7 @@ def _ajouter_mois(date: datetime.date, mois: int) -> datetime.date:
 def creer_exercice(projet, annee: int, *, utilisateur, mois_debut: int = 1) -> Exercice:
     """Crée un exercice de douze mois et ses douze périodes contiguës, ouvertes."""
     if not 1 <= mois_debut <= 12:
-        raise ValueError("mois_debut doit être compris entre 1 et 12")
+        raise ValueError(msg("exercices.mois_debut_doit_etre_compris"))
     debut = datetime.date(annee, mois_debut, 1)
     with transaction.atomic():
         exercice = Exercice.objects.create(
@@ -80,8 +81,13 @@ def _changer_statut(periode: Periode, attendu: str, nouveau: str, action: str, u
         courante = Periode.objects.select_for_update().get(pk=periode.pk)
         if courante.status != attendu:
             raise TransitionInterdite(
-                f"La période {courante.numero} est {courante.status} : "
-                f"seule une période {attendu} peut passer à {nouveau}."
+                msg(
+                    "exercices.periode_seule_periode_peut_passer",
+                    numero=courante.numero,
+                    status=courante.status,
+                    attendu=attendu,
+                    nouveau=nouveau,
+                )
             )
         if nouveau == StatutPeriode.CLOSE:
             raisons = [raison for verif in VERIFICATIONS_DE_CLOTURE if (raison := verif(courante))]
@@ -130,15 +136,18 @@ def rouvrir_periode(periode: Periode, *, utilisateur, motif: str) -> Periode:
     les à-nouveaux. Opération sensible : elle exige l'habilitation `parametrer`.
     """
     if not (motif or "").strip():
-        raise ValueError("La réouverture d'une période exige un motif")
+        raise ValueError(msg("exercices.reouverture_periode_exige_motif"))
     with transaction.atomic():
         courante = Periode.objects.select_for_update().select_related("exercice").get(pk=periode.pk)
         if not est_habilite(utilisateur, "parametrer", courante.exercice.project_id):
-            raise PermissionDenied("Vous n'êtes pas habilité à « parametrer » sur ce projet.")
+            raise PermissionDenied(msg("exercices.vous_etes_habilite_parametrer_projet"))
         if courante.status != StatutPeriode.CLOSE:
             raise TransitionInterdite(
-                f"La période {courante.numero} est {courante.status} : "
-                "seule une période close peut être rouverte"
+                msg(
+                    "exercices.periode_seule_periode_close_peut",
+                    numero=courante.numero,
+                    status=courante.status,
+                )
             )
         Periode.objects.filter(pk=courante.pk).update(status=StatutPeriode.OUVERTE)
         if courante.exercice.status == StatutExercice.CLOS:

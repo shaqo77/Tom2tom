@@ -1,0 +1,12 @@
+{
+  "documents.document_deja_remplace": "The document “{title}” has already been replaced",
+  "documents.document_version_deja_enregistre_empreinte": "The document “{v1}” (version {v2}) is already registered with fingerprint {v3}…; this file has {v4}…: a modified document is a new version",
+  "documents.document_vient_etre_enregistre_autre": "This document has just been registered with different content",
+  "documents.fichier_depasse_mio": "The file exceeds {v1} MiB",
+  "documents.fichier_vide": "The file is empty",
+  "documents.nouveau_fichier_identique_celui_il": "The new file is identical to the one it replaces",
+  "documents.nouvelle_version_doit_etre_numerotee": "The new version must be numbered",
+  "documents.titre_document_obligatoire": "The document title is required",
+  "documents.type_document_inconnu": "unknown document type: {kind}",
+  "documents.vous_etes_habilite_projet": "You are not authorised to “{operation}” on this project."
+}

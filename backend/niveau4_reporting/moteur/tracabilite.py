@@ -12,6 +12,8 @@ from decimal import Decimal
 
 from django.db import connection
 
+from core.i18n import msg
+
 from .compilateur import ZERO, EtatCompile
 
 
@@ -49,9 +51,9 @@ def tracer(etat: EtatCompile, rubrique: str, colonne: str) -> Trace:
     """
     selection = etat.selections.get(rubrique)
     if selection is None:
-        raise TracabiliteImpossible(f"{rubrique!r} n'est pas une rubrique d'agrégat de cet état")
+        raise TracabiliteImpossible(msg("tracabilite.rubrique_agregat_cet_etat", rubrique=rubrique))
     if colonne not in etat.conditions_colonnes:
-        raise TracabiliteImpossible(f"colonne inconnue : {colonne!r}")
+        raise TracabiliteImpossible(msg("tracabilite.colonne_inconnue", colonne=colonne))
 
     condition, params_condition = etat.conditions_colonnes[colonne]
     montant = "(debit - credit)" if selection.signe == 1 else "(credit - debit)"

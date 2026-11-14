@@ -7,6 +7,7 @@ from django.contrib.auth import get_user_model
 from django.core.management.base import BaseCommand, CommandError
 from django.db import connection
 
+from core.i18n import msg
 from niveau3_config.services.guide import generer_guide
 
 
@@ -29,7 +30,9 @@ class Command(BaseCommand):
                 username=options["utilisateur"], org_id=options["organisation"]
             )
         except User.DoesNotExist as erreur:
-            raise CommandError("Utilisateur introuvable dans cette organisation") from erreur
+            raise CommandError(
+                msg("generer_guide_configuration.utilisateur_introuvable_organisation")
+            ) from erreur
         date = (
             datetime.date.fromisoformat(options["date"])
             if options["date"]

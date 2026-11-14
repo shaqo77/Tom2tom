@@ -374,8 +374,8 @@ def test_les_alertes_distinguent_l_echue_et_l_a_venir(cadre):
         ("echue", "AV-ECHUE"),
         ("a_echeance", "AV-BIENTOT"),
     ]
-    assert "échue depuis 29 jour(s)" in liste[0].message and "500" in liste[0].message
-    assert "avant le 2026-03-12" in liste[1].message
+    assert "échue depuis 29 jour(s)" in str(liste[0].message) and "500" in str(liste[0].message)
+    assert "avant le 2026-03-12" in str(liste[1].message)
     # Un préavis plus large ajoute l'avance lointaine ; un préavis nul retire celle à venir.
     assert len(alertes(profils["lecteur"], projet.id, datetime.date(2026, 3, 5), preavis=40)) == 3
     assert len(alertes(profils["lecteur"], projet.id, datetime.date(2026, 3, 5), preavis=0)) == 1

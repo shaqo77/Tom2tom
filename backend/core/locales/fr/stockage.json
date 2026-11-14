@@ -1,0 +1,5 @@
+{
+  "stockage.aucun_objet_stocke": "Aucun objet stocké pour {ref}",
+  "stockage.reference_stockage_inconnue": "Référence de stockage inconnue : {ref}",
+  "stockage.reference_stockage_invalide": "Référence de stockage invalide : {ref}"
+}

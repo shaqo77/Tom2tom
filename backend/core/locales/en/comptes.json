@@ -1,0 +1,5 @@
+{
+  "comptes.compte_existe_plan_comptable": "Account {code} does not exist in the chart of accounts",
+  "comptes.compte_imputable_c_total": "Account {code} cannot be posted to: it is a total",
+  "comptes.compte_inactif": "Account {code} is inactive"
+}

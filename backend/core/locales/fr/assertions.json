@@ -1,0 +1,13 @@
+{
+  "assertions.assertion_comparaison_rien_autre": "une assertion est une comparaison, et rien d'autre",
+  "assertions.assertion_refusee": "assertion refusée : {e}",
+  "assertions.assertion_vide": "assertion vide",
+  "assertions.assertions_violees": "Assertions de cohérence violées : {details}",
+  "assertions.attend_exactement_prefixe_compte": "{NOM_BALANCE} attend exactement un préfixe de compte",
+  "assertions.comparaison_chainee_assertion_compare_deux": "comparaison chaînée : une assertion compare deux expressions",
+  "assertions.constante_non_numerique": "constante non numérique : {value!r}",
+  "assertions.prefixe_compte_invalide": "préfixe de compte invalide : {prefixe!r}",
+  "assertions.prefixe_doit_etre_chaine_litterale": "le préfixe de {NOM_BALANCE} doit être une chaîne littérale, jamais une rubrique ni une expression",
+  "assertions.syntaxe_invalide": "syntaxe invalide : {e}",
+  "assertions.violation": "{rubrique}[{colonne}] : {expression} — {gauche} {comparateur} {droite} est faux (écart {ecart})"
+}

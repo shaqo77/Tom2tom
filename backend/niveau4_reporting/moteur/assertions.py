@@ -21,6 +21,8 @@ import re
 from dataclasses import dataclass
 from decimal import Decimal
 
+from core.i18n import Liste, msg
+
 from .formules import FormuleInvalide, evaluer, valider
 
 # Comparaisons admises. Aucune n'est ambiguë : pas de chaînage, pas de
@@ -72,13 +74,22 @@ class AssertionsViolees(ValueError):
     def __init__(self, controles):
         self.controles = tuple(controles)
         self.violations = tuple(controle for controle in self.controles if not controle.reussi)
-        details = " ; ".join(
-            f"{controle.rubrique}[{controle.colonne}] : {controle.expression} — "
-            f"{controle.gauche} {controle.comparateur} {controle.droite} est faux "
-            f"(écart {controle.ecart})"
-            for controle in self.violations
+        details = Liste(
+            [
+                msg(
+                    "assertions.violation",
+                    rubrique=controle.rubrique,
+                    colonne=controle.colonne,
+                    expression=controle.expression,
+                    gauche=controle.gauche,
+                    comparateur=controle.comparateur,
+                    droite=controle.droite,
+                    ecart=controle.ecart,
+                )
+                for controle in self.violations
+            ]
         )
-        super().__init__(f"Assertions de cohérence violées : {details}")
+        super().__init__(msg("assertions.assertions_violees", details=details))
 
 
 @dataclass(frozen=True)
@@ -106,16 +117,17 @@ class _SubstitutionBalance(ast.NodeTransformer):
             self.generic_visit(noeud)
             return noeud
         if noeud.keywords or len(noeud.args) != 1:
-            raise AssertionInvalide(f"{NOM_BALANCE} attend exactement un préfixe de compte")
+            raise AssertionInvalide(
+                msg("assertions.attend_exactement_prefixe_compte", NOM_BALANCE=NOM_BALANCE)
+            )
         argument = noeud.args[0]
         if not isinstance(argument, ast.Constant) or not isinstance(argument.value, str):
             raise AssertionInvalide(
-                f"le préfixe de {NOM_BALANCE} doit être une chaîne littérale, "
-                "jamais une rubrique ni une expression"
+                msg("assertions.prefixe_doit_etre_chaine_litterale", NOM_BALANCE=NOM_BALANCE)
             )
         prefixe = argument.value
         if not MOTIF_PREFIXE_COMPTE.match(prefixe):
-            raise AssertionInvalide(f"préfixe de compte invalide : {prefixe!r}")
+            raise AssertionInvalide(msg("assertions.prefixe_compte_invalide", prefixe=prefixe))
         nom = self.noms.setdefault(prefixe, f"{PREFIXE_VARIABLE_BALANCE}{len(self.noms)}")
         return ast.copy_location(ast.Name(id=nom, ctx=ast.Load()), noeud)
 
@@ -131,23 +143,23 @@ def _refuser_constantes_non_numeriques(noeud: ast.AST) -> None:
         if isinstance(n, ast.Constant) and (
             isinstance(n.value, bool) or not isinstance(n.value, int | float)
         ):
-            raise AssertionInvalide(f"constante non numérique : {n.value!r}")
+            raise AssertionInvalide(msg("assertions.constante_non_numerique", value=n.value))
 
 
 def analyser_assertion(expression: str, codes_connus: list[str]) -> AssertionPreparee:
     """Analyse l'assertion et refuse tout ce qui n'est pas une comparaison."""
     if not isinstance(expression, str) or not expression.strip():
-        raise AssertionInvalide("assertion vide")
+        raise AssertionInvalide(msg("assertions.assertion_vide"))
     try:
         arbre = ast.parse(expression, mode="eval")
     except SyntaxError as e:
-        raise AssertionInvalide(f"syntaxe invalide : {e}") from e
+        raise AssertionInvalide(msg("assertions.syntaxe_invalide", e=e)) from e
 
     comparaison = arbre.body
     if not isinstance(comparaison, ast.Compare):
-        raise AssertionInvalide("une assertion est une comparaison, et rien d'autre")
+        raise AssertionInvalide(msg("assertions.assertion_comparaison_rien_autre"))
     if len(comparaison.ops) != 1 or len(comparaison.comparators) != 1:
-        raise AssertionInvalide("comparaison chaînée : une assertion compare deux expressions")
+        raise AssertionInvalide(msg("assertions.comparaison_chainee_assertion_compare_deux"))
     comparateur = COMPARATEURS.get(type(comparaison.ops[0]))
     if comparateur is None:
         raise AssertionInvalide(f"comparateur interdit : {type(comparaison.ops[0]).__name__}")
@@ -169,7 +181,7 @@ def analyser_assertion(expression: str, codes_connus: list[str]) -> AssertionPre
         except AssertionInvalide:
             raise
         except FormuleInvalide as e:
-            raise AssertionInvalide(f"assertion refusée : {e}") from e
+            raise AssertionInvalide(msg("assertions.assertion_refusee", e=e)) from e
 
     return AssertionPreparee(
         expression=expression,

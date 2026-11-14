@@ -12,6 +12,7 @@ from django.db import transaction
 from rest_framework.exceptions import PermissionDenied
 
 from core.audit import journaliser
+from core.i18n import msg
 from niveau1_socle.habilitations.permissions import est_habilite
 from niveau1_socle.referentiels.models import Devise
 
@@ -25,7 +26,7 @@ class CleInvalide(ValueError):
 
 def _habilite(utilisateur, project_id) -> None:
     if not est_habilite(utilisateur, "parametrer", project_id):
-        raise PermissionDenied("Vous n'êtes pas habilité à « parametrer » sur ce projet.")
+        raise PermissionDenied(msg("cles.vous_etes_habilite_parametrer_projet"))
 
 
 def creer_cle(*, utilisateur, project_id, code: str, label: dict) -> CleCofinancement:
@@ -64,14 +65,14 @@ def creer_version_cle(
     """
     _habilite(utilisateur, cle.project_id)
     if not poids:
-        raise CleInvalide("Une clé a au moins une part")
+        raise CleInvalide(msg("cles.cle_moins_part"))
     if porteur not in poids:
-        raise CleInvalide("Le porteur d'arrondi doit être l'un des accords de la clé")
+        raise CleInvalide(msg("cles.porteur_arrondi_doit_etre_accords"))
     for accord in poids:
         if accord.project_id != cle.project_id:
-            raise CleInvalide(f"L'accord {accord.numero} n'appartient pas au projet de la clé")
+            raise CleInvalide(msg("cles.accord_appartient_projet_cle", numero=accord.numero))
         if accord.status in (StatutAccord.CLOS, StatutAccord.ANNULE):
-            raise CleInvalide(f"L'accord {accord.numero} est {accord.status}")
+            raise CleInvalide(msg("cles.accord", numero=accord.numero, status=accord.status))
     accords = sorted(poids, key=lambda a: a.numero)  # ordre stable : même clé, même résultat
     parts = normaliser_parts([poids[a] for a in accords])
     with transaction.atomic():
@@ -80,7 +81,7 @@ def creer_version_cle(
         if en_cours is not None:
             if valid_from <= en_cours.valid_from:
                 raise CleInvalide(
-                    f"La nouvelle version doit prendre effet après le {en_cours.valid_from}"
+                    msg("cles.nouvelle_version_doit_prendre_effet", valid_from=en_cours.valid_from)
                 )
             VersionCle.objects.filter(pk=en_cours.pk).update(valid_to=valid_from)
         numero = (versions.order_by("-version").values_list("version", flat=True).first() or 0) + 1
@@ -144,7 +145,7 @@ def lignes_ventilees(
     chacune portant son accord et `cofunding_key_version_id`. À passer à `saisir_ecriture`, avec la
     contrepartie. `sens` : "debit" (dépense) ou "credit" (remboursement)."""
     if sens not in ("debit", "credit"):
-        raise CleInvalide("sens inconnu : debit ou credit")
+        raise CleInvalide(msg("cles.sens_inconnu_debit_credit"))
     lignes = []
     for accord, part in ventiler_montant(version, montant, devise):
         if part == 0:

@@ -12,6 +12,7 @@ from typing import Any
 from django.db import connection
 from django.db.models import QuerySet
 
+from core.i18n import msg
 from niveau4_reporting.mapping.models import RegleMapping
 from niveau4_reporting.mapping.resolveur import (
     MappingIncomplet,
@@ -94,30 +95,30 @@ def _valider_modele(
     lignes = modele.get("rows")
     colonnes = modele.get("columns")
     if not isinstance(lignes, list) or not lignes:
-        raise ModeleEtatInvalide("rows doit contenir les rubriques de l'état")
+        raise ModeleEtatInvalide(msg("compilateur.rows_doit_contenir_rubriques_etat"))
     if not isinstance(colonnes, list) or not colonnes:
-        raise ModeleEtatInvalide("columns doit contenir au moins une colonne")
+        raise ModeleEtatInvalide(msg("compilateur.columns_doit_contenir_moins_colonne"))
     codes = [ligne.get("code") for ligne in lignes]
     if any(not isinstance(code, str) or not code for code in codes) or len(set(codes)) != len(
         codes
     ):
-        raise ModeleEtatInvalide("chaque rubrique doit porter un code unique")
+        raise ModeleEtatInvalide(msg("compilateur.chaque_rubrique_doit_porter_code"))
     codes_colonnes = [colonne.get("code") for colonne in colonnes]
     if any(not isinstance(code, str) or not code for code in codes_colonnes) or len(
         set(codes_colonnes)
     ) != len(codes_colonnes):
-        raise ModeleEtatInvalide("chaque colonne doit porter un code unique")
+        raise ModeleEtatInvalide(msg("compilateur.chaque_colonne_doit_porter_code"))
     agregats = [ligne for ligne in lignes if ligne.get("type") == "aggregate"]
     if not agregats:
-        raise ModeleEtatInvalide("un état L0 doit contenir une rubrique aggregate")
+        raise ModeleEtatInvalide(msg("compilateur.etat_l0_doit_contenir_rubrique"))
     for ligne in lignes:
         if ligne.get("type") not in {"heading", "aggregate", "computed"}:
-            raise ModeleEtatInvalide(f"type de rubrique inconnu : {ligne.get('type')}")
+            raise ModeleEtatInvalide(msg("compilateur.type_rubrique_inconnu", v1=ligne.get("type")))
     formules = {
         ligne["code"]: ligne.get("formula") for ligne in lignes if ligne.get("type") == "computed"
     }
     if any(not isinstance(formule, str) or not formule for formule in formules.values()):
-        raise ModeleEtatInvalide("une rubrique computed exige une formule")
+        raise ModeleEtatInvalide(msg("compilateur.rubrique_computed_exige_formule"))
     assertions = {ligne["code"]: ligne["assert"] for ligne in lignes if ligne.get("assert")}
     return lignes, colonnes, agregats, formules, assertions
 
@@ -128,9 +129,11 @@ def _parametres_source(parametres: Mapping[str, Any]) -> tuple[str, tuple, int, 
         annee = parametres["fiscal_year"]
         courante = parametres["current_period"]
     except KeyError as e:
-        raise ModeleEtatInvalide(f"paramètre obligatoire manquant : {e.args[0]}") from e
+        raise ModeleEtatInvalide(
+            msg("compilateur.parametre_obligatoire_manquant", v1=e.args[0])
+        ) from e
     if type(annee) is not int or type(courante) is not int or not 1 <= courante <= 12:
-        raise ModeleEtatInvalide("exercice ou période courante invalide")
+        raise ModeleEtatInvalide(msg("compilateur.exercice_periode_courante_invalide"))
     where = "project_id = %s AND (fiscal_year < %s OR (fiscal_year = %s AND period <= %s))"
     return where, (project_id, annee, annee, courante), annee, courante
 
@@ -144,7 +147,7 @@ def _condition_colonne(colonne: Mapping[str, Any], annee: int, courante: int) ->
     elif periode in {"inception_to_date", "current_period"}:
         debut = None
     else:
-        raise ModeleEtatInvalide(f"type de période inconnu : {periode}")
+        raise ModeleEtatInvalide(msg("compilateur.type_periode_inconnu", periode=periode))
     if periode == "inception_to_date":
         return "(fiscal_year < %s OR (fiscal_year = %s AND period <= %s))", (
             annee,
@@ -160,7 +163,7 @@ def _resoudre_parametre(valeur: Any, parametres: Mapping[str, Any]) -> Any:
     if isinstance(valeur, str) and valeur.startswith("$param."):
         cle = valeur.removeprefix("$param.")
         if cle not in parametres:
-            raise ModeleEtatInvalide(f"paramètre de sélection manquant : {cle}")
+            raise ModeleEtatInvalide(msg("compilateur.parametre_selection_manquant", cle=cle))
         return parametres[cle]
     return valeur
 
@@ -171,7 +174,7 @@ def _signe(ligne: Mapping[str, Any]) -> int:
         return 1
     if signe in {-1, "credit"}:
         return -1
-    raise ModeleEtatInvalide(f"signe invalide pour {ligne['code']}")
+    raise ModeleEtatInvalide(msg("compilateur.signe_invalide", v1=ligne["code"]))
 
 
 def _selection(
@@ -182,19 +185,21 @@ def _selection(
 ) -> SelectionCompilee:
     select = ligne.get("select")
     if not isinstance(select, Mapping):
-        raise ModeleEtatInvalide(f"sélection absente pour {ligne['code']}")
+        raise ModeleEtatInvalide(msg("compilateur.selection_absente", v1=ligne["code"]))
     if inconnues := set(select) - {"mapping", "target", "filters", "accounts"}:
-        raise ModeleEtatInvalide(f"clé de sélection inconnue : {sorted(inconnues)!r}")
+        raise ModeleEtatInvalide(msg("compilateur.cle_selection_inconnue", v1=sorted(inconnues)))
     filtres = select.get("filters", {})
     if not isinstance(filtres, Mapping) or "accounts" in filtres:
-        raise ModeleEtatInvalide("filters doit être un objet de filtres sur axes")
+        raise ModeleEtatInvalide(msg("compilateur.filters_doit_etre_objet_filtres"))
     filtres = {cle: _resoudre_parametre(valeur, parametres) for cle, valeur in filtres.items()}
     mapping_code = select.get("mapping")
     target = select.get("target")
 
     if mapping_code is None:
         if target is not None or "accounts" not in select:
-            raise ModeleEtatInvalide(f"sélection directe invalide pour {ligne['code']}")
+            raise ModeleEtatInvalide(
+                msg("compilateur.selection_directe_invalide", v1=ligne["code"])
+            )
         predicat, params = construire_predicat({"accounts": select["accounts"], **filtres})
         return SelectionCompilee(
             sql=predicat,
@@ -213,7 +218,7 @@ def _selection(
         or not target
         or "accounts" in select
     ):
-        raise ModeleEtatInvalide(f"mapping ou cible invalide pour {ligne['code']}")
+        raise ModeleEtatInvalide(msg("compilateur.mapping_cible_invalide", v1=ligne["code"]))
     cas, params_cas = cas_mapping[mapping_code]
     sql = f"({cas}) = %s"
     params = [*params_cas, target]
@@ -269,10 +274,10 @@ def compiler(
     cas_mapping: dict[str, tuple[str, list]] = {}
     for code in mappings_utilises:
         if code not in mappings:
-            raise ModeleEtatInvalide(f"règles absentes pour le mapping {code}")
+            raise ModeleEtatInvalide(msg("compilateur.regles_absentes_mapping", code=code))
         regles = mappings[code]
         if isinstance(regles, QuerySet):
-            raise ModeleEtatInvalide("matérialisez les règles avec list(...) avant la génération")
+            raise ModeleEtatInvalide(msg("compilateur.materialisez_regles_list_avant_generation"))
         cas_mapping[code] = construire_cas_sql(regles)
     alias_mapping = {code: f"mapping_{i}" for i, code in enumerate(mappings_utilises)}
     selections = {

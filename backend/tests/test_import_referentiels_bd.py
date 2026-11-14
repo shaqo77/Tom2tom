@@ -297,7 +297,7 @@ def test_un_enfant_dun_compte_existant_imputable_est_rejete_proprement(decor):
         importer_plan_comptable(
             _xlsx([["6011", "Détail", "Detail", "D"]]), "p.xlsx", correspondance, utilisateur=amina
         )
-    assert "imputable" in erreur.value.rejets[0].raison
+    assert "imputable" in str(erreur.value.rejets[0].raison)
 
 
 def test_limport_est_journalise_avec_lempreinte_du_fichier_et_les_comptes(decor):

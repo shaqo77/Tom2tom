@@ -1,0 +1,7 @@
+{
+  "decision.parametres_inconnus": "unknown parameters: {v1}",
+  "decision.parametres_objet": "the parameters are an object",
+  "decision.seule_regle_pieces_porte_parametres": "only a supporting-documents rule carries parameters",
+  "decision.type_piece_type_piece_exigee": "“type_piece” is the type of the required document",
+  "decision.validee_booleen": "“validee” is a boolean"
+}

@@ -12,6 +12,7 @@ from django.db import connection, transaction
 from django.utils import timezone
 
 from core.audit import journaliser
+from core.i18n import Liste, msg
 
 from .models import Lettrage, LigneEcriture
 from .services import _exiger_habilitation
@@ -24,7 +25,7 @@ class LettrageImpossible(ValueError):
 
     def __init__(self, raisons: list[str]):
         self.raisons = raisons
-        super().__init__(" ; ".join(raisons))
+        super().__init__(Liste(raisons))
 
 
 def _code(rang: int) -> str:
@@ -43,30 +44,32 @@ def _code(rang: int) -> str:
 def _problemes(lignes: list[LigneEcriture], attendues: int) -> list[str]:
     raisons = []
     if len(lignes) != attendues:
-        raisons.append("Une ligne au moins est introuvable")
+        raisons.append(msg("lettrage.ligne_moins_introuvable"))
     if len(lignes) < 2:
-        raisons.append("Un lettrage compte au moins deux lignes")
+        raisons.append(msg("lettrage.lettrage_compte_moins_deux_lignes"))
     if len({ligne.account_id for ligne in lignes}) > 1:
-        raisons.append("Les lignes doivent porter sur le même compte")
+        raisons.append(msg("lettrage.lignes_doivent_porter_meme_compte"))
     if any(ligne.partner_id is None for ligne in lignes):
-        raisons.append("Chaque ligne d'un lettrage doit porter un tiers")
+        raisons.append(msg("lettrage.chaque_ligne_lettrage_doit_porter"))
     elif len({ligne.partner_id for ligne in lignes}) > 1:
-        raisons.append("Les lignes doivent concerner le même tiers")
+        raisons.append(msg("lettrage.lignes_doivent_concerner_meme_tiers"))
     if len({ligne.project_id for ligne in lignes}) > 1:
-        raisons.append("Les lignes doivent appartenir au même projet")
+        raisons.append(msg("lettrage.lignes_doivent_appartenir_meme_projet"))
     for ligne in lignes:
         if ligne.reconciliation_id is not None:
-            raisons.append(f"La ligne {ligne.entry.number} / {ligne.line_no} est déjà lettrée")
+            raisons.append(
+                msg("lettrage.ligne_deja_lettree", number=ligne.entry.number, line_no=ligne.line_no)
+            )
         if ligne.entry.status not in ("posted", "locked"):
-            raisons.append("On ne lettre que des lignes comptabilisées")
+            raisons.append(msg("lettrage.on_lettre_lignes_comptabilisees"))
             break
     solde = sum((ligne.debit - ligne.credit for ligne in lignes), ZERO)
     if solde != 0:
-        raisons.append(f"Le groupe n'est pas soldé : écart de {solde}")
+        raisons.append(msg("lettrage.groupe_solde_ecart", solde=solde))
     if len({ligne.currency_id for ligne in lignes}) == 1:
         solde_devise = sum((ligne.debit_cur - ligne.credit_cur for ligne in lignes), ZERO)
         if solde_devise != 0:
-            raisons.append(f"Le groupe n'est pas soldé en devise : écart de {solde_devise}")
+            raisons.append(msg("lettrage.groupe_solde_devise_ecart", solde_devise=solde_devise))
     return raisons
 
 

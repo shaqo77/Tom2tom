@@ -428,7 +428,7 @@ def test_une_decision_non_conforme_bloque_toujours(ctl):
     evaluation = _evaluer(manuel, {}, ctl, objet_id=objet)
     trancher(utilisateur=profils["vera"], evaluation=evaluation, decision="non_conforme", motif="x")
     (attente,) = controles_en_attente(projet.id, "depense", objet)
-    assert attente[1] == "déclaré non conforme"
+    assert str(attente[1]) == "déclaré non conforme"
     with pytest.raises(ErreurMetier):
         exiger_controles_tranches(projet.id, "depense", objet)
 

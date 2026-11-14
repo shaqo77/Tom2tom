@@ -20,6 +20,8 @@ un centime codé en dur : en franc de Djibouti, 0,01 n'existe pas.
 from collections.abc import Iterable, Sequence
 from decimal import ROUND_DOWN, Decimal
 
+from core.i18n import msg
+
 CENTIME = Decimal("0.01")
 PRECISION_PART = Decimal("0.0000000001")  # dix décimales : celles de la colonne `share`
 UN = Decimal(1)
@@ -43,7 +45,7 @@ def normaliser_parts(poids: Sequence[int | Decimal]) -> list[Decimal]:
     """
     poids = [Decimal(str(p)) for p in poids]
     if not poids or any(p <= 0 for p in poids):
-        raise VentilationImpossible("Une clé a au moins une part et chaque poids est positif")
+        raise VentilationImpossible(msg("cofinancement.cle_moins_part_chaque_poids"))
     total = sum(poids, ZERO)
     parts = [(p / total).quantize(PRECISION_PART, rounding=ROUND_DOWN) for p in poids[:-1]]
     parts.append(UN - sum(parts, ZERO))
@@ -65,14 +67,14 @@ def ventiler(
     montant = Decimal(montant)
     parts = [(accord, Decimal(part)) for accord, part in parts]
     if not parts:
-        raise VentilationImpossible("Une clé de cofinancement a au moins une part")
+        raise VentilationImpossible(msg("cofinancement.cle_cofinancement_moins_part"))
     if sum((part for _, part in parts), ZERO) != UN or any(part <= 0 for _, part in parts):
-        raise VentilationImpossible("Les parts doivent être positives et sommer exactement à 1")
+        raise VentilationImpossible(msg("cofinancement.parts_doivent_etre_positives_sommer"))
     if porteur not in {accord for accord, _ in parts}:
-        raise VentilationImpossible("Le porteur d'arrondi doit être l'un des accords de la clé")
+        raise VentilationImpossible(msg("cofinancement.porteur_arrondi_doit_etre_accords"))
     if montant != montant.quantize(pas):
         raise VentilationImpossible(
-            f"Le montant {montant} n'est pas un multiple du pas de la devise ({pas})"
+            msg("cofinancement.montant_multiple_devise", montant=montant, pas=pas)
         )
     if montant < 0:
         return [(accord, -part) for accord, part in ventiler(-montant, parts, porteur, pas)]

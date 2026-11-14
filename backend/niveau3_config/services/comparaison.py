@@ -6,6 +6,8 @@ par sa clé naturelle (méthode, code de catégorie, compte) et on compare champ
 
 from dataclasses import dataclass, field
 
+from core.i18n import msg
+
 from ..models import ProfilDecaissement
 
 CHAMPS_PROFIL = (
@@ -80,7 +82,7 @@ def _comparer(avant: dict, apres: dict) -> Famille:
 
 def comparer_versions(a: ProfilDecaissement, b: ProfilDecaissement) -> Comparaison:
     if a.accord_id != b.accord_id:
-        raise ValueError("On ne compare que deux versions d'un même accord")
+        raise ValueError(msg("comparaison.on_compare_deux_versions_meme"))
     parametres = _comparer(
         {"profil": {c: getattr(a, c) for c in CHAMPS_PROFIL}},
         {"profil": {c: getattr(b, c) for c in CHAMPS_PROFIL}},

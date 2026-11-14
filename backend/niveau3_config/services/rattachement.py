@@ -23,6 +23,7 @@ from django.db import transaction
 from rest_framework.exceptions import PermissionDenied
 
 from core.audit import journaliser
+from core.i18n import Liste, msg
 from niveau1_socle.habilitations.permissions import est_habilite
 from niveau4_reporting.mapping.models import StatutMapping, TableMapping
 
@@ -45,8 +46,20 @@ class ConfigurationOrpheline(ValueError):
     def __init__(self, orphelins: list["Orphelin"]):
         self.orphelins = orphelins
         super().__init__(
-            "Configuration sans exigence source : "
-            + " ; ".join(f"{o.target_type} {o.libelle} ({o.raison})" for o in orphelins)
+            msg(
+                "rattachement.configuration_sans_exigence_source",
+                details=Liste(
+                    [
+                        msg(
+                            "rattachement.orphelin",
+                            type=o.target_type,
+                            libelle=o.libelle,
+                            raison=o.raison,
+                        )
+                        for o in orphelins
+                    ]
+                ),
+            )
         )
 
 
@@ -83,13 +96,13 @@ SOURCES: dict[str, SourceCible] = {
 def enregistrer_cible(target_type: str, source: SourceCible) -> None:
     """Branche un type d'objet de configuration sur la règle (point d'extension de L6)."""
     if target_type not in TypeCible.values:
-        raise ValueError(f"type de cible inconnu : {target_type}")
+        raise ValueError(msg("rattachement.type_cible_inconnu", target_type=target_type))
     SOURCES[target_type] = source
 
 
 def _habilite(utilisateur, project_id) -> None:
     if not est_habilite(utilisateur, "parametrer", project_id):
-        raise PermissionDenied("Vous n'êtes pas habilité à « parametrer » sur ce projet.")
+        raise PermissionDenied(msg("rattachement.vous_etes_habilite_parametrer_projet"))
 
 
 def rattacher(
@@ -102,18 +115,26 @@ def rattacher(
     """
     _habilite(utilisateur, exigence.project_id)
     if target_type not in TypeCible.values:
-        raise RattachementInvalide(f"type de cible inconnu : {target_type}")
+        raise RattachementInvalide(msg("rattachement.type_cible_inconnu", target_type=target_type))
     source = SOURCES.get(target_type)
     if source is not None and not source.existe(exigence.project_id, target_id):
         raise RattachementInvalide(
-            f"L'objet {target_id} ({target_type}) n'existe pas dans le projet de l'exigence"
+            msg(
+                "rattachement.objet_existe_projet_exigence",
+                target_id=target_id,
+                target_type=target_type,
+            )
         )
     with transaction.atomic():
         courante = Exigence.objects.select_for_update().get(pk=exigence.pk)
         if courante.status not in STATUTS_RATTACHABLES:
             raise RattachementInvalide(
-                f"L'exigence {courante.code} v{courante.version} est {courante.status} : "
-                "elle ne justifie plus aucun objet"
+                msg(
+                    "rattachement.exigence_v_elle_justifie_plus",
+                    code=courante.code,
+                    version=courante.version,
+                    status=courante.status,
+                )
             )
         rattachement, cree = RattachementExigence.objects.get_or_create(
             exigence=courante,
@@ -160,10 +181,10 @@ def detecter_configuration_orpheline(
             )
             if liees & justifiantes:
                 continue
-            raison = (
-                "rattaché seulement à des exigences non actives ou hors validité"
+            raison = msg(
+                "rattachement.raison_exigences_non_actives"
                 if liees
-                else "aucun rattachement"
+                else "rattachement.raison_aucun_rattachement"
             )
             orphelins.append(Orphelin(target_type, target_id, libelle, raison))
     return orphelins

@@ -1,0 +1,13 @@
+{
+  "assertions.assertion_comparaison_rien_autre": "an assertion is a comparison, and nothing else",
+  "assertions.assertion_refusee": "assertion refused: {e}",
+  "assertions.assertion_vide": "empty assertion",
+  "assertions.assertions_violees": "Coherence assertions violated: {details}",
+  "assertions.attend_exactement_prefixe_compte": "{NOM_BALANCE} expects exactly one account prefix",
+  "assertions.comparaison_chainee_assertion_compare_deux": "chained comparison: an assertion compares two expressions",
+  "assertions.constante_non_numerique": "non-numeric constant: {value!r}",
+  "assertions.prefixe_compte_invalide": "invalid account prefix: {prefixe!r}",
+  "assertions.prefixe_doit_etre_chaine_litterale": "the prefix of {NOM_BALANCE} must be a string literal, never a line item or an expression",
+  "assertions.syntaxe_invalide": "invalid syntax: {e}",
+  "assertions.violation": "{rubrique}[{colonne}]: {expression} — {gauche} {comparateur} {droite} is false (difference {ecart})"
+}

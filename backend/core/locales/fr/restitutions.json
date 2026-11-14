@@ -1,0 +1,8 @@
+{
+  "restitutions.balance_desequilibree_debit_credit": "balance {nature} déséquilibrée : débit {total_debit}, crédit {total_credit}",
+  "restitutions.balance_ouverture_s_equilibre": "balance {nature} : l'ouverture ne s'équilibre pas ({total_ouverture})",
+  "restitutions.compte_balance_balance_generale": "compte {compte} : balance {nature} {obtenu} ≠ balance générale {attendu}",
+  "restitutions.exercice_bornes_periode_invalides_1": "exercice ou bornes de période invalides (1 à 12, début ≤ fin)",
+  "restitutions.nature_balance_inconnue": "nature de balance inconnue : {nature}",
+  "restitutions.vous_etes_habilite_consulter_projet": "Vous n'êtes pas habilité à « consulter » ce projet."
+}

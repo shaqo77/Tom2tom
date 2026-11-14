@@ -13,6 +13,8 @@ jours après la fin de chaque trimestre civil) est renseigné ; le reste est lai
 import json
 from pathlib import Path
 
+from core.i18n import msg
+
 from ..models import ProfilBailleur
 from .profils import ajouter_element, creer_profil_bailleur, publier_profil
 
@@ -26,7 +28,9 @@ def profils_livres() -> list[str]:
 def lire_profil_livre(nom: str) -> dict:
     chemin = DOSSIER / f"{nom}.json"
     if not chemin.is_file():
-        raise FileNotFoundError(f"Aucun profil livré « {nom} » (disponibles : {profils_livres()})")
+        raise FileNotFoundError(
+            msg("catalogue.aucun_profil_livre_disponibles", nom=nom, v1=profils_livres())
+        )
     return json.loads(chemin.read_text(encoding="utf-8"))
 
 

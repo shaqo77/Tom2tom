@@ -1,0 +1,4 @@
+{
+  "erreur.inconnue": "An error occurred",
+  "erreur.exemple": "Project {nom} has {n:.2f} units"
+}

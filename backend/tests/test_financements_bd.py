@@ -332,7 +332,7 @@ def test_un_accord_suspendu_refuse_une_nouvelle_imputation_et_une_nouvelle_deman
     with pytest.raises(AccordNonActif, match="suspendu"):
         _saisir(projet, profils, accord.pk)
     with pytest.raises(AccordNonActif, match="demande"):  # le point d'appui des demandes (L4-T06)
-        exiger_accord_actif(accord.pk, pour="demande de décaissement")
+        exiger_accord_actif(accord.pk, pour="demande_decaissement")
 
     changer_statut_accord(accord, "actif", utilisateur=profils["dora"])
     assert _saisir(projet, profils, accord.pk).status == "draft"

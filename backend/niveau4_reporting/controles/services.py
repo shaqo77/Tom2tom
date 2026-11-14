@@ -15,6 +15,7 @@ from rest_framework.exceptions import PermissionDenied
 
 from core.audit import journaliser
 from core.erreurs import CodeErreur, ErreurMetier
+from core.i18n import Liste, msg
 from niveau1_socle.habilitations.permissions import est_habilite
 from niveau3_config.models import Exigence, RattachementExigence, StatutExigence, TypeCible
 from niveau3_config.services.activation import _fermer_les_precedentes, _transition
@@ -38,7 +39,7 @@ from .models import (
 
 def _habilite(utilisateur, operation: str, project_id) -> None:
     if not est_habilite(utilisateur, operation, project_id):
-        raise PermissionDenied(f"Vous n'êtes pas habilité à « {operation} » sur ce projet.")
+        raise PermissionDenied(msg("controles.vous_etes_habilite_projet", operation=operation))
 
 
 def _libelle(controle: Controle) -> str:
@@ -66,28 +67,32 @@ def creer_controle(
     """Enregistre un contrôle en brouillon ; une condition hors schéma est refusée ICI."""
     _habilite(utilisateur, "parametrer", project_id)
     if not (code or "").strip() or not isinstance(label, dict) or not label:
-        raise ErreurMetier(
-            CodeErreur.REGLE_INVALIDE, "Le code et le libellé du contrôle sont requis"
-        )
+        raise ErreurMetier(CodeErreur.REGLE_INVALIDE, msg("controles.code_libelle_controle_requis"))
     if severity not in Severite.values:
-        raise ErreurMetier(CodeErreur.REGLE_INVALIDE, f"Sévérité inconnue : {severity}")
+        raise ErreurMetier(
+            CodeErreur.REGLE_INVALIDE, msg("controles.severite_inconnue", severity=severity)
+        )
     try:
         if manuel:
             if expression is not None:
                 raise conditions.ConditionInvalide(
-                    "Un contrôle à vérifier à la main n'a pas d'expression"
+                    msg("controles.controle_verifier_main_expression")
                 )
             if type_regle not in conditions.TYPES_DE_REGLE:
-                raise conditions.ConditionInvalide(f"type de règle « {type_regle} » inconnu")
+                raise conditions.ConditionInvalide(
+                    msg("controles.type_regle_inconnu", type_regle=type_regle)
+                )
         else:
             if expression is None:
-                raise conditions.ConditionInvalide("Un contrôle automatique a une expression")
+                raise conditions.ConditionInvalide(msg("controles.controle_automatique_expression"))
             conditions.preparer_expression(expression, type_regle)
         if applicable_si is not None:
             conditions.preparer_expression(applicable_si, type_regle)
         parametres = valider_parametres(type_regle, parametres)
     except (conditions.ConditionInvalide, ParametresInvalides) as erreur:
-        raise ErreurMetier(CodeErreur.REGLE_INVALIDE, f"Règle invalide : {erreur}") from erreur
+        raise ErreurMetier(
+            CodeErreur.REGLE_INVALIDE, msg("controles.regle_invalide", erreur=erreur)
+        ) from erreur
     with transaction.atomic():
         derniere = (
             Controle.objects.filter(project_id=project_id, code=code.strip())
@@ -156,7 +161,7 @@ def _transition_controle(utilisateur, controle, depuis, vers, action, operation,
     except IntegrityError as erreur:
         raise ErreurMetier(
             CodeErreur.CONFLIT_DE_PERIODE,
-            f"Contrôle {controle.code} : une version active couvre déjà cette période",
+            msg("controles.controle_version_active_couvre_deja", code=controle.code),
         ) from erreur
     except ValueError as erreur:
         raise ErreurMetier(CodeErreur.TRANSITION_INTERDITE, str(erreur)) from erreur
@@ -188,7 +193,7 @@ def activer_controle(*, utilisateur, controle: Controle) -> Controle:
 
 def rejeter_controle(*, utilisateur, controle: Controle, motif: str) -> Controle:
     if not (motif or "").strip():
-        raise ErreurMetier(CodeErreur.TRANSITION_INTERDITE, "Un rejet exige un motif")
+        raise ErreurMetier(CodeErreur.TRANSITION_INTERDITE, msg("controles.rejet_exige_motif"))
     return _transition_controle(
         utilisateur,
         controle,
@@ -247,7 +252,7 @@ def evaluer_controle(
     résolue à cette date.
     """
     if (utilisateur is None) == (service is None):
-        raise ValueError("Un déclencheur est exigé : un utilisateur ou un service, pas les deux")
+        raise ValueError(msg("controles.declencheur_exige_utilisateur_service_deux"))
     if not (
         controle.status == StatutControle.ACTIF
         and controle.valid_from <= date_operation
@@ -255,7 +260,7 @@ def evaluer_controle(
     ):
         raise ErreurMetier(
             CodeErreur.AUCUNE_CONFIGURATION_A_LA_DATE,
-            f"Le contrôle {controle.code} n'est pas actif le {date_operation}",
+            msg("controles.controle_actif", code=controle.code, date_operation=date_operation),
         )
     decision = decider(
         libelle=_libelle(controle),
@@ -348,13 +353,15 @@ def trancher(*, utilisateur, evaluation: EvaluationControle, decision: str, moti
     """Une personne habilitée (`valider`) tranche un contrôle « à vérifier ». Ajout seul."""
     _habilite(utilisateur, "valider", evaluation.project_id)
     if decision not in Decision.values:
-        raise ErreurMetier(CodeErreur.REGLE_INVALIDE, f"Décision inconnue : {decision}")
+        raise ErreurMetier(
+            CodeErreur.REGLE_INVALIDE, msg("controles.decision_inconnue", decision=decision)
+        )
     if not (motif or "").strip():
-        raise ErreurMetier(CodeErreur.REGLE_INVALIDE, "Une décision est motivée")
+        raise ErreurMetier(CodeErreur.REGLE_INVALIDE, msg("controles.decision_motivee"))
     if evaluation.resultat != Resultat.A_VERIFIER:
         raise ErreurMetier(
             CodeErreur.TRANSITION_INTERDITE,
-            f"Seul un contrôle « à vérifier » se tranche (celui-ci est « {evaluation.resultat} »)",
+            msg("controles.seul_controle_verifier_tranche_celui", resultat=evaluation.resultat),
         )
     with transaction.atomic():
         decision_enregistree = DecisionControle.objects.create(
@@ -392,13 +399,13 @@ def controles_en_attente(project_id, objet_type: str, objet_id=None) -> list[tup
     en_attente = []
     for evaluation in dernieres.values():
         if evaluation.resultat == Resultat.BLOQUANT:
-            en_attente.append((evaluation, "contrôle bloquant"))
+            en_attente.append((evaluation, msg("controles.controle_bloquant")))
         elif evaluation.resultat == Resultat.A_VERIFIER:
             derniere = evaluation.decisions.order_by("-decided_at", "-id").first()
             if derniere is None:
-                en_attente.append((evaluation, "vérification humaine non tranchée"))
+                en_attente.append((evaluation, msg("controles.verification_humaine_non_tranchee")))
             elif derniere.decision == Decision.NON_CONFORME:
-                en_attente.append((evaluation, "déclaré non conforme"))
+                en_attente.append((evaluation, msg("controles.declare_non_conforme")))
     return sorted(en_attente, key=lambda x: x[0].controle.code)
 
 
@@ -406,8 +413,16 @@ def exiger_controles_tranches(project_id, objet_type: str, objet_id=None) -> Non
     """Refuse d'avancer tant qu'un contrôle bloque : vérifié au serveur (`CONTROLE_BLOQUANT`)."""
     en_attente = controles_en_attente(project_id, objet_type, objet_id)
     if en_attente:
-        detail = "; ".join(f"{e.controle.code} ({raison})" for e, raison in en_attente)
-        raise ErreurMetier(CodeErreur.CONTROLE_BLOQUANT, f"Contrôles à traiter : {detail}")
+        detail = Liste(
+            [
+                msg("controles.en_attente_ligne", code=e.controle.code, raison=r)
+                for e, r in en_attente
+            ],
+            "; ",
+        )
+        raise ErreurMetier(
+            CodeErreur.CONTROLE_BLOQUANT, msg("controles.controles_traiter", detail=detail)
+        )
 
 
 # --- la bibliothèque livrée ----------------------------------------------------------------
@@ -433,7 +448,8 @@ def installer_bibliotheque(
         inconnus = sorted(set(codes) - set(livres))
         if inconnus:
             raise ErreurMetier(
-                CodeErreur.REGLE_INVALIDE, f"Contrôles inconnus de la bibliothèque : {inconnus}"
+                CodeErreur.REGLE_INVALIDE,
+                msg("controles.controles_inconnus_bibliotheque", inconnus=inconnus),
             )
         livres = {c: livres[c] for c in codes}
     resultat = ResultatInstallation()

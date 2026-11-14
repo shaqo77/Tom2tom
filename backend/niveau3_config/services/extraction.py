@@ -14,6 +14,8 @@ import unicodedata
 import xml.etree.ElementTree as ET
 import zipfile
 
+from core.i18n import msg
+
 from .. import stockage
 
 LIMITE_XML = 50 * 1024 * 1024  # taille décompressée maximale d'un DOCX (contre les bombes zip)
@@ -73,16 +75,14 @@ def _pages_pdf(contenu: bytes) -> list[str]:
     try:
         lecteur = PdfReader(io.BytesIO(contenu))
         if lecteur.is_encrypted:
-            raise ExtractionImpossible("Le PDF est chiffré : fournissez une version non protégée")
+            raise ExtractionImpossible(msg("extraction.pdf_chiffre_fournissez_version_non"))
         pages = [page.extract_text() or "" for page in lecteur.pages]
     except ExtractionImpossible:
         raise
     except (PyPdfError, ValueError, KeyError, OSError) as erreur:
         raise ExtractionImpossible(f"PDF illisible : {erreur}") from erreur
     if not any(p.strip() for p in pages):
-        raise ExtractionImpossible(
-            "Le PDF ne contient aucun texte extractible (document scanné ?) : océrisez-le d'abord"
-        )
+        raise ExtractionImpossible(msg("extraction.pdf_contient_aucun_texte_extractible"))
     return pages
 
 
@@ -91,14 +91,14 @@ def _pages_docx(contenu: bytes) -> list[str]:
         with zipfile.ZipFile(io.BytesIO(contenu)) as archive:
             info = archive.getinfo("word/document.xml")
             if info.file_size > LIMITE_XML:
-                raise ExtractionImpossible("Le document Word est trop volumineux")
+                raise ExtractionImpossible(msg("extraction.document_word_trop_volumineux"))
             xml = archive.read("word/document.xml")
     except KeyError as erreur:
         raise ExtractionImpossible("Archive sans document Word (word/document.xml)") from erreur
     except zipfile.BadZipFile as erreur:
         raise ExtractionImpossible("Document Word illisible") from erreur
     if b"<!DOCTYPE" in xml or b"<!ENTITY" in xml:  # pas d'entités externes ni d'expansion
-        raise ExtractionImpossible("Document Word refusé : déclaration de type non autorisée")
+        raise ExtractionImpossible(msg("extraction.document_word_refuse_declaration_type"))
     try:
         racine = ET.fromstring(xml)
     except ET.ParseError as erreur:
@@ -117,13 +117,13 @@ def _pages_docx(contenu: bytes) -> list[str]:
 
 def _pages_texte(contenu: bytes) -> list[str]:
     if b"\x00" in contenu:
-        raise ExtractionImpossible("Format de fichier non pris en charge (PDF, DOCX ou texte)")
+        raise ExtractionImpossible(msg("extraction.format_fichier_non_pris_charge"))
     for encodage in ("utf-8-sig", "cp1252"):
         try:
             return [contenu.decode(encodage)]
         except UnicodeDecodeError:
             continue
-    raise ExtractionImpossible("Texte illisible : encodage inconnu")
+    raise ExtractionImpossible(msg("extraction.texte_illisible_encodage_inconnu"))
 
 
 def extraire_pages(contenu: bytes) -> list[str]:
@@ -138,8 +138,7 @@ def document_lu(document) -> tuple[str, list[str]]:
     contenu = stockage.lire(document.file_ref)
     if stockage.empreinte(contenu) != bytes(document.sha256):
         raise ExtractionImpossible(
-            f"Le fichier de « {document.title} » ne correspond plus à son empreinte enregistrée : "
-            "on ne vérifie pas de citation sur un fichier modifié"
+            msg("extraction.fichier_correspond_plus_empreinte_enregistree", title=document.title)
         )
     return type_du_contenu(contenu), extraire_pages(contenu)
 

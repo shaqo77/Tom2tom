@@ -13,6 +13,7 @@ projet n'est pas présumé entièrement financé par les bailleurs.
 from dataclasses import dataclass, field
 from decimal import Decimal
 
+from core.i18n import Message, libelle, msg
 from niveau1_socle.financements.services import montant_courant
 
 from ..models import ProfilDecaissement, StatutExigence, StatutProfil
@@ -21,7 +22,7 @@ from ..models import ProfilDecaissement, StatutExigence, StatutProfil
 @dataclass(frozen=True)
 class Anomalie:
     code: str
-    message: str
+    message: Message
 
 
 @dataclass
@@ -42,7 +43,7 @@ def verifier_completude(profil: ProfilDecaissement) -> Completude:
     bloque, avertit = resultat.bloquantes.append, resultat.avertissements.append
 
     if profil.valid_to is not None and profil.valid_to <= profil.valid_from:
-        bloque(Anomalie("dates_incoherentes", "La fin de validité précède le début de validité"))
+        bloque(Anomalie("dates_incoherentes", msg("completude.fin_validite_avant_debut")))
     jalons = [
         ("effectiveness_date", "eligibility_date"),
         ("eligibility_date", "closing_date"),
@@ -51,22 +52,30 @@ def verifier_completude(profil: ProfilDecaissement) -> Completude:
     for avant, apres in jalons:
         a, b = getattr(profil, avant), getattr(profil, apres)
         if a is not None and b is not None and a > b:
-            bloque(Anomalie("dates_incoherentes", f"{avant} ({a}) est postérieure à {apres} ({b})"))
+            bloque(
+                Anomalie(
+                    "dates_incoherentes",
+                    msg("completude.jalons_desordre", avant=avant, a=a, apres=apres, b=b),
+                )
+            )
 
     methodes = list(profil.methodes.all())
     regles = list(profil.regles.all())
     if not methodes:
-        bloque(Anomalie("aucune_methode", "Aucune méthode de décaissement n'est définie"))
+        bloque(Anomalie("aucune_methode", msg("completude.aucune_methode")))
     for methode in methodes:
         if methode.is_enabled and not methode.supporting_docs:
             bloque(
                 Anomalie(
                     "methode_sans_pieces",
-                    f"La méthode « {methode.method} » est activée sans aucune pièce exigée",
+                    msg(
+                        "completude.methode_sans_pieces",
+                        methode=libelle("methode_decaissement", methode.method),
+                    ),
                 )
             )
     if not regles:
-        bloque(Anomalie("aucune_categorie", "Aucune règle de financement par catégorie"))
+        bloque(Anomalie("aucune_categorie", msg("completude.aucune_categorie")))
     else:
         total = sum((r.allocation for r in regles), Decimal(0))
         plafond = montant_courant(profil.accord, profil.valid_from)
@@ -74,7 +83,7 @@ def verifier_completude(profil: ProfilDecaissement) -> Completude:
             bloque(
                 Anomalie(
                     "allocations_excessives",
-                    f"Les allocations ({total}) dépassent le montant de l'accord ({plafond})",
+                    msg("completude.allocations_excessives", total=total, plafond=plafond),
                 )
             )
         for regle in regles:
@@ -82,22 +91,23 @@ def verifier_completude(profil: ProfilDecaissement) -> Completude:
                 avertit(
                     Anomalie(
                         "taux_integral",
-                        f"Taux de 100 % sur la catégorie {regle.category.code}",
+                        msg("completude.taux_integral", code=regle.category.code),
                     )
                 )
 
     exigence = profil.requirement
     if exigence is None:
-        avertit(
-            Anomalie("sans_exigence_source", "Aucune exigence documentaire ne justifie ce profil")
-        )
+        avertit(Anomalie("sans_exigence_source", msg("completude.sans_exigence_source")))
     elif exigence.status not in (StatutExigence.VALIDEE, StatutExigence.ACTIVE):
         bloque(
             Anomalie(
                 "exigence_non_validee",
-                f"L'exigence source {exigence.code} v{exigence.version} est "
-                f"« {exigence.status} » : "
-                "une exigence critique sans source validée ne justifie rien",
+                msg(
+                    "completude.exigence_non_validee",
+                    code=exigence.code,
+                    version=exigence.version,
+                    status=exigence.status,
+                ),
             )
         )
 
@@ -107,18 +117,23 @@ def verifier_completude(profil: ProfilDecaissement) -> Completude:
         if autre.valid_from >= profil.valid_from or (
             autre.valid_to is not None and autre.valid_to > profil.valid_from
         ):
-            bloque(
-                Anomalie(
-                    "chevauchement",
-                    f"La version {autre.version} couvre déjà la période "
-                    f"(du {autre.valid_from}"
-                    + (f" au {autre.valid_to}" if autre.valid_to else " sans fin")
-                    + ")",
+            if autre.valid_to:
+                message = msg(
+                    "completude.chevauchement_avec_fin",
+                    version=autre.version,
+                    debut=autre.valid_from,
+                    fin=autre.valid_to,
                 )
-            )
+            else:
+                message = msg(
+                    "completude.chevauchement_sans_fin",
+                    version=autre.version,
+                    debut=autre.valid_from,
+                )
+            bloque(Anomalie("chevauchement", message))
 
     if profil.eligibility_date is None:
-        avertit(Anomalie("sans_date_eligibilite", "Aucune date d'éligibilité n'est renseignée"))
+        avertit(Anomalie("sans_date_eligibilite", msg("completude.sans_date_eligibilite")))
     if not list(profil.comptes.all()):
-        avertit(Anomalie("sans_compte_designe", "Aucun compte désigné n'est défini"))
+        avertit(Anomalie("sans_compte_designe", msg("completude.sans_compte_designe")))
     return resultat

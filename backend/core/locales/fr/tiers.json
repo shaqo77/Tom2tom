@@ -1,0 +1,4 @@
+{
+  "tiers.tiers_existe": "Le tiers {code} n'existe pas",
+  "tiers.tiers_peut_etre_anonymise_il": "Le tiers {code} ne peut pas être anonymisé : il doit être inactif, sa rétention échue, et ne pas l'être déjà"
+}

@@ -1,0 +1,19 @@
+{
+  "profils.code_libelle_element_obligatoires": "The code and the label of the element are required",
+  "profils.code_libelle_json_langue_profil": "The code and the label (JSON per language) of the profile are required",
+  "profils.document_appartient_projet": "The document does not belong to the project",
+  "profils.document_remplace_designez_version_vigueur": "The document “{title}” has been replaced: designate the version in force",
+  "profils.exigence_conditionnelle_precise_condition": "A conditional requirement states its condition",
+  "profils.exigence_element_objet": "The requirement of an element is an object",
+  "profils.exigence_element_rubrique_subject": "The requirement of an element has a subject (`subject`)",
+  "profils.obligation_inconnue": "unknown obligation: {v1}",
+  "profils.periodicite_inconnue": "unknown periodicity: {v1}",
+  "profils.profil_deja_publie": "This profile is already published",
+  "profils.profil_publie_recoit_plus_element": "A published profile no longer receives elements: publish a version",
+  "profils.profil_sans_aucun_element_publie": "A profile without any element cannot be published",
+  "profils.regle_exigence_objet": "The rule of the requirement is an object",
+  "profils.seul_profil_publie_met_disposition": "Only a published profile can be made available to a project",
+  "profils.type_element_inconnu": "unknown element type: {kind}",
+  "profils.vous_etes_habilite_parametrer": "You are not authorised to “parametrer”.",
+  "profils.vous_etes_habilite_parametrer_projet": "You are not authorised to “parametrer” on this project."
+}

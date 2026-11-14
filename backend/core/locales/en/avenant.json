@@ -1,0 +1,4 @@
+{
+  "avenant.aucun_profil_decaissement_vigueur_avenant": "No disbursement profile is in force on {date_avenant}: the amendment cannot be applied",
+  "avenant.vous_etes_habilite_projet": "You are not authorised to “{operation}” on this project."
+}

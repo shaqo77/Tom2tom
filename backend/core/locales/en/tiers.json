@@ -1,0 +1,4 @@
+{
+  "tiers.tiers_existe": "Third party {code} does not exist",
+  "tiers.tiers_peut_etre_anonymise_il": "Third party {code} cannot be anonymised: it must be inactive, its retention period expired, and not already anonymised"
+}

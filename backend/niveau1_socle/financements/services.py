@@ -12,6 +12,7 @@ from django.db import transaction
 from rest_framework.exceptions import PermissionDenied
 
 from core.audit import journaliser
+from core.i18n import libelle, msg
 from niveau1_socle.exercices.services import TransitionInterdite
 from niveau1_socle.habilitations.models import Habilitation
 from niveau1_socle.habilitations.permissions import est_habilite
@@ -46,7 +47,7 @@ class AccordNonActif(ValueError):
 
 def _habilite(utilisateur, operation: str, project_id) -> None:
     if not est_habilite(utilisateur, operation, project_id):
-        raise PermissionDenied(f"Vous n'êtes pas habilité à « {operation} » sur ce projet.")
+        raise PermissionDenied(msg("financements.vous_etes_habilite_projet", operation=operation))
 
 
 def _habilite_quelque_part(utilisateur, operation: str) -> None:
@@ -54,7 +55,7 @@ def _habilite_quelque_part(utilisateur, operation: str) -> None:
     if not Habilitation.objects.filter(
         user_id=utilisateur.id, role__operations__contains=[operation]
     ).exists():
-        raise PermissionDenied(f"Vous n'êtes pas habilité à « {operation} ».")
+        raise PermissionDenied(msg("financements.vous_etes_habilite", operation=operation))
 
 
 # --- bailleurs ------------------------------------------------------------------------------
@@ -63,7 +64,7 @@ def _habilite_quelque_part(utilisateur, operation: str) -> None:
 def creer_bailleur(*, utilisateur, code: str, nom: str, pays: str = "") -> Bailleur:
     _habilite_quelque_part(utilisateur, "parametrer")
     if not (code or "").strip() or not (nom or "").strip():
-        raise FinancementInvalide("Le code et le nom du bailleur sont obligatoires")
+        raise FinancementInvalide(msg("financements.code_nom_bailleur_obligatoires"))
     with transaction.atomic():
         bailleur = Bailleur.objects.create(
             org_id=utilisateur.org_id,
@@ -105,7 +106,7 @@ def creer_accord(
     coexistent : numéro unique par organisation, rien d'autre."""
     _habilite(utilisateur, "parametrer", project_id)
     if not (numero or "").strip():
-        raise FinancementInvalide("Le numéro d'accord est obligatoire")
+        raise FinancementInvalide(msg("financements.numero_accord_obligatoire"))
     with transaction.atomic():
         accord = Accord.objects.create(
             org_id=utilisateur.org_id,
@@ -144,11 +145,13 @@ def changer_statut_accord(accord: Accord, nouveau: str, *, utilisateur, motif: s
         courant = Accord.objects.select_for_update().get(pk=accord.pk)
         _habilite(utilisateur, "parametrer", courant.project_id)
         if nouveau not in StatutAccord.values:
-            raise FinancementInvalide(f"statut d'accord inconnu : {nouveau}")
+            raise FinancementInvalide(msg("financements.statut_accord_inconnu", nouveau=nouveau))
         if nouveau not in TRANSITIONS[courant.status]:
-            raise TransitionInterdite(f"Un accord {courant.status} ne peut pas passer à {nouveau}")
+            raise TransitionInterdite(
+                msg("financements.accord_peut_passer", status=courant.status, nouveau=nouveau)
+            )
         if nouveau != StatutAccord.ACTIF and not (motif or "").strip():
-            raise FinancementInvalide("Le motif est obligatoire pour suspendre, clore ou annuler")
+            raise FinancementInvalide(msg("financements.motif_obligatoire_suspendre_clore_annuler"))
         Accord.objects.filter(pk=courant.pk).update(status=nouveau)
         journaliser(
             org_id=courant.org_id,
@@ -171,11 +174,15 @@ def exiger_accord_actif(agreement_id, *, pour: str = "imputation") -> Accord:
     """
     accord = Accord.objects.filter(pk=agreement_id).first()
     if accord is None:
-        raise AccordNonActif(f"L'accord {agreement_id} n'existe pas")
+        raise AccordNonActif(msg("financements.accord_existe", agreement_id=agreement_id))
     if accord.status != StatutAccord.ACTIF:
         raise AccordNonActif(
-            f"L'accord {accord.numero} est {accord.status} : aucune nouvelle {pour} n'y est "
-            "possible (son historique reste consultable)"
+            msg(
+                "financements.accord_aucune_nouvelle_y_possible",
+                numero=accord.numero,
+                status=accord.status,
+                pour=libelle("operation", pour),
+            )
         )
     return accord
 
@@ -301,7 +308,7 @@ def creer_compte_bancaire(
 ) -> CompteBancaire:
     _habilite(utilisateur, "parametrer", project_id)
     if not (numero or "").strip():
-        raise FinancementInvalide("Le numéro de compte est obligatoire")
+        raise FinancementInvalide(msg("financements.numero_compte_obligatoire"))
     with transaction.atomic():
         compte = CompteBancaire.objects.create(
             org_id=utilisateur.org_id,

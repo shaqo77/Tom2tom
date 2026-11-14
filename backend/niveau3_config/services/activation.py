@@ -27,6 +27,7 @@ from django.utils import timezone
 from rest_framework.exceptions import PermissionDenied
 
 from core.audit import journaliser
+from core.i18n import Liste, msg
 from niveau1_socle.financements.models import Accord
 from niveau1_socle.habilitations.permissions import est_habilite
 
@@ -44,20 +45,24 @@ class ConflitActivation(ActivationRefusee):
 
 def _habilite(utilisateur, operation, project_id) -> None:
     if not est_habilite(utilisateur, operation, project_id):
-        raise PermissionDenied(f"Vous n'êtes pas habilité à « {operation} » sur ce projet.")
+        raise PermissionDenied(msg("activation.vous_etes_habilite_projet", operation=operation))
 
 
 def _motif(motif: str | None) -> str:
     if not (motif or "").strip():
-        raise ActivationRefusee("Un rejet exige un motif")
+        raise ActivationRefusee(msg("activation.rejet_exige_motif"))
     return motif.strip()
 
 
 def _transition(*, utilisateur, objet, type_objet, depuis, vers, action, apres=None, avant=None):
     if objet.status not in depuis:
         raise ActivationRefusee(
-            f"Passage de « {objet.status} » à « {vers} » impossible : l'état attendu est "
-            f"{' ou '.join(depuis)}"
+            msg(
+                "activation.passage_impossible_etat_attendu",
+                status=objet.status,
+                vers=vers,
+                v1=" ou ".join(depuis),
+            )
         )
     objet.status = vers
     for champ, valeur in (apres or {}).items():
@@ -81,13 +86,22 @@ def _fermer_les_precedentes(actives, date_effet: datetime.date, nom: str) -> Non
     for precedente in actives.select_for_update():
         if precedente.valid_from >= date_effet:
             raise ActivationRefusee(
-                f"{nom} : la version {precedente.version} débute le {precedente.valid_from} ; "
-                f"une version qui prend effet le {date_effet} réécrirait l'histoire"
+                msg(
+                    "activation.version_debute_version_prend_effet",
+                    nom=nom,
+                    version=precedente.version,
+                    valid_from=precedente.valid_from,
+                    date_effet=date_effet,
+                )
             )
         if precedente.valid_to is not None and precedente.valid_to > date_effet:
             raise ActivationRefusee(
-                f"{nom} : la version {precedente.version} est programmée jusqu'au "
-                f"{precedente.valid_to} et ne peut pas être raccourcie"
+                msg(
+                    "activation.version_programmee_jusqu_peut_etre",
+                    nom=nom,
+                    version=precedente.version,
+                    valid_to=precedente.valid_to,
+                )
             )
         if precedente.valid_to is None:
             precedente.valid_to = date_effet
@@ -105,10 +119,10 @@ def valider_exigence(*, utilisateur, exigence: Exigence) -> Exigence:
         document = exigence.document
         if document.superseded_by_id is not None:
             raise ActivationRefusee(
-                f"Le document « {document.title} » est remplacé : citez la version en vigueur"
+                msg("activation.document_remplace_citez_version_vigueur", title=document.title)
             )
         if bytes(exigence.citation_verifiee_sha256 or b"") != bytes(document.sha256):
-            raise ActivationRefusee("La citation n'a pas été vérifiée sur ce document")
+            raise ActivationRefusee(msg("activation.citation_ete_verifiee_document"))
         _transition(
             utilisateur=utilisateur,
             objet=exigence,
@@ -134,7 +148,7 @@ def activer_exigence(*, utilisateur, exigence: Exigence) -> Exigence:
             exigence = Exigence.objects.select_for_update().get(pk=exigence.pk)
             if exigence.status != StatutExigence.VALIDEE:
                 raise ActivationRefusee(
-                    f"Seule une exigence validée s'active (celle-ci est « {exigence.status} »)"
+                    msg("activation.seule_exigence_validee_s_active", status=exigence.status)
                 )
             # Sérialise les activations d'un même code : les versions sont verrouillées ensemble.
             list(
@@ -163,7 +177,7 @@ def activer_exigence(*, utilisateur, exigence: Exigence) -> Exigence:
             )
     except IntegrityError as erreur:
         raise ConflitActivation(
-            f"Exigence {exigence.code} : une version active couvre déjà cette période"
+            msg("activation.exigence_version_active_couvre_deja", code=exigence.code)
         ) from erreur
     return exigence
 
@@ -206,7 +220,10 @@ def valider_profil(
         completude = verifier_completude(profil)
         if not completude.complet:
             raise ActivationRefusee(
-                "Profil incomplet : " + " ; ".join(a.message for a in completude.bloquantes)
+                msg(
+                    "activation.profil_incomplet",
+                    details=Liste([a.message for a in completude.bloquantes]),
+                )
             )
         _transition(
             utilisateur=utilisateur,
@@ -242,7 +259,7 @@ def activer_profil(*, utilisateur, profil: ProfilDecaissement) -> ProfilDecaisse
             profil = ProfilDecaissement.objects.select_for_update().get(pk=profil.pk)
             if profil.status != StatutProfil.VALIDE:
                 raise ActivationRefusee(
-                    f"Seul un profil validé s'active (celui-ci est « {profil.status} »)"
+                    msg("activation.seul_profil_valide_s_active", status=profil.status)
                 )
             _fermer_les_precedentes(
                 ProfilDecaissement.objects.filter(
@@ -263,7 +280,7 @@ def activer_profil(*, utilisateur, profil: ProfilDecaissement) -> ProfilDecaisse
             )
     except IntegrityError as erreur:
         raise ConflitActivation(
-            f"Accord {profil.accord_id} : un profil actif couvre déjà cette période"
+            msg("activation.accord_profil_actif_couvre_deja", accord_id=profil.accord_id)
         ) from erreur
     return profil
 

@@ -1,0 +1,12 @@
+{
+  "enum.methode_decaissement.advance": "avance",
+  "enum.methode_decaissement.direct_payment": "paiement direct",
+  "enum.methode_decaissement.reimbursement": "remboursement",
+  "enum.methode_decaissement.special_commitment": "engagement spécial",
+  "enum.operation.demande_decaissement": "demande de décaissement",
+  "enum.operation.imputation": "imputation",
+  "enum.piece_exigee.ifr": "rapport financier intermédiaire",
+  "enum.piece_exigee.records": "copies des pièces",
+  "enum.piece_exigee.soe": "état certifié des dépenses",
+  "enum.piece_exigee.summary_sheet": "fiche récapitulative"
+}

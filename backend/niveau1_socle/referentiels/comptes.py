@@ -1,5 +1,7 @@
 """Imputation sur le plan comptable. Voir L2-T02."""
 
+from core.i18n import msg
+
 from .models import Compte
 
 
@@ -23,9 +25,9 @@ def exiger_compte_imputable(code: str) -> Compte:
     """
     compte = Compte.objects.filter(code=code).first()
     if compte is None:
-        raise CompteIntrouvable(f"Le compte {code} n'existe pas dans le plan comptable")
+        raise CompteIntrouvable(msg("comptes.compte_existe_plan_comptable", code=code))
     if not compte.imputable:
-        raise CompteNonImputable(f"Le compte {code} n'est pas imputable : c'est un total")
+        raise CompteNonImputable(msg("comptes.compte_imputable_c_total", code=code))
     if not compte.actif:
-        raise CompteInactif(f"Le compte {code} est inactif")
+        raise CompteInactif(msg("comptes.compte_inactif", code=code))
     return compte

@@ -1,0 +1,12 @@
+{
+  "documents.document_deja_remplace": "Le document « {title} » est déjà remplacé",
+  "documents.document_version_deja_enregistre_empreinte": "Le document « {v1} » (version {v2}) est déjà enregistré avec l'empreinte {v3}… ; ce fichier porte {v4}… : un document modifié est une nouvelle version",
+  "documents.document_vient_etre_enregistre_autre": "Ce document vient d'être enregistré avec un autre contenu",
+  "documents.fichier_depasse_mio": "Le fichier dépasse {v1} Mio",
+  "documents.fichier_vide": "Le fichier est vide",
+  "documents.nouveau_fichier_identique_celui_il": "Le nouveau fichier est identique à celui qu'il remplace",
+  "documents.nouvelle_version_doit_etre_numerotee": "La nouvelle version doit être numérotée",
+  "documents.titre_document_obligatoire": "Le titre du document est obligatoire",
+  "documents.type_document_inconnu": "type de document inconnu : {kind}",
+  "documents.vous_etes_habilite_projet": "Vous n'êtes pas habilité à « {operation} » sur ce projet."
+}

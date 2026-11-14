@@ -1,0 +1,4 @@
+{
+  "tracabilite.colonne_inconnue": "colonne inconnue : {colonne!r}",
+  "tracabilite.rubrique_agregat_cet_etat": "{rubrique!r} n'est pas une rubrique d'agrégat de cet état"
+}

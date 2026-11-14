@@ -7,6 +7,8 @@ superutilisateur) ou un utilisateur sans habilitation sont refusés.
 
 from rest_framework.permissions import BasePermission
 
+from core.i18n import msg
+
 from .models import OPERATIONS, Habilitation
 
 
@@ -18,7 +20,7 @@ def est_habilite(utilisateur, operation: str, project_id, site: str | None = Non
     une habilitation d'une autre organisation n'est jamais visible.
     """
     if operation not in OPERATIONS:
-        raise ValueError(f"opération inconnue : {operation!r}")
+        raise ValueError(msg("permissions.operation_inconnue", operation=operation))
     if not getattr(utilisateur, "is_authenticated", False) or not getattr(
         utilisateur, "org_id", None
     ):
@@ -38,7 +40,7 @@ def est_habilite(utilisateur, operation: str, project_id, site: str | None = Non
 class HabilitationRequise(BasePermission):
     """Exige l'opération `view.operation` sur le projet de l'URL (`project_id`, `site`)."""
 
-    message = "Vous n'êtes pas habilité pour cette opération sur ce projet."
+    message = msg("permissions.vous_etes_habilite_operation_projet")
 
     def has_permission(self, request, view) -> bool:
         operation = getattr(view, "operation", None)

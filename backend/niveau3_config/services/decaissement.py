@@ -16,6 +16,8 @@ import datetime
 from dataclasses import dataclass
 from decimal import ROUND_DOWN, Decimal
 
+from core.i18n import msg
+
 from ..models import (
     AssietteTaxes,
     MethodeDecaissement,
@@ -88,11 +90,9 @@ def montant_a_retirer(
     """
     depense, taxes = Decimal(depense), Decimal(taxes)
     if depense < 0 or taxes < 0 or taxes > depense:
-        raise ProfilViole(
-            "Une dépense et ses taxes sont positives, les taxes ne dépassant pas la dépense"
-        )
+        raise ProfilViole(msg("decaissement.depense_taxes_positives_taxes_depassant"))
     if not ZERO < Decimal(funding_rate) <= Decimal(1):
-        raise ProfilViole("Un taux de financement est dans ]0 ; 1]")
+        raise ProfilViole(msg("decaissement.taux_financement_0_1"))
     base = depense - taxes if tax_basis == AssietteTaxes.HORS_TAXES else depense
     return (base * Decimal(funding_rate)).quantize(pas, rounding=ROUND_DOWN)
 
@@ -102,26 +102,38 @@ def verifier_eligibilite(profil: ProfilDecaissement, regle, date_depense: dateti
     pas finançable. Le refus NOMME la date."""
     if profil.eligibility_date and date_depense < profil.eligibility_date:
         raise ProfilViole(
-            f"La dépense du {date_depense} est antérieure à la date d'éligibilité du profil "
-            f"({profil.eligibility_date}) : elle n'est pas finançable"
+            msg(
+                "decaissement.depense_anterieure_date_eligibilite_profil",
+                date_depense=date_depense,
+                eligibility_date=profil.eligibility_date,
+            )
         )
     if regle.eligibility_from and date_depense < regle.eligibility_from:
         raise ProfilViole(
-            f"La dépense du {date_depense} est antérieure au début d'éligibilité de la catégorie "
-            f"({regle.eligibility_from})"
+            msg(
+                "decaissement.depense_anterieure_debut_eligibilite_categorie",
+                date_depense=date_depense,
+                eligibility_from=regle.eligibility_from,
+            )
         )
     if regle.eligibility_to and date_depense > regle.eligibility_to:
         raise ProfilViole(
-            f"La dépense du {date_depense} est postérieure à la fin d'éligibilité de la catégorie "
-            f"({regle.eligibility_to})"
+            msg(
+                "decaissement.depense_posterieure_fin_eligibilite_categorie",
+                date_depense=date_depense,
+                eligibility_to=regle.eligibility_to,
+            )
         )
 
 
 def verifier_delai(profil: ProfilDecaissement, date_demande: datetime.date) -> None:
     if profil.disbursement_deadline and date_demande > profil.disbursement_deadline:
         raise ProfilViole(
-            f"Le délai de décaissement est dépassé : date limite {profil.disbursement_deadline}, "
-            f"demande du {date_demande}"
+            msg(
+                "decaissement.delai_decaissement_depasse_date_limite",
+                disbursement_deadline=profil.disbursement_deadline,
+                date_demande=date_demande,
+            )
         )
 
 
@@ -150,10 +162,7 @@ def minimum_de_demande(profil: ProfilDecaissement, methode) -> MinimumDemande | 
     if methode.min_application_pct_of_ceiling is not None:
         plafond = plafond_des_comptes(profil)
         if plafond is None:
-            raise ProfilViole(
-                "Le montant minimum est un pourcentage du plafond du compte désigné, "
-                "mais aucun plafond fixe n'est paramétré dans le profil"
-            )
+            raise ProfilViole(msg("decaissement.montant_minimum_pourcentage_plafond_compte"))
         seuil = (plafond * methode.min_application_pct_of_ceiling).quantize(
             Decimal(1), rounding=ROUND_DOWN
         )

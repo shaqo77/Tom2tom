@@ -21,6 +21,7 @@ import openpyxl
 from django.db import transaction
 
 from core.audit import journaliser
+from core.i18n import msg
 
 from .models import Compte, StatutCorrespondance
 
@@ -204,7 +205,7 @@ def _booleen(valeur: str, defaut: bool):
         return True, None
     if minuscule in FAUX:
         return False, None
-    return defaut, f"valeur booléenne inconnue : {valeur!r}"
+    return defaut, msg("imports.valeur_booleenne_inconnue", valeur=valeur)
 
 
 def _candidats(rangees, correspondance, rapport):
@@ -215,17 +216,17 @@ def _candidats(rangees, correspondance, rapport):
         code = _valeur(rangee, correspondance, "code")
         raison = None
         if not CODE.match(code):
-            raison = f"code invalide : {code!r}"
+            raison = msg("imports.code_invalide", code=code)
         elif code in candidats:
-            raison = (
-                f"code {code} en double dans le fichier (première fois ligne {candidats[code][0]})"
+            raison = msg(
+                "imports.code_double_fichier_premiere_fois", code=code, v1=candidats[code][0]
             )
         libelle = _libelle(rangee, correspondance)
         if raison is None and "fr" not in libelle:
-            raison = "libellé français absent"
+            raison = msg("imports.francais_libelle_absent")
         sens = SENS.get(_valeur(rangee, correspondance, "sens_normal").lower())
         if raison is None and sens is None:
-            raison = f"sens inconnu : {_valeur(rangee, correspondance, 'sens_normal')!r}"
+            raison = msg("imports.sens_inconnu", v1=_valeur(rangee, correspondance, "sens_normal"))
         actif, erreur_actif = _booleen(_valeur(rangee, correspondance, "actif"), True)
         imputable_dit, erreur_imp = _booleen(_valeur(rangee, correspondance, "imputable"), None)
         raison = raison or erreur_actif or erreur_imp
@@ -270,12 +271,12 @@ def _analyser(contenu: bytes, nom: str, correspondance):
         a_enfants = code in avec_enfants
         if champs["imputable_dit"] is True and a_enfants:
             rapport.rejets.append(
-                Rejet(ligne, f"le compte {code} est déclaré imputable mais a des enfants")
+                Rejet(ligne, msg("imports.compte_declare_imputable_mais_enfants", code=code))
             )
             continue
         imputable = (not a_enfants) if champs["imputable_dit"] is None else champs["imputable_dit"]
         if parent and parent not in codes:
-            rapport.rejets.append(Rejet(ligne, f"parent {parent} introuvable"))
+            rapport.rejets.append(Rejet(ligne, msg("imports.parent_introuvable", parent=parent)))
             continue
         souhaite = {
             "label": champs["label"],
@@ -301,9 +302,7 @@ def _analyser(contenu: bytes, nom: str, correspondance):
             continue
         if parent in existants and existants[parent].imputable:
             rapport.rejets.append(
-                Rejet(
-                    ligne, f"le parent {parent} existe déjà et est imputable : il n'a pas d'enfant"
-                )
+                Rejet(ligne, msg("imports.parent_existe_deja_imputable_il", parent=parent))
             )
             continue
         a_creer[code] = {"ligne": ligne, **souhaite}
@@ -322,7 +321,7 @@ def importer_plan_comptable(
     """Importe un plan comptable. Exige une correspondance validée ; tout ou rien."""
     if correspondance.statut != StatutCorrespondance.VALIDEE:
         raise CorrespondanceNonValidee(
-            f"La correspondance « {correspondance.nom} » n'a pas été validée par un responsable"
+            msg("imports.correspondance_ete_validee_responsable", nom=correspondance.nom)
         )
     with transaction.atomic():
         rapport, a_creer, existants = _analyser(contenu, nom, correspondance)

@@ -23,6 +23,7 @@ from django.utils import timezone
 from rest_framework.exceptions import PermissionDenied
 
 from core.audit import journaliser
+from core.i18n import Liste, libelle, msg
 from niveau1_socle.exercices.services import TransitionInterdite
 from niveau1_socle.financements.models import Accord, Categorie
 from niveau1_socle.financements.services import exiger_accord_actif
@@ -61,15 +62,19 @@ class DeviseNonSupportee(DemandeInvalide):
 
 def _habilite(utilisateur, operation: str, project_id) -> None:
     if not est_habilite(utilisateur, operation, project_id):
-        raise PermissionDenied(f"Vous n'êtes pas habilité à « {operation} » sur ce projet.")
+        raise PermissionDenied(msg("decaissements.vous_etes_habilite_projet", operation=operation))
 
 
 def _exiger_devise(accord: Accord) -> None:
     base = Projet.objects.get(pk=accord.project_id).base_currency
     if accord.devise_id != base:
         raise DeviseNonSupportee(
-            f"L'accord {accord.numero} est en {accord.devise_id}, le projet tient ses comptes en "
-            f"{base} : la conversion des dépenses n'est pas disponible"
+            msg(
+                "decaissements.accord_projet_tient_comptes_conversion",
+                numero=accord.numero,
+                devise_id=accord.devise_id,
+                base=base,
+            )
         )
 
 
@@ -127,19 +132,23 @@ def depenses_eligibles(
         )
         rangees = cur.fetchall()
     atelier = Atelier()
-    for ligne_id, piece, date, compte, categorie_id, montant, libelle, active, rejetee in rangees:
-        depense = Depense(ligne_id, piece, date, compte, categorie_id, montant, libelle)
+    for ligne_id, piece, date, compte, categorie_id, montant, intitule, active, rejetee in rangees:
+        depense = Depense(ligne_id, piece, date, compte, categorie_id, montant, intitule)
         if active is not None:
-            atelier.non_selectionnables.append((depense, "déjà justifiée par une demande en cours"))
+            atelier.non_selectionnables.append(
+                (depense, msg("decaissements.deja_justifiee_demande_cours"))
+            )
         elif rejetee is not None and rejetee != reprise_de:
             atelier.non_selectionnables.append(
                 (
                     depense,
-                    "rejetée dans une demande : à reprendre par une demande qui la représente",
+                    msg("decaissements.rejetee_demande_reprendre_demande_represente"),
                 )
             )
         elif categorie_id is None:
-            atelier.non_selectionnables.append((depense, "sans catégorie de dépenses"))
+            atelier.non_selectionnables.append(
+                (depense, msg("decaissements.sans_categorie_depenses"))
+            )
         else:
             atelier.selectionnables.append(depense)
     return atelier
@@ -228,15 +237,22 @@ def _appliquer_le_profil(accord: Accord, type_demande: str, depenses: list, date
     if profil is None:
         if profil_services.accord_a_un_profil(accord):
             raise profil_services.ProfilViole(
-                f"Aucun profil de décaissement n'est en vigueur pour l'accord {accord.numero} "
-                f"le {date}"
+                msg(
+                    "decaissements.aucun_profil_decaissement_vigueur_accord",
+                    numero=accord.numero,
+                    date=date,
+                )
             )
         return None, {d.ligne_id: (None, d.montant) for d in depenses}, []
     methode = profil_services.methode_pour(profil, type_demande)
     if methode is None or not methode.is_enabled:
         raise profil_services.ProfilViole(
-            f"La méthode « {profil_services.METHODE_DU_TYPE[type_demande]} » n'est pas autorisée "
-            f"par le profil v{profil.version} de l'accord {accord.numero}"
+            msg(
+                "decaissements.methode_autorisee_profil_v_accord",
+                v1=profil_services.METHODE_DU_TYPE[type_demande],
+                version=profil.version,
+                numero=accord.numero,
+            )
         )
     profil_services.verifier_delai(profil, date)
     base = Devise.objects.get(pk=Projet.objects.get(pk=accord.project_id).base_currency)
@@ -247,8 +263,11 @@ def _appliquer_le_profil(accord: Accord, type_demande: str, depenses: list, date
         regle = profil_services.regle_pour(profil, categorie)
         if regle is None:
             raise profil_services.ProfilViole(
-                f"La catégorie {categorie.code} n'a pas de règle de financement dans le profil "
-                f"v{profil.version}"
+                msg(
+                    "decaissements.categorie_regle_financement_profil_v",
+                    code=categorie.code,
+                    version=profil.version,
+                )
             )
         profil_services.verifier_eligibilite(profil, regle, depense.date)
         retrait = profil_services.montant_a_retirer(
@@ -256,15 +275,23 @@ def _appliquer_le_profil(accord: Accord, type_demande: str, depenses: list, date
         )
         if retrait <= 0:
             raise profil_services.ProfilViole(
-                f"La dépense {depense.piece or depense.ligne_id} ({depense.montant}) donne un "
-                f"montant à retirer nul après application du taux de {regle.funding_rate}"
+                msg(
+                    "decaissements.depense_donne_montant_retirer_nul",
+                    v1=depense.piece or depense.ligne_id,
+                    montant=depense.montant,
+                    funding_rate=regle.funding_rate,
+                )
             )
         calcul[depense.ligne_id] = (regle, retrait)
     total = sum((retrait for _, retrait in calcul.values()), ZERO)
     minimum = profil_services.minimum_de_demande(profil, methode)
     if minimum is not None and total < minimum.montant:
         raise profil_services.ProfilViole(
-            f"La demande ({total}) est inférieure au minimum du profil : {minimum.explication}"
+            msg(
+                "decaissements.demande_inferieure_minimum_profil",
+                total=total,
+                explication=minimum.explication,
+            )
         )
     pieces = profil_services.documents_exiges(methode, [d.montant for d in depenses])
     return profil, calcul, pieces
@@ -292,23 +319,23 @@ def preparer_demande(
     """
     _habilite(utilisateur, "saisir", accord.project_id)
     if type not in TypeDemande.values:
-        raise DemandeInvalide(f"type de demande inconnu : {type}")
+        raise DemandeInvalide(msg("decaissements.type_demande_inconnu", type=type))
     ecarts = ecarts or {}
     if not lignes:
-        raise DemandeInvalide("Une demande justifie au moins une dépense")
+        raise DemandeInvalide(msg("decaissements.demande_justifie_moins_depense"))
     if set(lignes) & set(ecarts):
-        raise DemandeInvalide("Une dépense ne peut être à la fois choisie et écartée")
+        raise DemandeInvalide(msg("decaissements.depense_peut_etre_fois_choisie"))
     if any(not (motif or "").strip() for motif in ecarts.values()):
-        raise DemandeInvalide("Écarter une dépense exige un motif")
+        raise DemandeInvalide(msg("decaissements.ecarter_depense_exige_motif"))
     with transaction.atomic():
         _verrou_accord(accord.pk)
         accord = Accord.objects.get(pk=accord.pk)
-        exiger_accord_actif(accord.pk, pour="demande de décaissement")
+        exiger_accord_actif(accord.pk, pour="demande_decaissement")
         _exiger_devise(accord)
         if reprise_de is not None and (
             reprise_de.accord_id != accord.pk or reprise_de.status != StatutDemande.REJETEE
         ):
-            raise DemandeInvalide("On ne représente qu'une demande rejetée du même accord")
+            raise DemandeInvalide(msg("decaissements.on_represente_demande_rejetee_meme"))
         atelier = depenses_eligibles(
             accord, periode_debut, periode_fin, reprise_de=reprise_de.pk if reprise_de else None
         )
@@ -318,12 +345,12 @@ def preparer_demande(
             if ligne_id not in choisies:
                 raison = raisons.get(ligne_id, "non éligible (hors période, accord ou compte)")
                 raise DepenseNonSelectionnable(
-                    f"La dépense {ligne_id} n'est pas sélectionnable : {raison}"
+                    msg("decaissements.depense_selectionnable", ligne_id=ligne_id, raison=raison)
                 )
         for ligne_id in ecarts:
             if ligne_id not in choisies:
                 raise DepenseNonSelectionnable(
-                    f"La dépense {ligne_id} ne peut être écartée : elle n'est pas sélectionnable"
+                    msg("decaissements.depense_peut_etre_ecartee_elle", ligne_id=ligne_id)
                 )
         profil, calcul, pieces_exigees = _appliquer_le_profil(
             accord, type, [choisies[i] for i in lignes], date_demande or datetime.date.today()
@@ -396,13 +423,16 @@ def annuler_demande(demande: DemandeRetrait, *, utilisateur, motif: str) -> Dema
     """Abandonne une demande préparée : ses dépenses redeviennent libres."""
     _habilite(utilisateur, "saisir", demande.project_id)
     if not (motif or "").strip():
-        raise DemandeInvalide("Le motif d'annulation est obligatoire")
+        raise DemandeInvalide(msg("decaissements.motif_annulation_obligatoire"))
     with transaction.atomic():
         courante = DemandeRetrait.objects.select_for_update().get(pk=demande.pk)
         if courante.status != StatutDemande.PREPAREE:
             raise TransitionInterdite(
-                f"La demande {courante.numero} est {courante.status} : seule une demande préparée "
-                "s'annule"
+                msg(
+                    "decaissements.demande_seule_demande_preparee_s",
+                    numero=courante.numero,
+                    status=courante.status,
+                )
             )
         DemandeRetrait.objects.filter(pk=courante.pk).update(status=StatutDemande.ANNULEE)
         journaliser(
@@ -525,12 +555,15 @@ def soumettre_demande(
         _habilite(utilisateur, "valider", courante.project_id)
         if courante.status != StatutDemande.PREPAREE:
             raise TransitionInterdite(
-                f"La demande {courante.numero} est {courante.status} : seule une demande préparée "
-                "se soumet"
+                msg(
+                    "decaissements.demande_seule_demande_preparee_soumet",
+                    numero=courante.numero,
+                    status=courante.status,
+                )
             )
         exiger_separation_des_taches(utilisateur, courante.created_by)
         accord = Accord.objects.get(pk=courante.accord_id)
-        exiger_accord_actif(accord.pk, pour="demande de décaissement")
+        exiger_accord_actif(accord.pk, pour="demande_decaissement")
         _exiger_devise(accord)
 
         # Le profil figé à la préparation : son délai de décaissement vaut au jour de la soumission,
@@ -543,9 +576,10 @@ def soumettre_demande(
         manquantes = sorted(set(courante.pieces_exigees) - set(pieces))
         if manquantes:
             raise DemandeInvalide(
-                "Pièces exigées par le profil non fournies : "
-                + ", ".join(manquantes)
-                + " (une dépense au-delà du seuil de documentation exige les copies de pièces)"
+                msg(
+                    "decaissements.pieces_exigees_non_fournies",
+                    liste=", ".join(libelle("piece_exigee", p) for p in manquantes),
+                )
             )
 
         categories, utilises, (courant, utilise_accord), lignes = _verrouiller_soldes(courante)
@@ -562,16 +596,31 @@ def soumettre_demande(
             utilise = utilises[categorie_id]
             if plafond is not None and utilise + demande_montant > plafond:
                 problemes.append(
-                    f"catégorie {categories[categorie_id].code} : plafond {plafond}, déjà "
-                    f"demandé {utilise}, cette demande {demande_montant}"
+                    msg(
+                        "decaissements.plafond_categorie_depasse",
+                        code=categories[categorie_id].code,
+                        plafond=plafond,
+                        utilise=utilise,
+                        demande=demande_montant,
+                    )
                 )
         if utilise_accord + total > courant:
             problemes.append(
-                f"accord {accord.numero} : montant {courant}, déjà demandé {utilise_accord}, "
-                f"cette demande {total}"
+                msg(
+                    "decaissements.montant_accord_depasse",
+                    numero=accord.numero,
+                    courant=courant,
+                    utilise=utilise_accord,
+                    demande=total,
+                )
             )
         if problemes:
-            raise DisponibleInsuffisant("Disponible insuffisant : " + " ; ".join(problemes))
+            raise DisponibleInsuffisant(
+                msg(
+                    "decaissements.disponible_insuffisant",
+                    details=Liste(problemes),
+                )
+            )
 
         etat = etat_certifie_de(courante, lignes)
         try:
@@ -616,13 +665,17 @@ def _decider(demande, utilisateur, nouveau: str, *, attendus, action: str, motif
         StatutDemande.CONTESTEE: "motif_contestation",
     }
     if nouveau in champs and not (motif or "").strip():
-        raise DemandeInvalide("Le motif est obligatoire pour rejeter ou contester une demande")
+        raise DemandeInvalide(msg("decaissements.motif_obligatoire_rejeter_contester_demande"))
     with transaction.atomic():
         courante = DemandeRetrait.objects.select_for_update().get(pk=demande.pk)
         if courante.status not in attendus:
             raise TransitionInterdite(
-                f"La demande {courante.numero} est {courante.status} : elle ne peut pas passer à "
-                f"{nouveau}"
+                msg(
+                    "decaissements.demande_elle_peut_passer",
+                    numero=courante.numero,
+                    status=courante.status,
+                    nouveau=nouveau,
+                )
             )
         if nouveau == StatutDemande.REJETEE:
             _verrouiller_soldes(courante)  # même ordre de verrous que la soumission

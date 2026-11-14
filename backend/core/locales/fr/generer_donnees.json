@@ -1,0 +1,6 @@
+{
+  "generer_donnees.ecritures_existent_deja_immuables_repartir": "Des écritures existent déjà et sont immuables. Pour repartir de zéro, le rôle propriétaire exécute : TRUNCATE comptabilite_ligneecriture, comptabilite_ecriture CASCADE;",
+  "generer_donnees.lignes_doit_etre_nombre_pair": "--lignes doit être un nombre pair d'au moins 2",
+  "generer_donnees.projet_demande_existe_organisation_choisie": "Le projet demandé n'existe pas pour l'organisation choisie.",
+  "generer_donnees.referentiel_devises_vide_appliquez_migrations": "Le référentiel des devises est vide : appliquez les migrations."
+}

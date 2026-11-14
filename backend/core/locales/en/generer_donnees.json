@@ -1,0 +1,6 @@
+{
+  "generer_donnees.ecritures_existent_deja_immuables_repartir": "Entries already exist and are immutable. To start again from scratch, the owner role runs: TRUNCATE comptabilite_ligneecriture, comptabilite_ecriture CASCADE;",
+  "generer_donnees.lignes_doit_etre_nombre_pair": "--lignes must be an even number of at least 2",
+  "generer_donnees.projet_demande_existe_organisation_choisie": "The requested project does not exist for the chosen organisation.",
+  "generer_donnees.referentiel_devises_vide_appliquez_migrations": "The currency reference is empty: apply the migrations."
+}

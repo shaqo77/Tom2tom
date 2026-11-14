@@ -1,0 +1,19 @@
+{
+  "rapprochement.chaque_mouvement_releve_reference": "Each statement movement has a reference",
+  "rapprochement.groupe_solde_grand_livre_releve": "The group is not balanced in {devise_id}: general ledger {grand_livre}, statement {releve}, difference {v1}",
+  "rapprochement.ligne": "Line {number} / {line_no} is not in {devise_id}",
+  "rapprochement.ligne_celle_compte": "Line {number} / {line_no} is not that of this account",
+  "rapprochement.ligne_deja_rapprochee": "Line {number} / {line_no} is already reconciled",
+  "rapprochement.ligne_mouvement_introuvable": "A line or a movement cannot be found",
+  "rapprochement.lignes_doivent_porter_meme_compte": "The lines must be on the same ledger account",
+  "rapprochement.mouvement_celui_compte": "Movement {reference} is not that of this account",
+  "rapprochement.mouvement_compte_monnaie_tenue_taux": "Movement {reference}: the account is in the accounting currency, so there is no rate",
+  "rapprochement.mouvement_deja_rapproche": "Movement {reference} is already reconciled",
+  "rapprochement.mouvement_montant_nul": "Movement {reference} has a zero amount",
+  "rapprochement.mouvement_taux_non_positif": "Movement {reference} has a non-positive rate",
+  "rapprochement.on_rapproche_lignes_comptabilisees": "Only posted lines can be reconciled",
+  "rapprochement.rapprochement_compte_moins_ligne_mouvement": "A reconciliation has at least one line and one movement",
+  "rapprochement.reference_deja_importee_autres_valeurs": "Reference {reference} has already been imported with other values",
+  "rapprochement.reference_figure_deux_fois_import": "Reference {reference} appears twice in the import",
+  "rapprochement.vous_etes_habilite_projet": "You are not authorised to “{operation}” on this project."
+}

@@ -10,6 +10,7 @@ from decimal import Decimal
 from django.db import transaction
 
 from core.audit import journaliser
+from core.i18n import msg
 from niveau1_socle.exercices.services import TransitionInterdite
 
 from .controle import appliquer, evaluer_engagement
@@ -40,14 +41,14 @@ def creer_engagement(
     _habilite(utilisateur, "saisir", project_id)
     montant = Decimal(str(montant))
     if montant <= 0:
-        raise BudgetInvalide("Un engagement a un montant strictement positif")
+        raise BudgetInvalide(msg("engagements.engagement_montant_strictement_positif"))
     if not (reference or "").strip():
-        raise BudgetInvalide("La référence de l'engagement est obligatoire")
+        raise BudgetInvalide(msg("engagements.reference_engagement_obligatoire"))
     if periode is not None and not 1 <= periode <= 12:
-        raise BudgetInvalide("La période est comprise entre 1 et 12 (rien pour l'année entière)")
+        raise BudgetInvalide(msg("engagements.periode_comprise_entre_1_12"))
     inconnus = set(identifiants) - set(IDENTIFIANTS_LIBRES)
     if inconnus:
-        raise BudgetInvalide(f"identifiant inconnu : {sorted(inconnus)}")
+        raise BudgetInvalide(msg("engagements.identifiant_inconnu", v1=sorted(inconnus)))
     with transaction.atomic():
         axes_resolus = _axes(axes)
         # Contrôle budgétaire (L4-T03), avec verrou sur les soldes : deux engagements simultanés
@@ -105,15 +106,18 @@ def apurer_engagement(engagement: Engagement, *, utilisateur, montant) -> Engage
         _habilite(utilisateur, "saisir", courant.project_id)
         if courant.status != StatutEngagement.OUVERT:
             raise TransitionInterdite(
-                f"L'engagement {courant.reference} est {courant.status} : on n'apure qu'un "
-                "engagement ouvert"
+                msg(
+                    "engagements.engagement_on_apure_engagement_ouvert",
+                    reference=courant.reference,
+                    status=courant.status,
+                )
             )
         if montant <= 0:
-            raise BudgetInvalide("Le montant à apurer est strictement positif")
+            raise BudgetInvalide(msg("engagements.montant_apurer_strictement_positif"))
         reste = courant.montant - courant.apure
         if montant > reste:
             raise BudgetInvalide(
-                f"On ne peut apurer plus que le reste de l'engagement ({reste}) : {montant} demandé"
+                msg("engagements.on_peut_apurer_plus_reste", reste=reste, montant=montant)
             )
         apure = courant.apure + montant
         solde = apure == courant.montant
@@ -137,13 +141,17 @@ def apurer_engagement(engagement: Engagement, *, utilisateur, montant) -> Engage
 def annuler_engagement(engagement: Engagement, *, utilisateur, motif: str) -> Engagement:
     """Annule un engagement ouvert : le reste non apuré redevient disponible."""
     if not (motif or "").strip():
-        raise BudgetInvalide("Le motif d'annulation est obligatoire")
+        raise BudgetInvalide(msg("engagements.motif_annulation_obligatoire"))
     with transaction.atomic():
         courant = Engagement.objects.select_for_update().get(pk=engagement.pk)
         _habilite(utilisateur, "saisir", courant.project_id)
         if courant.status != StatutEngagement.OUVERT:
             raise TransitionInterdite(
-                f"L'engagement {courant.reference} est {courant.status} : il ne s'annule plus"
+                msg(
+                    "engagements.engagement_il_s_annule_plus",
+                    reference=courant.reference,
+                    status=courant.status,
+                )
             )
         Engagement.objects.filter(pk=courant.pk).update(status=StatutEngagement.ANNULE)
         journaliser(

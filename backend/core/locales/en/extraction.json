@@ -1,0 +1,9 @@
+{
+  "extraction.document_word_refuse_declaration_type": "Word document refused: type declaration not allowed",
+  "extraction.document_word_trop_volumineux": "The Word document is too large",
+  "extraction.fichier_correspond_plus_empreinte_enregistree": "The file of “{title}” no longer matches its recorded fingerprint: no citation is verified against a modified file",
+  "extraction.format_fichier_non_pris_charge": "File format not supported (PDF, DOCX or text)",
+  "extraction.pdf_chiffre_fournissez_version_non": "The PDF is encrypted: provide an unprotected version",
+  "extraction.pdf_contient_aucun_texte_extractible": "The PDF contains no extractable text (scanned document?): run OCR on it first",
+  "extraction.texte_illisible_encodage_inconnu": "Unreadable text: unknown encoding"
+}

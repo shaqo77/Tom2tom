@@ -1,0 +1,12 @@
+{
+  "financements.accord_aucune_nouvelle_y_possible": "Agreement {numero} is {status}: no new {pour} is possible on it (its history remains available)",
+  "financements.accord_existe": "Agreement {agreement_id} does not exist",
+  "financements.accord_peut_passer": "An agreement that is {status} cannot move to {nouveau}",
+  "financements.code_nom_bailleur_obligatoires": "The code and the name of the donor are required",
+  "financements.motif_obligatoire_suspendre_clore_annuler": "A reason is required to suspend, close or cancel",
+  "financements.numero_accord_obligatoire": "The agreement number is required",
+  "financements.numero_compte_obligatoire": "The account number is required",
+  "financements.statut_accord_inconnu": "unknown agreement status: {nouveau}",
+  "financements.vous_etes_habilite": "You are not authorised to “{operation}”.",
+  "financements.vous_etes_habilite_projet": "You are not authorised to “{operation}” on this project."
+}

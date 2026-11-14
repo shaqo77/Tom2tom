@@ -1,0 +1,15 @@
+{
+  "resolveur.accounts_doit_contenir_moins_fourchette": "accounts doit contenir au moins une fourchette de comptes",
+  "resolveur.aucun_mapping_actif_date_effet": "Aucun mapping actif {code!r} à la date d'effet {v1}",
+  "resolveur.cle_filtre_inconnue": "clé de filtre inconnue : {v1!r}",
+  "resolveur.condition_expr_executable_utilisez_filtres": "condition_expr n'est pas exécutable : utilisez les filtres match déclarés",
+  "resolveur.doit_contenir_moins_valeur_textuelle": "{champ} doit contenir au moins une valeur textuelle",
+  "resolveur.exercice_plage_periodes_invalide": "exercice ou plage de périodes invalide",
+  "resolveur.fourchette_comptes_invalide_debut_fin": "fourchette de comptes invalide : [début, fin] attendu",
+  "resolveur.fourchette_inversee": "fourchette inversée : {debut} > {fin}",
+  "resolveur.match_doit_etre_objet_json": "match doit être un objet JSON",
+  "resolveur.parametre_periode_manquant": "paramètre de période manquant : {v1}",
+  "resolveur.regle_doit_contenir_moins_critere": "une règle doit contenir au moins un critère",
+  "resolveur.target_code_doit_etre_rubrique": "target_code doit être une rubrique non vide",
+  "resolveur.version_active": "La version {version} n'est pas active à {date_effet}"
+}

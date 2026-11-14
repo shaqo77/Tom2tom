@@ -189,7 +189,7 @@ def test_l_atelier_liste_les_depenses_eligibles_avec_leur_piece(drf):
     assert [d.ligne_id for d in atelier.selectionnables] == [a, b]
     assert all(d.piece.startswith("OD-2026-") for d in atelier.selectionnables)
     assert atelier.total_selectionnable == D(150)
-    assert [(d.ligne_id, raison) for d, raison in atelier.non_selectionnables] == [
+    assert [(d.ligne_id, str(raison)) for d, raison in atelier.non_selectionnables] == [
         (sans, "sans catégorie de dépenses")
     ]
 
@@ -280,7 +280,7 @@ def test_une_depense_deja_justifiee_ne_peut_pas_etre_selectionnee_une_seconde_fo
             accepter_demande(premiere, utilisateur=profils["bruno"])
         atelier = depenses_eligibles(accord, DEBUT, FIN)
         assert [d.ligne_id for d in atelier.selectionnables] == [b], etape
-        assert [(d.ligne_id, r) for d, r in atelier.non_selectionnables] == [
+        assert [(d.ligne_id, str(r)) for d, r in atelier.non_selectionnables] == [
             (a, "déjà justifiée par une demande en cours")
         ]
         with pytest.raises(DepenseNonSelectionnable, match="déjà justifiée"):
@@ -346,7 +346,7 @@ def test_une_depense_rejetee_ne_revient_que_par_la_reprise_de_la_demande_rejetee
 
     # Sans lien de reprise : refusée, avec la raison exacte.
     atelier = depenses_eligibles(accord, DEBUT, FIN)
-    assert atelier.selectionnables == [] and "rejetée" in atelier.non_selectionnables[0][1]
+    assert atelier.selectionnables == [] and "rejetée" in str(atelier.non_selectionnables[0][1])
     with pytest.raises(DepenseNonSelectionnable, match="rejetée"):
         _preparer(profils, accord, [a])
     # Avec la reprise : acceptée. La régularisation est une opération NOUVELLE.

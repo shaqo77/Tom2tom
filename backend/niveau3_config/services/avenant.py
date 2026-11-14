@@ -15,6 +15,7 @@ import uuid
 from django.db import transaction
 from rest_framework.exceptions import PermissionDenied
 
+from core.i18n import msg
 from niveau1_socle.financements.models import Accord, AvenantAccord
 from niveau1_socle.financements.services import creer_avenant
 from niveau1_socle.habilitations.permissions import est_habilite
@@ -40,15 +41,17 @@ def enregistrer_avenant(
     """`allocations` : `{catégorie: nouvelle allocation}` ; `dates` : jalons à remplacer."""
     for operation in ("parametrer", "valider"):
         if not est_habilite(utilisateur, operation, accord.project_id):
-            raise PermissionDenied(f"Vous n'êtes pas habilité à « {operation} » sur ce projet.")
+            raise PermissionDenied(msg("avenant.vous_etes_habilite_projet", operation=operation))
     with transaction.atomic():
         accord = Accord.objects.select_for_update().get(pk=accord.pk)
         base = profil_en_vigueur(accord, date_avenant)
         if base is None:
             if accord_a_un_profil(accord):
                 raise ActivationRefusee(
-                    f"Aucun profil de décaissement n'est en vigueur le {date_avenant} : "
-                    "l'avenant ne peut pas être appliqué"
+                    msg(
+                        "avenant.aucun_profil_decaissement_vigueur_avenant",
+                        date_avenant=date_avenant,
+                    )
                 )
             return creer_avenant(
                 utilisateur=utilisateur,

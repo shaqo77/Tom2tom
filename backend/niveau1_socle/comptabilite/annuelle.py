@@ -21,6 +21,7 @@ from django.db.models import F, Sum
 from django.utils import timezone
 
 from core.audit import journaliser
+from core.i18n import msg
 from niveau1_socle.exercices.models import Exercice
 from niveau1_socle.exercices.services import exercice_verrouille
 from niveau1_socle.organisations.models import Projet
@@ -107,9 +108,7 @@ def calculer_a_nouveaux(exercice: Exercice, compte_resultat: str):
         elif classe not in CLASSES_REPORTEES and classe not in CLASSES_RESULTAT:
             ecart_89 += net
     if ecart_89 != 0:
-        raise ANouveauxIncoherents(
-            f"Les classes 8 et 9 ne se soldent pas entre elles : écart de {ecart_89}"
-        )
+        raise ANouveauxIncoherents(msg("annuelle.classes_8_9_soldent_entre", ecart_89=ecart_89))
 
     deficit = sum((ligne.montant for ligne in reportees.values()), ZERO)
     # Toutes classes confondues, les écritures s'équilibrent : le net de bilan est l'exact
@@ -182,10 +181,7 @@ def _exercice_suivant(exercice: Exercice) -> Exercice:
         project_id=exercice.project_id, date_debut=exercice.date_fin + datetime.timedelta(days=1)
     ).first()
     if suivant is None:
-        raise ExerciceNonCloturable(
-            "Aucun exercice suivant ne commence le lendemain de la fin de cet exercice : "
-            "créez-le avant de clôturer"
-        )
+        raise ExerciceNonCloturable(msg("annuelle.aucun_exercice_suivant_commence_lendemain"))
     return suivant
 
 
@@ -205,19 +201,18 @@ def cloturer_exercice(exercice: Exercice, *, utilisateur, compte_resultat: str) 
         _exiger_habilitation(utilisateur, "comptabiliser", exercice.project_id)
         if exercice_verrouille(exercice):
             raise ExerciceVerrouille(
-                f"L'exercice {exercice.annee} est verrouillé : ses à-nouveaux ne se régénèrent plus"
+                msg("annuelle.exercice_verrouille_nouveaux_regenerent_plus", annee=exercice.annee)
             )
         ouvertes = _periodes_non_closes(exercice)
         if ouvertes:
             raise ExerciceNonCloturable(
-                "Périodes non closes : " + ", ".join(str(n) for n in ouvertes)
+                msg("annuelle.periodes_non_closes", liste=", ".join(str(n) for n in ouvertes))
             )
         cible = _exercice_suivant(exercice)
         premiere = cible.periodes.filter(numero=1).first()
         if premiere is None or premiere.status != "ouverte":
             raise ExerciceNonCloturable(
-                f"La première période de l'exercice suivant ({cible.annee}) doit être ouverte "
-                "pour recevoir les à-nouveaux"
+                msg("annuelle.premiere_periode_exercice_suivant_doit", annee=cible.annee)
             )
         exiger_compte_imputable(compte_resultat)
         lignes, resultat = calculer_a_nouveaux(exercice, compte_resultat)

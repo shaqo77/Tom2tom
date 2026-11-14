@@ -16,6 +16,8 @@ from decimal import ROUND_HALF_UP, Decimal
 
 from django.db.models import Q
 
+from core.i18n import msg
+
 REGLES = ("base", "taux", "solde")
 SENS = ("debit", "credit")
 AXES_PERMIS = ("dim1", "dim2", "dim3", "dim4", "aux1", "aux2", "aux3", "aux4")
@@ -41,24 +43,31 @@ class ModeleLigne:
 
 def _verifier(modele: ModeleLigne) -> None:
     if modele.regle not in REGLES:
-        raise SchemaIncoherent(f"Compte {modele.compte} : règle inconnue {modele.regle!r}")
+        raise SchemaIncoherent(
+            msg("schemas.compte_regle_inconnue", compte=modele.compte, regle=modele.regle)
+        )
     if modele.regle == "solde":
         if modele.sens is not None:
             raise SchemaIncoherent(
-                f"Compte {modele.compte} : une contrepartie automatique n'a pas de sens déclaré, "
-                "il se déduit du solde"
+                msg("schemas.compte_contrepartie_automatique_sens_declare", compte=modele.compte)
             )
     elif modele.sens is None:
-        raise SchemaIncoherent(f"Compte {modele.compte} : le sens est obligatoire")
+        raise SchemaIncoherent(msg("schemas.compte_sens_obligatoire", compte=modele.compte))
     elif modele.sens not in SENS:
-        raise SchemaIncoherent(f"Compte {modele.compte} : sens inconnu {modele.sens!r}")
+        raise SchemaIncoherent(
+            msg("schemas.compte_sens_inconnu", compte=modele.compte, sens=modele.sens)
+        )
     if modele.regle == "taux" and (modele.taux is None or modele.taux <= 0):
-        raise SchemaIncoherent(f"Compte {modele.compte} : le taux doit être strictement positif")
+        raise SchemaIncoherent(
+            msg("schemas.compte_taux_doit_etre_strictement", compte=modele.compte)
+        )
     if modele.regle != "taux" and modele.taux is not None:
-        raise SchemaIncoherent(f"Compte {modele.compte} : seule la règle taux porte un taux")
+        raise SchemaIncoherent(msg("schemas.compte_seule_regle_taux_porte", compte=modele.compte))
     inconnus = set(modele.axes) - set(AXES_PERMIS)
     if inconnus:
-        raise SchemaIncoherent(f"Compte {modele.compte} : axe inconnu {sorted(inconnus)}")
+        raise SchemaIncoherent(
+            msg("schemas.compte_axe_inconnu", compte=modele.compte, v1=sorted(inconnus))
+        )
 
 
 def calculer_lignes(modeles: list[ModeleLigne], montant: Decimal, *, decimales: int) -> list[dict]:
@@ -71,7 +80,7 @@ def calculer_lignes(modeles: list[ModeleLigne], montant: Decimal, *, decimales: 
     for modele in modeles:
         _verifier(modele)
     if sum(1 for modele in modeles if modele.regle == "solde") > 1:
-        raise SchemaIncoherent("Un schéma ne compte qu'une seule contrepartie automatique")
+        raise SchemaIncoherent(msg("schemas.schema_compte_seule_contrepartie_automatique"))
 
     pas = Decimal(1).scaleb(-decimales)
     montants: list[Decimal | None] = []
@@ -91,10 +100,10 @@ def calculer_lignes(modeles: list[ModeleLigne], montant: Decimal, *, decimales: 
     )
     if debit == credit == 0:
         raise SchemaIncoherent(
-            f"Le montant est nul après arrondi à {decimales} décimale(s) : aucune pièce à générer"
+            msg("schemas.montant_nul_apres_arrondi_decimale", decimales=decimales)
         )
     if any(modele.regle == "solde" for modele in modeles) and debit == credit:
-        raise SchemaIncoherent("La contrepartie automatique n'a rien à équilibrer")
+        raise SchemaIncoherent(msg("schemas.contrepartie_automatique_rien_equilibrer"))
 
     lignes = []
     for modele, valeur in zip(modeles, montants, strict=True):
@@ -133,7 +142,7 @@ def schema_applicable(code: str, date: datetime.date):
     )
     if schema is None:
         raise SchemaIntrouvable(
-            f"Aucune version du schéma {code} n'est en vigueur le {date.isoformat()}"
+            msg("schemas.aucune_version_schema_vigueur", code=code, v1=date.isoformat())
         )
     return schema
 
@@ -177,7 +186,7 @@ def saisir_depuis_schema(
     schema, lignes = generer_lignes_du_schema(code_schema, date_comptable, montant, devise)
     code_journal = journal or (schema.journal.code if schema.journal else None)
     if code_journal is None:
-        raise JournalIntrouvable(f"Le schéma {code_schema} n'indique pas de journal")
+        raise JournalIntrouvable(msg("schemas.schema_indique_journal", code_schema=code_schema))
     return saisir_ecriture(
         utilisateur=utilisateur,
         project_id=project_id,

@@ -17,6 +17,7 @@ from django.core.management.base import BaseCommand, CommandError
 from django.db import connection, transaction
 from django.utils import timezone
 
+from core.i18n import msg
 from niveau1_socle.comptabilite.models import Ecriture, Journal, LigneEcriture
 from niveau1_socle.exercices.models import Exercice
 from niveau1_socle.exercices.services import creer_exercice
@@ -68,15 +69,15 @@ class Command(BaseCommand):
         random.seed(1789)
         cible = opts["lignes"]
         if cible < 2 or cible % 2:
-            raise CommandError("--lignes doit être un nombre pair d'au moins 2")
+            raise CommandError(msg("generer_donnees.lignes_doit_etre_nombre_pair"))
         if not Devise.objects.exists():
-            raise CommandError("Le référentiel des devises est vide : appliquez les migrations.")
+            raise CommandError(msg("generer_donnees.referentiel_devises_vide_appliquez_migrations"))
         organisations = ORGS
         if opts["organisation"]:
             organisations = [ORGS[0] if opts["organisation"] == "A" else ORGS[1]]
         projet = opts["projet"]
         if projet and any(projet > len(PROJETS[org]) for org in organisations):
-            raise CommandError("Le projet demandé n'existe pas pour l'organisation choisie.")
+            raise CommandError(msg("generer_donnees.projet_demande_existe_organisation_choisie"))
 
         # Les écritures comptabilisées sont immuables (L3-T03) : on ne les purge pas, même ici.
         # Pour repartir de zéro, le propriétaire de la base exécute :
@@ -87,9 +88,7 @@ class Command(BaseCommand):
             projets = [PROJETS[org][projet - 1]] if projet else PROJETS[org]
             if Ecriture.objects.filter(project_id__in=projets).exists():
                 raise CommandError(
-                    "Des écritures existent déjà et sont immuables. Pour repartir de zéro, le "
-                    "rôle propriétaire exécute : TRUNCATE comptabilite_ligneecriture, "
-                    "comptabilite_ecriture CASCADE;"
+                    msg("generer_donnees.ecritures_existent_deja_immuables_repartir")
                 )
 
         # L'isolation est ACTIVE : on insère organisation par organisation,

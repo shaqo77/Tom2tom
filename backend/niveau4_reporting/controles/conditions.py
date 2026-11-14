@@ -18,6 +18,8 @@ from dataclasses import dataclass
 from decimal import Decimal, InvalidOperation
 from enum import StrEnum
 
+from core.i18n import msg
+
 MAX_CONDITIONS = 20
 MAX_LISTE = 200
 
@@ -190,39 +192,40 @@ TYPES_DE_REGLE = tuple(SCHEMAS)
 
 def _decimal(valeur, contexte: str) -> Decimal:
     if isinstance(valeur, bool) or isinstance(valeur, float):
-        raise ConditionInvalide(
-            f"{contexte} : un montant s'écrit en chaîne (« 1250.50 ») ou en entier, jamais en "
-            "nombre à virgule flottante"
-        )
+        raise ConditionInvalide(msg("conditions.montant_s_ecrit_chaine_1250", contexte=contexte))
     if not isinstance(valeur, (str, int)):
-        raise ConditionInvalide(f"{contexte} : décimal attendu")
+        raise ConditionInvalide(msg("conditions.decimal_attendu", contexte=contexte))
     try:
         nombre = Decimal(valeur) if isinstance(valeur, str) else Decimal(int(valeur))
     except InvalidOperation as erreur:
-        raise ConditionInvalide(f"{contexte} : « {valeur} » n'est pas un décimal") from erreur
+        raise ConditionInvalide(
+            msg("conditions.decimal", contexte=contexte, valeur=valeur)
+        ) from erreur
     if not nombre.is_finite():
-        raise ConditionInvalide(f"{contexte} : « {valeur} » n'est pas un nombre fini")
+        raise ConditionInvalide(msg("conditions.nombre_fini", contexte=contexte, valeur=valeur))
     return nombre
 
 
 def _entier(valeur, contexte: str) -> int:
     if isinstance(valeur, bool) or not isinstance(valeur, int):
-        raise ConditionInvalide(f"{contexte} : entier attendu")
+        raise ConditionInvalide(msg("conditions.entier_attendu", contexte=contexte))
     return valeur
 
 
 def _date(valeur, contexte: str) -> datetime.date:
     if not isinstance(valeur, str):
-        raise ConditionInvalide(f"{contexte} : date ISO (AAAA-MM-JJ) attendue")
+        raise ConditionInvalide(msg("conditions.date_iso_aaaa_mm_jj", contexte=contexte))
     try:
         return datetime.date.fromisoformat(valeur)
     except ValueError as erreur:
-        raise ConditionInvalide(f"{contexte} : « {valeur} » n'est pas une date ISO") from erreur
+        raise ConditionInvalide(
+            msg("conditions.date_iso", contexte=contexte, valeur=valeur)
+        ) from erreur
 
 
 def _texte(valeur, contexte: str) -> str:
     if not isinstance(valeur, str):
-        raise ConditionInvalide(f"{contexte} : texte attendu")
+        raise ConditionInvalide(msg("conditions.texte_attendu", contexte=contexte))
     return valeur
 
 
@@ -246,37 +249,49 @@ class ConditionPreparee:
 def _preparer_condition(condition, champs: dict[str, Champ], numero: int) -> ConditionPreparee:
     lieu = f"condition {numero}"
     if not isinstance(condition, dict):
-        raise ConditionInvalide(f"{lieu} : un objet est attendu")
+        raise ConditionInvalide(msg("conditions.objet_attendu", lieu=lieu))
     inconnues = set(condition) - {"champ", "op", "valeur", "somme_de"}
     if inconnues:
-        raise ConditionInvalide(f"{lieu} : clés inconnues {sorted(inconnues)}")
+        raise ConditionInvalide(msg("conditions.cles_inconnues", lieu=lieu, v1=sorted(inconnues)))
     nom = condition.get("champ")
     if nom not in champs:
-        raise ConditionInvalide(f"{lieu} : champ « {nom} » hors du schéma de ce type de règle")
+        raise ConditionInvalide(msg("conditions.champ_hors_schema_type_regle", lieu=lieu, nom=nom))
     champ = champs[nom]
     brut = condition.get("op")
     if brut not in OPERATEURS:
-        raise ConditionInvalide(f"{lieu} : opérateur « {brut} » inconnu (jeu fermé : {OPERATEURS})")
+        raise ConditionInvalide(
+            msg(
+                "conditions.operateur_inconnu_jeu_ferme",
+                lieu=lieu,
+                brut=brut,
+                OPERATEURS=OPERATEURS,
+            )
+        )
     operateur = Operateur(brut)
     if champ.type not in COMPATIBILITE[operateur]:
         raise ConditionInvalide(
-            f"{lieu} : l'opérateur « {brut} » ne s'applique pas à un champ {champ.type.value} "
-            f"(« {nom} »)"
+            msg(
+                "conditions.operateur_s_applique_champ",
+                lieu=lieu,
+                brut=brut,
+                value=champ.type.value,
+                nom=nom,
+            )
         )
     somme_de = condition.get("somme_de")
     if operateur is not Operateur.SOMME_LTE and somme_de is not None:
-        raise ConditionInvalide(f"{lieu} : « somme_de » n'existe que pour somme_lte")
+        raise ConditionInvalide(msg("conditions.somme_existe_somme_lte", lieu=lieu))
     if operateur in SANS_VALEUR:
         if "valeur" in condition:
-            raise ConditionInvalide(f"{lieu} : « {brut} » ne prend pas de valeur")
+            raise ConditionInvalide(msg("conditions.prend_valeur", lieu=lieu, brut=brut))
         return ConditionPreparee(nom, operateur, champ.type, None)
     if "valeur" not in condition:
-        raise ConditionInvalide(f"{lieu} : « {brut} » exige une valeur")
+        raise ConditionInvalide(msg("conditions.exige_valeur", lieu=lieu, brut=brut))
     valeur = condition["valeur"]
     if operateur is Operateur.SOMME_LTE:
         if champ.sous_champ(somme_de) not in (TypeChamp.DECIMAL, TypeChamp.ENTIER):
             raise ConditionInvalide(
-                f"{lieu} : « somme_de » désigne un champ numérique des éléments de « {nom} »"
+                msg("conditions.somme_designe_champ_numerique_elements", lieu=lieu, nom=nom)
             )
         return ConditionPreparee(nom, operateur, champ.type, _decimal(valeur, lieu), somme_de)
     if operateur is Operateur.NOMBRE_EQ:
@@ -284,16 +299,18 @@ def _preparer_condition(condition, champs: dict[str, Champ], numero: int) -> Con
     convertir = _CONVERTISSEURS[champ.type]
     if operateur in (Operateur.IN, Operateur.NOT_IN):
         if not isinstance(valeur, list) or not valeur or len(valeur) > MAX_LISTE:
-            raise ConditionInvalide(f"{lieu} : une liste de 1 à {MAX_LISTE} valeurs est attendue")
+            raise ConditionInvalide(
+                msg("conditions.liste_1_valeurs_attendue", lieu=lieu, MAX_LISTE=MAX_LISTE)
+            )
         return ConditionPreparee(
             nom, operateur, champ.type, tuple(convertir(v, lieu) for v in valeur)
         )
     if operateur is Operateur.ENTRE:
         if not isinstance(valeur, list) or len(valeur) != 2:
-            raise ConditionInvalide(f"{lieu} : « entre » prend deux dates [du, au[")
+            raise ConditionInvalide(msg("conditions.entre_prend_deux_dates", lieu=lieu))
         du, au = (_date(v, lieu) for v in valeur)
         if du >= au:
-            raise ConditionInvalide(f"{lieu} : l'intervalle [du, au[ est vide ou à l'envers")
+            raise ConditionInvalide(msg("conditions.intervalle_vide_envers", lieu=lieu))
         return ConditionPreparee(nom, operateur, champ.type, (du, au))
     return ConditionPreparee(nom, operateur, champ.type, convertir(valeur, lieu))
 
@@ -307,18 +324,26 @@ class ExpressionPreparee:
 def preparer_expression(expression, type_regle: str | None = None) -> ExpressionPreparee:
     """Valide `expression` contre le schéma de son type de règle ; lève `ConditionInvalide`."""
     if not isinstance(expression, dict):
-        raise ConditionInvalide("l'expression est un objet JSON")
+        raise ConditionInvalide(msg("conditions.expression_objet_json"))
     inconnues = set(expression) - {"type_regle", "conditions"}
     if inconnues:
-        raise ConditionInvalide(f"clés inconnues {sorted(inconnues)}")
+        raise ConditionInvalide(msg("conditions.cles_inconnues_2", v1=sorted(inconnues)))
     type_regle = expression.get("type_regle") if type_regle is None else type_regle
     if type_regle not in SCHEMAS:
-        raise ConditionInvalide(f"type de règle « {type_regle} » inconnu ({TYPES_DE_REGLE})")
+        raise ConditionInvalide(
+            msg(
+                "conditions.type_regle_inconnu",
+                type_regle=type_regle,
+                TYPES_DE_REGLE=TYPES_DE_REGLE,
+            )
+        )
     if "type_regle" in expression and expression["type_regle"] != type_regle:
-        raise ConditionInvalide("le type de règle de l'expression diffère de celui du contrôle")
+        raise ConditionInvalide(msg("conditions.type_regle_expression_differe_celui"))
     conditions = expression.get("conditions")
     if not isinstance(conditions, list) or not 1 <= len(conditions) <= MAX_CONDITIONS:
-        raise ConditionInvalide(f"de 1 à {MAX_CONDITIONS} conditions sont attendues")
+        raise ConditionInvalide(
+            msg("conditions.1_conditions_attendues", MAX_CONDITIONS=MAX_CONDITIONS)
+        )
     schema = SCHEMAS[type_regle]
     return ExpressionPreparee(
         type_regle,

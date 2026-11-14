@@ -15,6 +15,7 @@ from django.utils import timezone
 from rest_framework.exceptions import PermissionDenied
 
 from core.audit import journaliser
+from core.i18n import Liste, msg
 from niveau1_socle.exercices.services import TransitionInterdite
 from niveau1_socle.habilitations.permissions import est_habilite
 from niveau1_socle.habilitations.separation import exiger_separation_des_taches
@@ -38,7 +39,7 @@ class VersionIntrouvable(LookupError):
 
 def _habilite(utilisateur, operation: str, project_id) -> None:
     if not est_habilite(utilisateur, operation, project_id):
-        raise PermissionDenied(f"Vous n'êtes pas habilité à « {operation} » sur ce projet.")
+        raise PermissionDenied(msg("budget.vous_etes_habilite_projet", operation=operation))
 
 
 def _verrou_projet(project_id) -> None:
@@ -60,7 +61,11 @@ def _exiger_brouillon(version: VersionBudget) -> VersionBudget:
     courante = VersionBudget.objects.get(pk=version.pk)
     if courante.status != StatutVersion.BROUILLON:
         raise TransitionInterdite(
-            f"La version {courante.numero} est {courante.status} : seul un brouillon se modifie"
+            msg(
+                "budget.version_seul_brouillon_modifie",
+                numero=courante.numero,
+                status=courante.status,
+            )
         )
     return courante
 
@@ -71,32 +76,23 @@ def creer_version(*, utilisateur, project_id, type: str, motif: str = "") -> Ver
     Une révision reprend les lignes de la version courante, à modifier ensuite dans le brouillon.
     """
     if type not in TypeVersion.values:
-        raise BudgetInvalide(f"type de version inconnu : {type}")
+        raise BudgetInvalide(msg("budget.type_version_inconnu", type=type))
     _habilite(utilisateur, "saisir", project_id)
     with transaction.atomic():
         _verrou_projet(project_id)
         existants = VersionBudget.objects.filter(project_id=project_id)
         if existants.filter(status=StatutVersion.BROUILLON).exists():
-            raise BudgetInvalide(
-                "Une version de budget est déjà en préparation pour ce projet : "
-                "approuvez-la ou supprimez-la avant d'en ouvrir une autre"
-            )
+            raise BudgetInvalide(msg("budget.version_budget_deja_preparation_projet"))
         parent = None
         if type == TypeVersion.INITIAL:
             if existants.exists():
-                raise BudgetInvalide(
-                    "Ce projet a déjà un budget initial : créez une révision ou une réallocation"
-                )
+                raise BudgetInvalide(msg("budget.projet_deja_budget_initial_creez"))
         else:
             if not (motif or "").strip():
-                raise BudgetInvalide(
-                    "Le motif est obligatoire pour une révision ou une réallocation"
-                )
+                raise BudgetInvalide(msg("budget.motif_obligatoire_revision_reallocation"))
             parent = version_courante(project_id)
             if parent is None:
-                raise BudgetInvalide(
-                    "Aucune version approuvée à réviser : approuvez d'abord le budget initial"
-                )
+                raise BudgetInvalide(msg("budget.aucune_version_approuvee_reviser_approuvez"))
         numero = (existants.order_by("-numero").values_list("numero", flat=True).first() or 0) + 1
         version = VersionBudget.objects.create(
             org_id=utilisateur.org_id,
@@ -157,13 +153,11 @@ def _axes(axes: dict | None) -> dict:
         plan = PlanDimension.objects.filter(kind="gestion", slot=emplacement).first()
         valeur = ValeurDimension.objects.filter(plan=plan, code=code).first() if plan else None
         if valeur is None or not valeur.is_active:
-            raise BudgetInvalide(
-                f"La valeur {code} n'existe pas (ou est inactive) sur l'axe {champ}"
-            )
+            raise BudgetInvalide(msg("budget.valeur_existe_inactive_axe", code=code, champ=champ))
         resolus[champ] = valeur
     inconnus = set(axes or {}) - {champ for champ, _ in AXES}
     if inconnus:
-        raise BudgetInvalide(f"axe inconnu : {sorted(inconnus)}")
+        raise BudgetInvalide(msg("budget.axe_inconnu", v1=sorted(inconnus)))
     return resolus
 
 
@@ -171,16 +165,16 @@ def _champs_de_ligne(version, *, annee, periode, montant, devise, taux, axes, id
     montant = Decimal(str(montant))
     taux = Decimal(str(taux))
     if montant < 0:
-        raise BudgetInvalide("Un montant de budget n'est jamais négatif")
+        raise BudgetInvalide(msg("budget.montant_budget_jamais_negatif"))
     if taux <= 0:
-        raise BudgetInvalide("Le taux de budget doit être strictement positif")
+        raise BudgetInvalide(msg("budget.taux_budget_doit_etre_strictement"))
     if periode is not None and not 1 <= periode <= 12:
-        raise BudgetInvalide("La période est comprise entre 1 et 12 (rien pour l'année entière)")
+        raise BudgetInvalide(msg("budget.periode_comprise_entre_1_12"))
     if not Devise.objects.filter(pk=devise).exists():
-        raise BudgetInvalide(f"Devise inconnue : {devise}")
+        raise BudgetInvalide(msg("budget.devise_inconnue", devise=devise))
     inconnus = set(identifiants) - set(IDENTIFIANTS_LIBRES)
     if inconnus:
-        raise BudgetInvalide(f"identifiant inconnu : {sorted(inconnus)}")
+        raise BudgetInvalide(msg("budget.identifiant_inconnu", v1=sorted(inconnus)))
     return {
         "annee": annee,
         "periode": periode,
@@ -233,7 +227,7 @@ def modifier_ligne(ligne: LigneBudget, *, utilisateur, montant, taux=None) -> Li
         taux = courante.taux_budget if taux is None else Decimal(str(taux))
         montant = Decimal(str(montant))
         if montant < 0 or taux <= 0:
-            raise BudgetInvalide("Montant négatif ou taux non positif")
+            raise BudgetInvalide(msg("budget.montant_negatif_taux_non_positif"))
         courante.montant = montant
         courante.taux_budget = taux
         courante.montant_base = _montant_base(montant, taux, courante.version.project_id)
@@ -293,19 +287,20 @@ def approuver_version(version: VersionBudget, *, utilisateur) -> VersionBudget:
         courante = VersionBudget.objects.select_for_update().get(pk=version.pk)
         if courante.status != StatutVersion.BROUILLON:
             raise TransitionInterdite(
-                f"La version {courante.numero} est {courante.status} : seul un brouillon s'approuve"
+                msg(
+                    "budget.version_seul_brouillon_s_approuve",
+                    numero=courante.numero,
+                    status=courante.status,
+                )
             )
         _habilite(utilisateur, "valider", courante.project_id)
         exiger_separation_des_taches(utilisateur, courante.created_by)
         raisons = _problemes_de_contenu(courante)
         if raisons:
-            raise BudgetInvalide("; ".join(raisons))
+            raise BudgetInvalide(Liste(raisons, "; "))
         actuelle = version_courante(courante.project_id)
         if (actuelle.pk if actuelle else None) != (courante.parent_id):
-            raise BudgetInvalide(
-                "Cette version a été préparée à partir d'une version qui n'est plus la courante : "
-                "abandonnez-la et reprenez depuis la version en vigueur"
-            )
+            raise BudgetInvalide(msg("budget.version_ete_preparee_partir_version"))
         maintenant = timezone.now()
         if actuelle is not None:  # AVANT d'approuver : une seule version courante à tout instant
             VersionBudget.objects.filter(pk=actuelle.pk).update(

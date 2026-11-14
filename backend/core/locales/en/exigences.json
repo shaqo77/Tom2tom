@@ -1,0 +1,21 @@
+{
+  "exigences.citation_designe_paragraphe_page": "The citation designates a paragraph or a page",
+  "exigences.citation_doit_contenir_extrait_exact": "The citation must contain the exact excerpt (“quote”)",
+  "exigences.citation_figure_document_mais_page": "The citation appears in the document, but not on the page given ({page})",
+  "exigences.citation_inverifiable": "Unverifiable citation: {erreur}",
+  "exigences.citation_objet_extrait_paragraphe_page": "The citation is an object: excerpt, paragraph or page",
+  "exigences.code_rubrique_exigence_obligatoires": "The code and the subject of the requirement are required",
+  "exigences.confiance_existe_exigence_proposee_assistant": "Confidence exists only for a requirement proposed by the assistant",
+  "exigences.document_reference_appartient_projet": "The referenced document does not belong to the project",
+  "exigences.document_remplace_citez_version_vigueur": "The document “{title}” has been replaced: cite the version in force",
+  "exigences.exigence_assistee_porte_confiance_entre": "An assisted requirement carries a confidence between 0 and 1",
+  "exigences.exigence_conditionnelle_precise_condition": "A conditional requirement states its condition",
+  "exigences.extrait_trop_court_designer_passage": "The excerpt is too short to designate a passage ({LONGUEUR_MINIMALE} characters at least)",
+  "exigences.obligation_inconnue": "unknown obligation: {obligation}",
+  "exigences.origine_inconnue": "unknown origin: {source}",
+  "exigences.page_existe_document_compte": "Page {page} does not exist (the document has {v1})",
+  "exigences.periodicite_inconnue": "unknown periodicity: {periodicity}",
+  "exigences.regle_objet": "The rule is an object",
+  "exigences.seule_exigence_proposee_s_etaye": "Only a proposed requirement can be supported (this one is “{status}”)",
+  "exigences.vous_etes_habilite_parametrer_projet": "You are not authorised to “parametrer” on this project."
+}

@@ -20,6 +20,7 @@ from dataclasses import dataclass, field
 from rest_framework.exceptions import PermissionDenied
 
 from core.audit import journaliser
+from core.i18n import msg
 from niveau1_socle.financements.models import Accord
 from niveau1_socle.habilitations.permissions import est_habilite
 from niveau1_socle.organisations.models import Projet, Utilisateur
@@ -332,7 +333,7 @@ def rendre_pdf(guide: Guide) -> bytes:
 def generer_guide(*, utilisateur, project_id, date: datetime.date) -> bytes:
     """Le PDF du guide ; l'opération est journalisée avec l'empreinte du document produit."""
     if not est_habilite(utilisateur, "consulter", project_id):
-        raise PermissionDenied("Vous n'êtes pas habilité à « consulter » ce projet.")
+        raise PermissionDenied(msg("guide.vous_etes_habilite_consulter_projet"))
     guide = construire_guide(project_id, date)
     contenu = rendre_pdf(guide)
     journaliser(

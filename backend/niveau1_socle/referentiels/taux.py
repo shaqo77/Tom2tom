@@ -3,6 +3,8 @@
 import datetime
 from decimal import Decimal
 
+from core.i18n import msg
+
 from .models import Taux
 
 
@@ -23,6 +25,6 @@ def taux_applicable(devise: str, date: datetime.date, type_taux: str) -> Decimal
     )
     if taux is None:
         raise TauxIntrouvable(
-            f"Aucun taux {type_taux!r} pour {devise} à la date du {date.isoformat()}"
+            msg("taux.aucun_taux_date", type_taux=type_taux, devise=devise, v1=date.isoformat())
         )
     return taux

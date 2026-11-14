@@ -129,7 +129,7 @@ def test_un_objet_actif_sans_rattachement_est_signale_par_le_systeme(cadre_confi
     organisation, projet, profils, _ = cadre_config
     mapping = _mapping(cadre_config)
     orphelins = detecter_configuration_orpheline(projet.id, DEBUT)
-    assert [(o.target_type, o.target_id, o.libelle, o.raison) for o in orphelins] == [
+    assert [(o.target_type, o.target_id, o.libelle, str(o.raison)) for o in orphelins] == [
         ("mapping", mapping.pk, "WB-TER v1", "aucun rattachement")
     ]
     with pytest.raises(ConfigurationOrpheline, match="mapping WB-TER v1 \\(aucun rattachement\\)"):
@@ -144,7 +144,7 @@ def test_une_exigence_non_active_ne_justifie_pas_un_objet_actif(cadre_config, st
     mapping = _mapping(cadre_config)
     _rattacher(cadre_config, _exigence(cadre_config, statut=statut), mapping)
     (orphelin,) = detecter_configuration_orpheline(cadre_config[1].id, DEBUT)
-    assert orphelin.raison == "rattaché seulement à des exigences non actives ou hors validité"
+    assert str(orphelin.raison) == "rattaché seulement à des exigences non actives ou hors validité"
 
 
 def test_une_exigence_hors_de_sa_validite_ne_justifie_plus(cadre_config):
@@ -154,7 +154,7 @@ def test_une_exigence_hors_de_sa_validite_ne_justifie_plus(cadre_config):
     projet = cadre_config[1]
     assert detecter_configuration_orpheline(projet.id, datetime.date(2026, 6, 30)) == []
     (orphelin,) = detecter_configuration_orpheline(projet.id, datetime.date(2026, 7, 1))
-    assert orphelin.raison.startswith("rattaché seulement")  # valid_to est exclu
+    assert str(orphelin.raison).startswith("rattaché seulement")  # valid_to est exclu
 
 
 def test_il_suffit_d_une_exigence_active_parmi_plusieurs(cadre_config):

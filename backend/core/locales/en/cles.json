@@ -1,0 +1,9 @@
+{
+  "cles.accord": "Agreement {numero} is {status}",
+  "cles.accord_appartient_projet_cle": "Agreement {numero} does not belong to the key's project",
+  "cles.cle_moins_part": "A key has at least one share",
+  "cles.nouvelle_version_doit_prendre_effet": "The new version must take effect after {valid_from}",
+  "cles.porteur_arrondi_doit_etre_accords": "The rounding holder must be one of the key's agreements",
+  "cles.sens_inconnu_debit_credit": "unknown direction: debit or credit",
+  "cles.vous_etes_habilite_parametrer_projet": "You are not authorised to “parametrer” on this project."
+}

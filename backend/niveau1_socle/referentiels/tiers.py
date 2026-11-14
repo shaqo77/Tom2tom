@@ -12,6 +12,7 @@ from django.db import transaction
 from django.utils import timezone
 
 from core.audit import journaliser
+from core.i18n import msg
 
 from .models import Tiers
 
@@ -29,7 +30,7 @@ class AnonymisationImpossible(ValueError):
 def _lire(code: str) -> Tiers:
     tiers = Tiers.objects.filter(code=code).first()
     if tiers is None:
-        raise TiersIntrouvable(f"Le tiers {code} n'existe pas")
+        raise TiersIntrouvable(msg("tiers.tiers_existe", code=code))
     return tiers
 
 
@@ -77,8 +78,7 @@ def anonymiser_tiers(tiers: Tiers, *, utilisateur, aujourdhui: datetime.date) ->
             or courant.anonymise_le is not None
         ):
             raise AnonymisationImpossible(
-                f"Le tiers {courant.code} ne peut pas être anonymisé : "
-                "il doit être inactif, sa rétention échue, et ne pas l'être déjà"
+                msg("tiers.tiers_peut_etre_anonymise_il", code=courant.code)
             )
         courant.nom = NOM_ANONYME
         courant.identification = {}

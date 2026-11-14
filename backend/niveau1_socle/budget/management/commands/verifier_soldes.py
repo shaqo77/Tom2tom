@@ -7,6 +7,7 @@ d'audit en cas de divergence : c'est ce code de sortie que l'ordonnanceur transf
 from django.core.management.base import BaseCommand, CommandError
 from django.db import connection
 
+from core.i18n import msg
 from niveau1_socle.budget.soldes import verifier_soldes
 
 
@@ -27,5 +28,7 @@ class Command(BaseCommand):
                     f"ligne {d.ligne_id} : consommé {d.consomme_incremental} ≠ "
                     f"{d.consomme_calcule}, engagé {d.engage_incremental} ≠ {d.engage_calcule}"
                 )
-            raise CommandError(f"{len(divergences)} solde(s) budgétaire(s) divergent(s)")
+            raise CommandError(
+                msg("verifier_soldes.solde_s_budgetaire_s_divergent", v1=len(divergences))
+            )
         self.stdout.write("Soldes budgétaires cohérents.")

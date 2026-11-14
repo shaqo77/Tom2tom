@@ -17,6 +17,7 @@ from django.utils import timezone
 from rest_framework.exceptions import PermissionDenied
 
 from core.audit import journaliser
+from core.i18n import msg
 from niveau1_socle.financements.models import Bailleur
 from niveau1_socle.habilitations.models import Habilitation
 from niveau1_socle.habilitations.permissions import est_habilite
@@ -51,28 +52,28 @@ def _habilite(utilisateur) -> None:
     if not Habilitation.objects.filter(
         user_id=utilisateur.id, role__operations__contains=["parametrer"]
     ).exists():
-        raise PermissionDenied("Vous n'êtes pas habilité à « parametrer ».")
+        raise PermissionDenied(msg("profils.vous_etes_habilite_parametrer"))
 
 
 def _valider_exigence_type(payload) -> None:
     if not isinstance(payload, dict):
-        raise ProfilInvalide("L'exigence d'un élément est un objet")
+        raise ProfilInvalide(msg("profils.exigence_element_objet"))
     inconnus = set(payload) - CHAMPS_EXIGENCE
     if inconnus:
         raise ProfilInvalide(f"Champs d'exigence inconnus : {sorted(inconnus)}")
     if not str(payload.get("subject", "")).strip():
-        raise ProfilInvalide("L'exigence d'un élément a une rubrique (`subject`)")
+        raise ProfilInvalide(msg("profils.exigence_element_rubrique_subject"))
     if not isinstance(payload.get("rule", {}), dict):
-        raise ProfilInvalide("La règle de l'exigence est un objet")
+        raise ProfilInvalide(msg("profils.regle_exigence_objet"))
     if payload.get("obligation", Obligation.OBLIGATOIRE) not in Obligation.values:
-        raise ProfilInvalide(f"obligation inconnue : {payload.get('obligation')}")
+        raise ProfilInvalide(msg("profils.obligation_inconnue", v1=payload.get("obligation")))
     if payload.get("periodicity") not in (None, *Periodicite.values):
-        raise ProfilInvalide(f"périodicité inconnue : {payload.get('periodicity')}")
+        raise ProfilInvalide(msg("profils.periodicite_inconnue", v1=payload.get("periodicity")))
     if (
         payload.get("obligation") == Obligation.CONDITIONNELLE
         and not str(payload.get("condition_expr") or "").strip()
     ):
-        raise ProfilInvalide("Une exigence conditionnelle précise sa condition")
+        raise ProfilInvalide(msg("profils.exigence_conditionnelle_precise_condition"))
 
 
 def creer_profil_bailleur(
@@ -86,7 +87,7 @@ def creer_profil_bailleur(
 ) -> ProfilBailleur:
     _habilite(utilisateur)
     if not (code or "").strip() or not isinstance(label, dict) or not label:
-        raise ProfilInvalide("Le code et le libellé (JSON par langue) du profil sont obligatoires")
+        raise ProfilInvalide(msg("profils.code_libelle_json_langue_profil"))
     with transaction.atomic():
         profil = ProfilBailleur.objects.create(
             org_id=utilisateur.org_id,
@@ -121,15 +122,15 @@ def ajouter_element(
 ) -> ElementProfil:
     _habilite(utilisateur)
     if kind not in TypeElement.values:
-        raise ProfilInvalide(f"type d'élément inconnu : {kind}")
+        raise ProfilInvalide(msg("profils.type_element_inconnu", kind=kind))
     if not (code or "").strip() or not isinstance(label, dict) or not label:
-        raise ProfilInvalide("Le code et le libellé de l'élément sont obligatoires")
+        raise ProfilInvalide(msg("profils.code_libelle_element_obligatoires"))
     if exigence is not None:
         _valider_exigence_type(exigence)
     with transaction.atomic():
         profil = ProfilBailleur.objects.select_for_update().get(pk=profil.pk)
         if profil.status != StatutProfilBailleur.BROUILLON:
-            raise ProfilInvalide("Un profil publié ne reçoit plus d'élément : publiez une version")
+            raise ProfilInvalide(msg("profils.profil_publie_recoit_plus_element"))
         return ElementProfil.objects.create(
             org_id=profil.org_id,
             profil=profil,
@@ -148,9 +149,9 @@ def publier_profil(*, utilisateur, profil: ProfilBailleur) -> ProfilBailleur:
     with transaction.atomic():
         profil = ProfilBailleur.objects.select_for_update().get(pk=profil.pk)
         if profil.status != StatutProfilBailleur.BROUILLON:
-            raise ProfilInvalide("Ce profil est déjà publié")
+            raise ProfilInvalide(msg("profils.profil_deja_publie"))
         if not profil.elements.exists():
-            raise ProfilInvalide("Un profil sans aucun élément ne se publie pas")
+            raise ProfilInvalide(msg("profils.profil_sans_aucun_element_publie"))
         profil.status = StatutProfilBailleur.PUBLIE
         profil.published_by = utilisateur.id
         profil.published_at = timezone.now()
@@ -219,14 +220,14 @@ def importer_profil(
     devront être étayées. Importer deux fois ne duplique rien.
     """
     if not est_habilite(utilisateur, "parametrer", project_id):
-        raise PermissionDenied("Vous n'êtes pas habilité à « parametrer » sur ce projet.")
+        raise PermissionDenied(msg("profils.vous_etes_habilite_parametrer_projet"))
     if profil.status != StatutProfilBailleur.PUBLIE:
-        raise ProfilInvalide("Seul un profil publié se met à disposition d'un projet")
+        raise ProfilInvalide(msg("profils.seul_profil_publie_met_disposition"))
     if document.project_id != project_id:
-        raise ProfilInvalide("Le document n'appartient pas au projet")
+        raise ProfilInvalide(msg("profils.document_appartient_projet"))
     if document.superseded_by_id is not None:
         raise ProfilInvalide(
-            f"Le document « {document.title} » est remplacé : désignez la version en vigueur"
+            msg("profils.document_remplace_designez_version_vigueur", title=document.title)
         )
     resultat = ResultatImport()
     with transaction.atomic():

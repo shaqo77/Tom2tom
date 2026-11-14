@@ -1,0 +1,7 @@
+{
+  "decision.parametres_inconnus": "paramètres inconnus : {v1}",
+  "decision.parametres_objet": "les paramètres sont un objet",
+  "decision.seule_regle_pieces_porte_parametres": "seule une règle de pièces porte des paramètres",
+  "decision.type_piece_type_piece_exigee": "« type_piece » est le type de la pièce exigée",
+  "decision.validee_booleen": "« validee » est un booléen"
+}

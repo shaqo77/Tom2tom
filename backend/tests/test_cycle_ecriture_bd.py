@@ -224,7 +224,7 @@ def test_valider_refuse_une_ecriture_vide_ou_a_zero_et_liste_toutes_les_raisons(
     vide = _saisir(projet, profils["amina"], lignes=[])
     with pytest.raises(EcritureInvalide) as erreur:
         valider_ecriture(vide, utilisateur=profils["bruno"])
-    assert any("deux lignes" in raison for raison in erreur.value.raisons)
+    assert any("deux lignes" in str(raison) for raison in erreur.value.raisons)
 
     zero = _saisir(
         projet,

@@ -78,7 +78,7 @@ def test_des_allocations_au_dela_du_montant_de_laccord_bloquent(cfg):
             (cat["biens"], "0.8", {"allocation": M(600)}),
         ],
     )
-    manque = {a.code: a.message for a in verifier_completude(profil).bloquantes}
+    manque = {a.code: str(a.message) for a in verifier_completude(profil).bloquantes}
     assert "1200" in manque["allocations_excessives"] and "1000" in manque["allocations_excessives"]
 
 
@@ -103,7 +103,7 @@ def test_des_dates_incoherentes_bloquent(cfg):
     profil = _profil(cfg, statut="draft")
     profil.valid_to = profil.valid_from  # en mémoire : la base ne laisserait pas l'enregistrer
     profil.eligibility_date, profil.closing_date = D(2027, 1, 1), D(2026, 6, 1)
-    messages = [a.message for a in verifier_completude(profil).bloquantes]
+    messages = [str(a.message) for a in verifier_completude(profil).bloquantes]
     assert any("fin de validité" in m for m in messages)
     assert any("eligibility_date" in m and "closing_date" in m for m in messages)
 

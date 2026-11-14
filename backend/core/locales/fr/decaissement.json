@@ -1,0 +1,9 @@
+{
+  "decaissement.delai_decaissement_depasse_date_limite": "Le délai de décaissement est dépassé : date limite {disbursement_deadline}, demande du {date_demande}",
+  "decaissement.depense_anterieure_date_eligibilite_profil": "La dépense du {date_depense} est antérieure à la date d'éligibilité du profil ({eligibility_date}) : elle n'est pas finançable",
+  "decaissement.depense_anterieure_debut_eligibilite_categorie": "La dépense du {date_depense} est antérieure au début d'éligibilité de la catégorie ({eligibility_from})",
+  "decaissement.depense_posterieure_fin_eligibilite_categorie": "La dépense du {date_depense} est postérieure à la fin d'éligibilité de la catégorie ({eligibility_to})",
+  "decaissement.depense_taxes_positives_taxes_depassant": "Une dépense et ses taxes sont positives, les taxes ne dépassant pas la dépense",
+  "decaissement.montant_minimum_pourcentage_plafond_compte": "Le montant minimum est un pourcentage du plafond du compte désigné, mais aucun plafond fixe n'est paramétré dans le profil",
+  "decaissement.taux_financement_0_1": "Un taux de financement est dans ]0 ; 1]"
+}

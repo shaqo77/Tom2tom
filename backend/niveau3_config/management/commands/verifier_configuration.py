@@ -9,6 +9,7 @@ import datetime
 from django.core.management.base import BaseCommand, CommandError
 from django.db import connection
 
+from core.i18n import msg
 from niveau3_config.services.rattachement import detecter_configuration_orpheline
 
 
@@ -28,5 +29,7 @@ class Command(BaseCommand):
         if orphelins:
             for o in orphelins:
                 self.stderr.write(f"{o.target_type} {o.libelle} ({o.target_id}) : {o.raison}")
-            raise CommandError(f"{len(orphelins)} objet(s) de configuration sans exigence source")
+            raise CommandError(
+                msg("verifier_configuration.objet_s_configuration_sans_exigence", v1=len(orphelins))
+            )
         self.stdout.write("Toute la configuration active a son exigence source.")

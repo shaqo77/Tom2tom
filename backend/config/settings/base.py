@@ -50,6 +50,7 @@ MIDDLEWARE = [
     "django.contrib.sessions.middleware.SessionMiddleware",
     "django.middleware.common.CommonMiddleware",
     "django.contrib.auth.middleware.AuthenticationMiddleware",
+    "core.middleware.LangueMiddleware",
     "core.middleware.OrganisationScopeMiddleware",
 ]
 
@@ -95,5 +96,7 @@ VERIFIER_ROLE_APPLICATIF = True
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 USE_TZ = True
 LANGUAGE_CODE = "fr"
-LANGUAGES = [("fr", "Français"), ("en", "English"), ("ar", "العربية")]
+# Le français et l'anglais pour l'instant ; l'arabe viendra (il exige aussi une police de PDF).
+LANGUAGES = [("fr", "Français"), ("en", "English")]
+USE_I18N = True
 STATIC_URL = "static/"

@@ -1,0 +1,14 @@
+{
+  "avances.aucun_delai_justification_parametre_date": "Aucun délai de justification n'est paramétré à la date du {date_versement} : paramétrez-le ou précisez le délai de cette avance",
+  "avances.avance_justifier_avant": "Avance {reference} ({code}) : {reste} à justifier avant le {echeance}",
+  "avances.avance_montant_strictement_positif": "Une avance a un montant strictement positif",
+  "avances.avance_non_justifie_echue_depuis": "Avance {reference} ({code}) : {reste} non justifié, échue depuis {jours_de_retard} jour(s) (échéance {echeance})",
+  "avances.delai_nombre_entier_jours_strictement": "Le délai est un nombre entier de jours strictement positif",
+  "avances.depense_justifie_piece_indiquez_reference": "Une dépense se justifie par une pièce : indiquez sa référence",
+  "avances.justification_montant_strictement_positif": "Une justification a un montant strictement positif",
+  "avances.nouvelle_version_doit_prendre_effet": "La nouvelle version doit prendre effet après le {valid_from}",
+  "avances.on_justifie_plus_avance_reste": "On ne justifie pas plus que l'avance : reste {v1}, {montant} demandé",
+  "avances.reference_avance_obligatoire": "La référence de l'avance est obligatoire",
+  "avances.type_justification_inconnu": "type de justification inconnu : {type}",
+  "avances.vous_etes_habilite_projet": "Vous n'êtes pas habilité à « {operation} » sur ce projet."
+}

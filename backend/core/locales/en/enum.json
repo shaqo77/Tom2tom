@@ -1,0 +1,12 @@
+{
+  "enum.methode_decaissement.advance": "advance",
+  "enum.methode_decaissement.direct_payment": "direct payment",
+  "enum.methode_decaissement.reimbursement": "reimbursement",
+  "enum.methode_decaissement.special_commitment": "special commitment",
+  "enum.operation.demande_decaissement": "disbursement application",
+  "enum.operation.imputation": "posting",
+  "enum.piece_exigee.ifr": "interim financial report",
+  "enum.piece_exigee.records": "copies of supporting documents",
+  "enum.piece_exigee.soe": "certified statement of expenditure",
+  "enum.piece_exigee.summary_sheet": "summary sheet"
+}

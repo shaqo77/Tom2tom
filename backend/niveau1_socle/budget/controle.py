@@ -23,6 +23,7 @@ from decimal import Decimal
 from django.db import connection, transaction
 
 from core.audit import journaliser
+from core.i18n import msg
 
 from .models import AXES_CONTROLE, ControleBudgetaire, ModeControle
 from .services import BudgetInvalide, _habilite
@@ -107,9 +108,9 @@ def parametrer_controle(
     Habilitation `parametrer`. Jamais de modification en place.
     """
     if axe not in AXES_CONTROLE:
-        raise BudgetInvalide(f"axe de contrôle inconnu : {axe}")
+        raise BudgetInvalide(msg("controle.axe_controle_inconnu", axe=axe))
     if mode not in ModeControle.values:
-        raise BudgetInvalide(f"mode de contrôle inconnu : {mode}")
+        raise BudgetInvalide(msg("controle.mode_controle_inconnu", mode=mode))
     _habilite(utilisateur, "parametrer", project_id)
     with transaction.atomic():
         with connection.cursor() as cur:  # une seule modification à la fois par axe
@@ -122,8 +123,10 @@ def parametrer_controle(
         if en_cours is not None:
             if date_effet <= en_cours.valid_from:
                 raise BudgetInvalide(
-                    f"La nouvelle version doit prendre effet après le {en_cours.valid_from} "
-                    "(début de la version en cours)"
+                    msg(
+                        "controle.nouvelle_version_doit_prendre_effet",
+                        valid_from=en_cours.valid_from,
+                    )
                 )
             ControleBudgetaire.objects.filter(pk=en_cours.pk).update(valid_to=date_effet)
         numero = (versions.order_by("-version").values_list("version", flat=True).first() or 0) + 1

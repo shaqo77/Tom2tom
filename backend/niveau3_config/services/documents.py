@@ -18,6 +18,7 @@ from django.db import IntegrityError, transaction
 from rest_framework.exceptions import PermissionDenied
 
 from core.audit import journaliser
+from core.i18n import msg
 from niveau1_socle.habilitations.permissions import est_habilite
 
 from .. import stockage
@@ -40,14 +41,14 @@ class IntegriteDocument(ValueError):
 
 def _habilite(utilisateur, operation: str, project_id) -> None:
     if not est_habilite(utilisateur, operation, project_id):
-        raise PermissionDenied(f"Vous n'êtes pas habilité à « {operation} » sur ce projet.")
+        raise PermissionDenied(msg("documents.vous_etes_habilite_projet", operation=operation))
 
 
 def _verifier_contenu(contenu: bytes) -> None:
     if not isinstance(contenu, bytes | bytearray) or len(contenu) == 0:
-        raise DocumentInvalide("Le fichier est vide")
+        raise DocumentInvalide(msg("documents.fichier_vide"))
     if len(contenu) > TAILLE_MAX:
-        raise DocumentInvalide(f"Le fichier dépasse {TAILLE_MAX // (1024 * 1024)} Mio")
+        raise DocumentInvalide(msg("documents.fichier_depasse_mio", v1=TAILLE_MAX // (1024 * 1024)))
 
 
 def enregistrer_document(
@@ -68,9 +69,9 @@ def enregistrer_document(
     """
     _habilite(utilisateur, "parametrer", project_id)
     if kind not in TypeDocument.values:
-        raise DocumentInvalide(f"type de document inconnu : {kind}")
+        raise DocumentInvalide(msg("documents.type_document_inconnu", kind=kind))
     if not (title or "").strip():
-        raise DocumentInvalide("Le titre du document est obligatoire")
+        raise DocumentInvalide(msg("documents.titre_document_obligatoire"))
     _verifier_contenu(contenu)
     contenu = bytes(contenu)
     digest = stockage.empreinte(contenu)
@@ -82,9 +83,13 @@ def enregistrer_document(
             if bytes(existant.sha256) == digest:
                 return existant
             raise DocumentModifie(
-                f"Le document « {title.strip()} » (version {version or 'sans numéro'}) est déjà "
-                f"enregistré avec l'empreinte {bytes(existant.sha256).hex()[:16]}… ; ce fichier "
-                f"porte {digest.hex()[:16]}… : un document modifié est une nouvelle version"
+                msg(
+                    "documents.document_version_deja_enregistre_empreinte",
+                    v1=title.strip(),
+                    v2=version or "sans numéro",
+                    v3=bytes(existant.sha256).hex()[:16],
+                    v4=digest.hex()[:16],
+                )
             )
         ref = stockage.deposer(utilisateur.org_id, contenu)
         try:
@@ -106,7 +111,7 @@ def enregistrer_document(
             )
             if bytes(document.sha256) != digest:
                 raise DocumentModifie(
-                    "Ce document vient d'être enregistré avec un autre contenu"
+                    msg("documents.document_vient_etre_enregistre_autre")
                 ) from None
             return document
         journaliser(
@@ -143,11 +148,11 @@ def remplacer_document(
     """
     _habilite(utilisateur, "parametrer", ancien.project_id)
     if not (version or "").strip():
-        raise DocumentInvalide("La nouvelle version doit être numérotée")
+        raise DocumentInvalide(msg("documents.nouvelle_version_doit_etre_numerotee"))
     with transaction.atomic():
         courant = DocumentReference.objects.select_for_update().get(pk=ancien.pk)
         if courant.superseded_by_id is not None:
-            raise DocumentInvalide(f"Le document « {courant.title} » est déjà remplacé")
+            raise DocumentInvalide(msg("documents.document_deja_remplace", title=courant.title))
         nouveau = enregistrer_document(
             utilisateur=utilisateur,
             project_id=courant.project_id,
@@ -158,7 +163,7 @@ def remplacer_document(
             issued_on=issued_on,
         )
         if nouveau.pk == courant.pk or bytes(nouveau.sha256) == bytes(courant.sha256):
-            raise DocumentInvalide("Le nouveau fichier est identique à celui qu'il remplace")
+            raise DocumentInvalide(msg("documents.nouveau_fichier_identique_celui_il"))
         DocumentReference.objects.filter(pk=courant.pk).update(superseded_by=nouveau)
         journaliser(
             org_id=courant.org_id,

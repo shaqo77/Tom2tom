@@ -1,11 +1,14 @@
-"""Codes d'erreur stables, en français, renvoyés par l'API. Voir L6-T01.
+"""Codes d'erreur stables renvoyés par l'API. Voir L6-T01.
 
-Un code est un contrat : on peut en ajouter, jamais en renommer. Les messages ne révèlent jamais
-l'existence de données d'une autre organisation : un objet qui n'est pas visible par la RLS est
-« introuvable », exactement comme un objet qui n'existe pas.
+Un code est un contrat : on peut en ajouter, jamais en renommer. Le MESSAGE accompagne le code
+dans la langue de la requête (voir `core/i18n.py`). Il ne révèle jamais l'existence de données
+d'une autre organisation : un objet que la RLS ne montre pas est « introuvable », exactement comme
+un objet qui n'existe pas.
 """
 
 from enum import StrEnum
+
+from .i18n import Message, texte
 
 
 class CodeErreur(StrEnum):
@@ -24,12 +27,16 @@ class CodeErreur(StrEnum):
 
 
 class ErreurMetier(ValueError):
-    """Une erreur de règle métier, portant son code stable."""
+    """Une erreur de règle métier : un code stable et un message (catalogué ou brut)."""
 
-    def __init__(self, code: CodeErreur, message: str):
+    def __init__(self, code: CodeErreur, message: Message | str):
         super().__init__(message)
         self.code = CodeErreur(code)
-        self.message = message
 
-    def vers_dict(self) -> dict:
-        return {"code": self.code.value, "message": self.message}
+    @property
+    def message(self) -> str:
+        """Le message dans la langue active."""
+        return texte(self)
+
+    def vers_dict(self, langue: str | None = None) -> dict:
+        return {"code": self.code.value, "message": texte(self, langue)}

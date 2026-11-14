@@ -1,0 +1,22 @@
+{
+  "controles.code_libelle_controle_requis": "The code and the label of the check are required",
+  "controles.controle_actif": "Check {code} is not active on {date_operation}",
+  "controles.controle_automatique_expression": "An automatic check has an expression",
+  "controles.controle_bloquant": "blocking check",
+  "controles.controle_verifier_main_expression": "A check to be verified by hand has no expression",
+  "controles.controle_version_active_couvre_deja": "Check {code}: an active version already covers this period",
+  "controles.controles_inconnus_bibliotheque": "Checks unknown to the library: {inconnus}",
+  "controles.controles_traiter": "Checks to deal with: {detail}",
+  "controles.decision_inconnue": "Unknown decision: {decision}",
+  "controles.decision_motivee": "A decision is reasoned",
+  "controles.declare_non_conforme": "declared non-compliant",
+  "controles.declencheur_exige_utilisateur_service_deux": "A trigger is required: a user or a service, not both",
+  "controles.en_attente_ligne": "{code} ({raison})",
+  "controles.regle_invalide": "Invalid rule: {erreur}",
+  "controles.rejet_exige_motif": "A rejection requires a reason",
+  "controles.seul_controle_verifier_tranche_celui": "Only a check “to be verified” can be decided (this one is “{resultat}”)",
+  "controles.severite_inconnue": "Unknown severity: {severity}",
+  "controles.type_regle_inconnu": "rule type “{type_regle}” is unknown",
+  "controles.verification_humaine_non_tranchee": "human verification not yet decided",
+  "controles.vous_etes_habilite_projet": "You are not authorised to “{operation}” on this project."
+}

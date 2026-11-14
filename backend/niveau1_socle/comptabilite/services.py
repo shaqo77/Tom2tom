@@ -20,6 +20,7 @@ from django.utils import timezone
 from rest_framework.exceptions import PermissionDenied
 
 from core.audit import journaliser
+from core.i18n import Liste, msg
 from niveau1_socle.exercices.models import Periode
 from niveau1_socle.exercices.services import TransitionInterdite
 from niveau1_socle.financements.models import Accord
@@ -58,7 +59,7 @@ class EcritureInvalide(ValueError):
 
     def __init__(self, raisons: list[str]):
         self.raisons = raisons
-        super().__init__(" ; ".join(raisons))
+        super().__init__(Liste(raisons))
 
 
 class PeriodeIntrouvable(LookupError):
@@ -83,14 +84,17 @@ class ContrepassationImpossible(ValueError):
 
 def _exiger_habilitation(utilisateur, operation: str, project_id) -> None:
     if not est_habilite(utilisateur, operation, project_id):
-        raise PermissionDenied(f"Vous n'êtes pas habilité à « {operation} » sur ce projet.")
+        raise PermissionDenied(msg("comptabilite.vous_etes_habilite_projet", operation=operation))
 
 
 def _exiger_periode_ouverte(periode: Periode) -> None:
     if periode.status != "ouverte":
         raise PeriodeNonOuverte(
-            f"La période {periode.numero} est {periode.status} : aucune écriture ne peut y être "
-            "saisie ni comptabilisée"
+            msg(
+                "comptabilite.periode_aucune_ecriture_peut_y",
+                numero=periode.numero,
+                status=periode.status,
+            )
         )
 
 
@@ -106,7 +110,7 @@ def _periode_pour(project_id, date_comptable: datetime.date) -> Periode:
     )
     if periode is None:
         raise PeriodeIntrouvable(
-            f"Aucune période du projet ne couvre le {date_comptable.isoformat()}"
+            msg("comptabilite.aucune_periode_projet_couvre", v1=date_comptable.isoformat())
         )
     return periode
 
@@ -178,7 +182,7 @@ def saisir_ecriture(
 
     jrn = Journal.objects.filter(code=journal).first()
     if jrn is None:
-        raise JournalIntrouvable(f"Le journal {journal} n'existe pas")
+        raise JournalIntrouvable(msg("comptabilite.journal_existe", journal=journal))
     periode = _periode_pour(project_id, date_comptable)
     _exiger_periode_ouverte(periode)
 
@@ -271,9 +275,7 @@ def _problemes_de_contenu(ecriture: Ecriture) -> list[str]:
             _signature(ligne, inverse=True) for ligne in ecriture.reverses.lignes.all()
         )
         if miroir != Counter(_signature(ligne) for ligne in lignes):
-            raisons.append(
-                "La contre-passation ne reproduit pas l'écriture d'origine en sens inverse"
-            )
+            raisons.append(msg("comptabilite.contre_passation_reproduit_ecriture_origine"))
     if ecriture.origin != "reversal":  # une correction de l'historique reste possible
         statuts = dict(
             Accord.objects.filter(
@@ -284,28 +286,46 @@ def _problemes_de_contenu(ecriture: Ecriture) -> list[str]:
             statut = statuts.get(ligne.agreement_id)
             if statut is not None and statut != "actif":
                 raisons.append(
-                    f"Ligne {ligne.line_no} : l'accord est {statut}, il ne reçoit plus d'imputation"
+                    msg(
+                        "comptabilite.ligne_accord_il_recoit_plus",
+                        line_no=ligne.line_no,
+                        statut=statut,
+                    )
                 )
     if len(lignes) < 2:
-        raisons.append("Une écriture compte au moins deux lignes")
+        raisons.append(msg("comptabilite.ecriture_compte_moins_deux_lignes"))
     if lignes and sum((ligne.debit for ligne in lignes), ZERO) == ZERO:
-        raisons.append("Une écriture à montant nul n'a pas de sens")
+        raisons.append(msg("comptabilite.ecriture_montant_nul_sens"))
     for ligne in lignes:
         compte = ligne.account
         if not compte.imputable:
-            raisons.append(f"Ligne {ligne.line_no} : le compte {compte.code} n'est pas imputable")
+            raisons.append(
+                msg("comptabilite.ligne_compte_imputable", line_no=ligne.line_no, code=compte.code)
+            )
         if not compte.actif:
-            raisons.append(f"Ligne {ligne.line_no} : le compte {compte.code} est inactif")
+            raisons.append(
+                msg("comptabilite.ligne_compte_inactif", line_no=ligne.line_no, code=compte.code)
+            )
         for champ, _, _ in AXES:
             valeur = getattr(ligne, champ)
             if valeur is None:
                 continue
             if not valeur.is_postable:
                 raisons.append(
-                    f"Ligne {ligne.line_no} : la valeur {valeur.code} n'est pas imputable"
+                    msg(
+                        "comptabilite.ligne_valeur_imputable",
+                        line_no=ligne.line_no,
+                        code=valeur.code,
+                    )
                 )
             if not valeur.is_active:
-                raisons.append(f"Ligne {ligne.line_no} : la valeur {valeur.code} est inactive")
+                raisons.append(
+                    msg(
+                        "comptabilite.ligne_valeur_inactive",
+                        line_no=ligne.line_no,
+                        code=valeur.code,
+                    )
+                )
     return raisons
 
 
@@ -319,8 +339,12 @@ def _transition(
         )
         if courante.status != attendu:
             raise TransitionInterdite(
-                f"L'écriture est {courante.status} : seule une écriture {attendu} peut passer à "
-                f"{nouveau}"
+                msg(
+                    "comptabilite.ecriture_seule_ecriture_peut_passer",
+                    status=courante.status,
+                    attendu=attendu,
+                    nouveau=nouveau,
+                )
             )
         _exiger_habilitation(utilisateur, operation, courante.project_id)
         controle_supplementaire(courante)
@@ -462,18 +486,20 @@ def contre_passer(
         _exiger_habilitation(utilisateur, "saisir", originale.project_id)
         if originale.status not in ("posted", "locked"):
             raise TransitionInterdite(
-                f"L'écriture est {originale.status} : on ne contre-passe qu'une écriture "
-                "comptabilisée"
+                msg("comptabilite.ecriture_on_contre_passe_ecriture", status=originale.status)
             )
         if originale.origin == "reversal":
             raise ContrepassationImpossible(
-                "Une contre-passation ne se contre-passe pas : saisissez une nouvelle écriture"
+                msg("comptabilite.contre_passation_contre_passe_saisissez")
             )
         existante = Ecriture.objects.filter(reverses=originale).first()
         if existante is not None:
             raise DejaContrepassee(
-                f"L'écriture {originale.number} est déjà contre-passée "
-                f"({existante.number or 'brouillon ' + str(existante.pk)})"
+                msg(
+                    "comptabilite.ecriture_deja_contre_passee",
+                    number=originale.number,
+                    v1=existante.number or "brouillon " + str(existante.pk),
+                )
             )
 
         date = date_comptable or originale.accounting_date
@@ -482,7 +508,7 @@ def contre_passer(
             _exiger_periode_ouverte(periode)
         except PeriodeNonOuverte as erreur:
             raise PeriodeNonOuverte(
-                f"{erreur}. Précisez une date comptable dans une période ouverte."
+                msg("comptabilite.precisez_date_comptable_periode_ouverte", erreur=erreur)
             ) from erreur
 
         inverse = _creer_inverse(

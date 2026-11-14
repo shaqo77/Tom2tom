@@ -1,0 +1,11 @@
+{
+  "engagements.engagement_il_s_annule_plus": "L'engagement {reference} est {status} : il ne s'annule plus",
+  "engagements.engagement_montant_strictement_positif": "Un engagement a un montant strictement positif",
+  "engagements.engagement_on_apure_engagement_ouvert": "L'engagement {reference} est {status} : on n'apure qu'un engagement ouvert",
+  "engagements.identifiant_inconnu": "identifiant inconnu : {v1}",
+  "engagements.montant_apurer_strictement_positif": "Le montant à apurer est strictement positif",
+  "engagements.motif_annulation_obligatoire": "Le motif d'annulation est obligatoire",
+  "engagements.on_peut_apurer_plus_reste": "On ne peut apurer plus que le reste de l'engagement ({reste}) : {montant} demandé",
+  "engagements.periode_comprise_entre_1_12": "La période est comprise entre 1 et 12 (rien pour l'année entière)",
+  "engagements.reference_engagement_obligatoire": "La référence de l'engagement est obligatoire"
+}

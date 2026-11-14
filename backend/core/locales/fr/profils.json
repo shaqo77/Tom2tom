@@ -1,0 +1,19 @@
+{
+  "profils.code_libelle_element_obligatoires": "Le code et le libellé de l'élément sont obligatoires",
+  "profils.code_libelle_json_langue_profil": "Le code et le libellé (JSON par langue) du profil sont obligatoires",
+  "profils.document_appartient_projet": "Le document n'appartient pas au projet",
+  "profils.document_remplace_designez_version_vigueur": "Le document « {title} » est remplacé : désignez la version en vigueur",
+  "profils.exigence_conditionnelle_precise_condition": "Une exigence conditionnelle précise sa condition",
+  "profils.exigence_element_objet": "L'exigence d'un élément est un objet",
+  "profils.exigence_element_rubrique_subject": "L'exigence d'un élément a une rubrique (`subject`)",
+  "profils.obligation_inconnue": "obligation inconnue : {v1}",
+  "profils.periodicite_inconnue": "périodicité inconnue : {v1}",
+  "profils.profil_deja_publie": "Ce profil est déjà publié",
+  "profils.profil_publie_recoit_plus_element": "Un profil publié ne reçoit plus d'élément : publiez une version",
+  "profils.profil_sans_aucun_element_publie": "Un profil sans aucun élément ne se publie pas",
+  "profils.regle_exigence_objet": "La règle de l'exigence est un objet",
+  "profils.seul_profil_publie_met_disposition": "Seul un profil publié se met à disposition d'un projet",
+  "profils.type_element_inconnu": "type d'élément inconnu : {kind}",
+  "profils.vous_etes_habilite_parametrer": "Vous n'êtes pas habilité à « parametrer ».",
+  "profils.vous_etes_habilite_parametrer_projet": "Vous n'êtes pas habilité à « parametrer » sur ce projet."
+}

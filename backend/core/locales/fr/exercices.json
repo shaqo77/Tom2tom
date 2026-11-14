@@ -1,0 +1,8 @@
+{
+  "exercices.cloture_impossible": "Clôture impossible : {details}",
+  "exercices.mois_debut_doit_etre_compris": "mois_debut doit être compris entre 1 et 12",
+  "exercices.periode_seule_periode_close_peut": "La période {numero} est {status} : seule une période close peut être rouverte",
+  "exercices.periode_seule_periode_peut_passer": "La période {numero} est {status} : seule une période {attendu} peut passer à {nouveau}.",
+  "exercices.reouverture_periode_exige_motif": "La réouverture d'une période exige un motif",
+  "exercices.vous_etes_habilite_parametrer_projet": "Vous n'êtes pas habilité à « parametrer » sur ce projet."
+}

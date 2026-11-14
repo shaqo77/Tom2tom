@@ -1,0 +1,4 @@
+{
+  "permissions.operation_inconnue": "unknown operation: {operation!r}",
+  "permissions.vous_etes_habilite_operation_projet": "You are not authorised for this operation on this project."
+}

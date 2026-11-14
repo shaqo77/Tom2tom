@@ -17,6 +17,7 @@ from decimal import Decimal
 from django.db import connection
 from rest_framework.exceptions import PermissionDenied
 
+from core.i18n import Liste, msg
 from niveau1_socle.habilitations.permissions import est_habilite
 
 ZERO = Decimal(0)
@@ -117,7 +118,7 @@ class Journal:
 
 def _exiger_consultation(utilisateur, project_id) -> None:
     if not est_habilite(utilisateur, "consulter", project_id):
-        raise PermissionDenied("Vous n'êtes pas habilité à « consulter » ce projet.")
+        raise PermissionDenied(msg("restitutions.vous_etes_habilite_consulter_projet"))
 
 
 def _periode(annee, periode_debut, periode_fin) -> None:
@@ -127,7 +128,7 @@ def _periode(annee, periode_debut, periode_fin) -> None:
         or type(periode_fin) is not int
         or not 1 <= periode_debut <= periode_fin <= 12
     ):
-        raise RestitutionInvalide("exercice ou bornes de période invalides (1 à 12, début ≤ fin)")
+        raise RestitutionInvalide(msg("restitutions.exercice_bornes_periode_invalides_1"))
 
 
 # « avant la période » : les exercices antérieurs et les périodes précédentes de l'exercice.
@@ -143,7 +144,7 @@ def balance(
     `nature` : voir `VENTILATIONS`. Les comptes sans mouvement ni solde n'apparaissent pas.
     """
     if nature not in VENTILATIONS:
-        raise RestitutionInvalide(f"nature de balance inconnue : {nature}")
+        raise RestitutionInvalide(msg("restitutions.nature_balance_inconnue", nature=nature))
     _periode(annee, periode_debut, periode_fin)
     _exiger_consultation(utilisateur, project_id)
     colonne = VENTILATIONS[nature]  # liste blanche : jamais une valeur de l'appelant
@@ -197,11 +198,20 @@ def controler_balances(
     for nature, b in balances.items():
         if b.total_debit != b.total_credit:
             ecarts.append(
-                f"balance {nature} déséquilibrée : débit {b.total_debit}, crédit {b.total_credit}"
+                msg(
+                    "restitutions.balance_desequilibree_debit_credit",
+                    nature=nature,
+                    total_debit=b.total_debit,
+                    total_credit=b.total_credit,
+                )
             )
         if b.total_ouverture != 0:
             ecarts.append(
-                f"balance {nature} : l'ouverture ne s'équilibre pas ({b.total_ouverture})"
+                msg(
+                    "restitutions.balance_ouverture_s_equilibre",
+                    nature=nature,
+                    total_ouverture=b.total_ouverture,
+                )
             )
     reference = balances["generale"].par_compte()
     for nature, b in balances.items():
@@ -213,10 +223,16 @@ def controler_balances(
             obtenu = autre.get(compte, (ZERO, ZERO, ZERO))
             if attendu != obtenu:
                 ecarts.append(
-                    f"compte {compte} : balance {nature} {obtenu} ≠ balance générale {attendu}"
+                    msg(
+                        "restitutions.compte_balance_balance_generale",
+                        compte=compte,
+                        nature=nature,
+                        obtenu=obtenu,
+                        attendu=attendu,
+                    )
                 )
     if ecarts:
-        raise BalancesIncoherentes("\n".join(ecarts))
+        raise BalancesIncoherentes(Liste(ecarts, "\n"))
     return balances
 
 

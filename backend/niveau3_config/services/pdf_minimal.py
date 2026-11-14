@@ -8,6 +8,8 @@ aléatoire) : le même contenu donne les mêmes octets, donc la même empreinte.
 import io
 import textwrap
 
+from core.i18n import msg
+
 LARGEUR, HAUTEUR = 595, 842  # A4 en points
 MARGE_X, MARGE_HAUT, MARGE_BAS = 50, 60, 60
 STYLES = {
@@ -36,7 +38,7 @@ class DocumentPDF:
 
     def ajouter(self, texte: str, style: str = "normal") -> None:
         if style not in STYLES:
-            raise ValueError(f"style inconnu : {style}")
+            raise ValueError(msg("pdf_minimal.style_inconnu", style=style))
         _, _, largeur, _, _ = STYLES[style]
         for paragraphe in texte.split("\n"):
             morceaux = textwrap.wrap(paragraphe, width=largeur, break_long_words=True) or [""]

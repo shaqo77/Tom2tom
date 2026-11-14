@@ -10,6 +10,8 @@ import datetime
 
 from django.db.models import Max
 
+from core.i18n import msg
+
 from ..models import ProfilDecaissement, StatutProfil
 
 NON_COPIES = {"id", "org_id", "profil", "created_at", "created_by", "updated_at", "updated_by"}
@@ -81,5 +83,5 @@ def nouvelle_version(
             donnees["allocation"] = allocations.pop(regle.category_id)
         nouveau.regles.create(org_id=base.org_id, **donnees)
     if allocations:
-        raise ValueError("Des allocations visent une catégorie sans règle dans ce profil")
+        raise ValueError(msg("versions.allocations_visent_categorie_sans_regle"))
     return nouveau

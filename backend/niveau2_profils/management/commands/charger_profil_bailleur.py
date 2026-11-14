@@ -4,6 +4,7 @@ from django.contrib.auth import get_user_model
 from django.core.management.base import BaseCommand, CommandError
 from django.db import connection
 
+from core.i18n import msg
 from niveau2_profils.services.catalogue import charger_profil, profils_livres
 
 
@@ -24,7 +25,9 @@ class Command(BaseCommand):
                 username=options["utilisateur"], org_id=options["organisation"]
             )
         except get_user_model().DoesNotExist as erreur:
-            raise CommandError("Utilisateur introuvable dans cette organisation") from erreur
+            raise CommandError(
+                msg("charger_profil_bailleur.utilisateur_introuvable_organisation")
+            ) from erreur
         profil = charger_profil(
             utilisateur=utilisateur, nom=options["profil"], publier=options["publier"]
         )

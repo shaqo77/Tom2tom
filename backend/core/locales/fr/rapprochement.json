@@ -1,0 +1,19 @@
+{
+  "rapprochement.chaque_mouvement_releve_reference": "Chaque mouvement du relevé a une référence",
+  "rapprochement.groupe_solde_grand_livre_releve": "Le groupe n'est pas soldé en {devise_id} : grand livre {grand_livre}, relevé {releve}, écart {v1}",
+  "rapprochement.ligne": "La ligne {number} / {line_no} n'est pas en {devise_id}",
+  "rapprochement.ligne_celle_compte": "La ligne {number} / {line_no} n'est pas celle de ce compte",
+  "rapprochement.ligne_deja_rapprochee": "La ligne {number} / {line_no} est déjà rapprochée",
+  "rapprochement.ligne_mouvement_introuvable": "Une ligne ou un mouvement est introuvable",
+  "rapprochement.lignes_doivent_porter_meme_compte": "Les lignes doivent porter sur un même compte comptable",
+  "rapprochement.mouvement_celui_compte": "Le mouvement {reference} n'est pas celui de ce compte",
+  "rapprochement.mouvement_compte_monnaie_tenue_taux": "Le mouvement {reference} : le compte est en monnaie de tenue, pas de taux",
+  "rapprochement.mouvement_deja_rapproche": "Le mouvement {reference} est déjà rapproché",
+  "rapprochement.mouvement_montant_nul": "Le mouvement {reference} a un montant nul",
+  "rapprochement.mouvement_taux_non_positif": "Le mouvement {reference} a un taux non positif",
+  "rapprochement.on_rapproche_lignes_comptabilisees": "On ne rapproche que des lignes comptabilisées",
+  "rapprochement.rapprochement_compte_moins_ligne_mouvement": "Un rapprochement compte au moins une ligne et un mouvement",
+  "rapprochement.reference_deja_importee_autres_valeurs": "La référence {reference} est déjà importée avec d'autres valeurs",
+  "rapprochement.reference_figure_deux_fois_import": "La référence {reference} figure deux fois dans l'import",
+  "rapprochement.vous_etes_habilite_projet": "Vous n'êtes pas habilité à « {operation} » sur ce projet."
+}

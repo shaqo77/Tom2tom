@@ -12,6 +12,8 @@ absente. Il n'existe pas de liste universelle de justificatifs.
 
 from dataclasses import dataclass, field
 
+from core.i18n import msg
+
 from . import conditions
 from .models import ModeControle, Resultat
 
@@ -25,20 +27,20 @@ class ParametresInvalides(ValueError):
 def valider_parametres(type_regle: str, parametres) -> dict:
     parametres = {} if parametres is None else parametres
     if not isinstance(parametres, dict):
-        raise ParametresInvalides("les paramètres sont un objet")
+        raise ParametresInvalides(msg("decision.parametres_objet"))
     if not parametres:
         return {}
     if type_regle != "pieces":
-        raise ParametresInvalides("seule une règle de pièces porte des paramètres")
+        raise ParametresInvalides(msg("decision.seule_regle_pieces_porte_parametres"))
     inconnus = set(parametres) - CLES_PARAMETRES
     if inconnus:
-        raise ParametresInvalides(f"paramètres inconnus : {sorted(inconnus)}")
+        raise ParametresInvalides(msg("decision.parametres_inconnus", v1=sorted(inconnus)))
     type_piece = parametres.get("type_piece")
     if not isinstance(type_piece, str) or not type_piece.strip():
-        raise ParametresInvalides("« type_piece » est le type de la pièce exigée")
+        raise ParametresInvalides(msg("decision.type_piece_type_piece_exigee"))
     validee = parametres.get("validee", False)
     if not isinstance(validee, bool):
-        raise ParametresInvalides("« validee » est un booléen")
+        raise ParametresInvalides(msg("decision.validee_booleen"))
     return {"type_piece": type_piece.strip(), "validee": validee}
 
 

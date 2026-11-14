@@ -1,6 +1,9 @@
 """Pose app.org_id pour la transaction de la requête. Voir §B.4 du guide."""
 
 from django.db import connection, transaction
+from django.utils import translation
+
+from .i18n import activer, choisir_langue, normaliser_langue
 
 
 class OrganisationScopeMiddleware:
@@ -35,3 +38,34 @@ class OrganisationScopeMiddleware:
             with connection.cursor() as cur:
                 cur.execute("SET LOCAL app.org_id = %s", [str(org_id)])
             return self.get_response(request)
+
+
+class LangueMiddleware:
+    """La langue des messages de la requête : celle de l'utilisateur connecté, sinon celle que
+    demande le navigateur (`Accept-Language`), sinon le français.
+
+    La langue est posée pour la seule durée de la requête et rétablie ensuite, même si la vue
+    lève : elle ne déborde jamais sur la requête suivante servie par le même fil. Les messages de
+    Django et de DRF suivent la même langue.
+    """
+
+    def __init__(self, get_response):
+        self.get_response = get_response
+
+    def __call__(self, request):
+        utilisateur = getattr(request, "user", None)
+        preferee = (
+            getattr(utilisateur, "langue", None)
+            if getattr(utilisateur, "is_authenticated", False)
+            else None
+        )
+        langue = (
+            normaliser_langue(preferee)
+            if preferee
+            else choisir_langue(request.headers.get("Accept-Language"))
+        )
+        with activer(langue), translation.override(langue):
+            request.LANGUE_CODE = langue
+            reponse = self.get_response(request)
+            reponse["Content-Language"] = langue
+            return reponse

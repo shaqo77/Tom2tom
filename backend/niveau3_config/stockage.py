@@ -18,6 +18,8 @@ from pathlib import Path
 
 from django.conf import settings
 
+from core.i18n import msg
+
 SCHEMA = "fs://"
 
 
@@ -43,7 +45,7 @@ def reference(org_id, digest: bytes) -> str:
 
 def _chemin(ref: str) -> Path:
     if not ref.startswith(SCHEMA):
-        raise FichierIntrouvable(f"Référence de stockage inconnue : {ref}")
+        raise FichierIntrouvable(msg("stockage.reference_stockage_inconnue", ref=ref))
     org_id, _, hexa = ref.removeprefix(SCHEMA).partition("/")
     if (
         len(hexa) != 64
@@ -51,7 +53,7 @@ def _chemin(ref: str) -> Path:
         or "/" in org_id
         or ".." in org_id
     ):
-        raise FichierIntrouvable(f"Référence de stockage invalide : {ref}")
+        raise FichierIntrouvable(msg("stockage.reference_stockage_invalide", ref=ref))
     return racine() / org_id / hexa[:2] / hexa
 
 
@@ -77,5 +79,5 @@ def deposer(org_id, contenu: bytes) -> str:
 def lire(ref: str) -> bytes:
     chemin = _chemin(ref)
     if not chemin.exists():
-        raise FichierIntrouvable(f"Aucun objet stocké pour {ref}")
+        raise FichierIntrouvable(msg("stockage.aucun_objet_stocke", ref=ref))
     return chemin.read_bytes()

@@ -1,0 +1,3 @@
+{
+  "taux.aucun_taux_date": "No {type_taux!r} rate for {devise} on {v1}"
+}

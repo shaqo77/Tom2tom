@@ -1,0 +1,12 @@
+{
+  "lettrage.chaque_ligne_lettrage_doit_porter": "Chaque ligne d'un lettrage doit porter un tiers",
+  "lettrage.groupe_solde_devise_ecart": "Le groupe n'est pas soldé en devise : écart de {solde_devise}",
+  "lettrage.groupe_solde_ecart": "Le groupe n'est pas soldé : écart de {solde}",
+  "lettrage.lettrage_compte_moins_deux_lignes": "Un lettrage compte au moins deux lignes",
+  "lettrage.ligne_deja_lettree": "La ligne {number} / {line_no} est déjà lettrée",
+  "lettrage.ligne_moins_introuvable": "Une ligne au moins est introuvable",
+  "lettrage.lignes_doivent_appartenir_meme_projet": "Les lignes doivent appartenir au même projet",
+  "lettrage.lignes_doivent_concerner_meme_tiers": "Les lignes doivent concerner le même tiers",
+  "lettrage.lignes_doivent_porter_meme_compte": "Les lignes doivent porter sur le même compte",
+  "lettrage.on_lettre_lignes_comptabilisees": "On ne lettre que des lignes comptabilisées"
+}

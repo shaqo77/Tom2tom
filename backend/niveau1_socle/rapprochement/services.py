@@ -18,6 +18,7 @@ from django.utils import timezone
 from rest_framework.exceptions import PermissionDenied
 
 from core.audit import journaliser
+from core.i18n import Liste, msg
 from niveau1_socle.comptabilite.annuelle import _comptabiliser_par_le_systeme
 from niveau1_socle.comptabilite.models import Ecriture, Journal, LigneEcriture
 from niveau1_socle.comptabilite.services import (
@@ -46,12 +47,12 @@ class RapprochementImpossible(ValueError):
 
     def __init__(self, raisons: list[str]):
         self.raisons = raisons
-        super().__init__(" ; ".join(raisons))
+        super().__init__(Liste(raisons))
 
 
 def _habilite(utilisateur, operation: str, project_id) -> None:
     if not est_habilite(utilisateur, operation, project_id):
-        raise PermissionDenied(f"Vous n'êtes pas habilité à « {operation} » sur ce projet.")
+        raise PermissionDenied(msg("rapprochement.vous_etes_habilite_projet", operation=operation))
 
 
 def _contexte(compte: CompteBancaire):
@@ -86,26 +87,30 @@ def importer_mouvements(*, utilisateur, compte: CompteBancaire, mouvements: list
     for brut in mouvements:
         reference = str(brut.get("reference", "")).strip()
         if not reference:
-            raise ReleveInvalide("Chaque mouvement du relevé a une référence")
+            raise ReleveInvalide(msg("rapprochement.chaque_mouvement_releve_reference"))
         if reference in vus:
-            raise ReleveInvalide(f"La référence {reference} figure deux fois dans l'import")
+            raise ReleveInvalide(
+                msg("rapprochement.reference_figure_deux_fois_import", reference=reference)
+            )
         vus.add(reference)
         montant = Decimal(str(brut["montant"]))
         taux = Decimal(str(brut.get("taux", 1)))
         if montant == 0:
-            raise ReleveInvalide(f"Le mouvement {reference} a un montant nul")
+            raise ReleveInvalide(msg("rapprochement.mouvement_montant_nul", reference=reference))
         if taux <= 0:
-            raise ReleveInvalide(f"Le mouvement {reference} a un taux non positif")
+            raise ReleveInvalide(
+                msg("rapprochement.mouvement_taux_non_positif", reference=reference)
+            )
         if not etrangere and taux != 1:
             raise ReleveInvalide(
-                f"Le mouvement {reference} : le compte est en monnaie de tenue, pas de taux"
+                msg("rapprochement.mouvement_compte_monnaie_tenue_taux", reference=reference)
             )
         valeurs = (brut["date"], montant, taux)
         existant = deja.get(reference)
         if existant is not None:
             if (existant.date_operation, existant.montant, existant.taux) != valeurs:
                 raise ReleveInvalide(
-                    f"La référence {reference} est déjà importée avec d'autres valeurs"
+                    msg("rapprochement.reference_deja_importee_autres_valeurs", reference=reference)
                 )
             ignores += 1
             continue
@@ -144,36 +149,60 @@ def importer_mouvements(*, utilisateur, compte: CompteBancaire, mouvements: list
 def _problemes(compte, etrangere, lignes, mouvements, ids_lignes, ids_mouvements) -> list[str]:
     raisons = []
     if len(lignes) != len(ids_lignes) or len(mouvements) != len(ids_mouvements):
-        raisons.append("Une ligne ou un mouvement est introuvable")
+        raisons.append(msg("rapprochement.ligne_mouvement_introuvable"))
     if not lignes or not mouvements:
-        raisons.append("Un rapprochement compte au moins une ligne et un mouvement")
+        raisons.append(msg("rapprochement.rapprochement_compte_moins_ligne_mouvement"))
     for ligne in lignes:
         if ligne.bank_account_id != compte.pk:
             raisons.append(
-                f"La ligne {ligne.entry.number} / {ligne.line_no} n'est pas celle de ce compte"
+                msg(
+                    "rapprochement.ligne_celle_compte",
+                    number=ligne.entry.number,
+                    line_no=ligne.line_no,
+                )
             )
         if ligne.bank_match_id is not None:
-            raisons.append(f"La ligne {ligne.entry.number} / {ligne.line_no} est déjà rapprochée")
+            raisons.append(
+                msg(
+                    "rapprochement.ligne_deja_rapprochee",
+                    number=ligne.entry.number,
+                    line_no=ligne.line_no,
+                )
+            )
         if ligne.entry.status not in ("posted", "locked"):
-            raisons.append("On ne rapproche que des lignes comptabilisées")
+            raisons.append(msg("rapprochement.on_rapproche_lignes_comptabilisees"))
         if etrangere and ligne.currency_id != compte.devise_id:
             raisons.append(
-                f"La ligne {ligne.entry.number} / {ligne.line_no} n'est pas en {compte.devise_id}"
+                msg(
+                    "rapprochement.ligne",
+                    number=ligne.entry.number,
+                    line_no=ligne.line_no,
+                    devise_id=compte.devise_id,
+                )
             )
     if len({ligne.account_id for ligne in lignes}) > 1:
-        raisons.append("Les lignes doivent porter sur un même compte comptable")
+        raisons.append(msg("rapprochement.lignes_doivent_porter_meme_compte"))
     for mouvement in mouvements:
         if mouvement.compte_id != compte.pk:
-            raisons.append(f"Le mouvement {mouvement.reference} n'est pas celui de ce compte")
+            raisons.append(
+                msg("rapprochement.mouvement_celui_compte", reference=mouvement.reference)
+            )
         if mouvement.rapprochement_id is not None:
-            raisons.append(f"Le mouvement {mouvement.reference} est déjà rapproché")
+            raisons.append(
+                msg("rapprochement.mouvement_deja_rapproche", reference=mouvement.reference)
+            )
     if lignes and mouvements and not raisons:
         grand_livre = sum((_montant_devise(ligne, etrangere) for ligne in lignes), ZERO)
         releve = sum((m.montant for m in mouvements), ZERO)
         if grand_livre != releve:
             raisons.append(
-                f"Le groupe n'est pas soldé en {compte.devise_id} : grand livre {grand_livre}, "
-                f"relevé {releve}, écart {releve - grand_livre}"
+                msg(
+                    "rapprochement.groupe_solde_grand_livre_releve",
+                    devise_id=compte.devise_id,
+                    grand_livre=grand_livre,
+                    releve=releve,
+                    v1=releve - grand_livre,
+                )
             )
     return list(dict.fromkeys(raisons))
 

@@ -107,6 +107,15 @@ class Utilisateur(AbstractUser):
     # Clé UUID, comme created_by / actor_id partout ailleurs.
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     org_id = models.UUIDField(null=True, blank=True, db_index=True)
+    # La langue des messages de cet utilisateur (voir core/i18n.py) ; sinon `Accept-Language`.
+    langue = models.CharField(max_length=2, default="fr")
+
+    class Meta(AbstractUser.Meta):
+        constraints = [
+            models.CheckConstraint(
+                condition=models.Q(langue__in=["fr", "en"]), name="utilisateur_langue_geree"
+            ),
+        ]
 
     def __str__(self) -> str:
         return self.username

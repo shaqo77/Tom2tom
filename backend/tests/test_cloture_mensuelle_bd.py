@@ -180,8 +180,8 @@ def test_la_cloture_liste_toutes_les_raisons_d_un_coup(decor):  # noqa: F811
         cloturer_periode(_periode(3), utilisateur=None)
 
     assert len(erreur.value.raisons) == 2
-    assert any("non comptabilisée" in raison for raison in erreur.value.raisons)
-    assert any("non lettrés" in raison for raison in erreur.value.raisons)
+    assert any("non comptabilisée" in str(raison) for raison in erreur.value.raisons)
+    assert any("non lettrés" in str(raison) for raison in erreur.value.raisons)
 
 
 def test_les_controles_ne_voient_que_l_organisation_courante(decor):  # noqa: F811

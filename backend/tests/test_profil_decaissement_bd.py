@@ -344,7 +344,7 @@ def test_une_depense_au_dela_du_seuil_exige_les_copies_de_pieces_et_non_l_etat_c
     au_dela = _preparer(profils, accord, [grosse], date_demande=JUIN)
     assert au_dela.pieces_exigees == ["records"]  # les copies, et non l'état certifié
     with pytest.raises(
-        DemandeInvalide, match="Pièces exigées par le profil non fournies : records"
+        DemandeInvalide, match="Pièces exigées par le profil non fournies : copies des pièces"
     ):
         _soumettre_avec(au_dela, profils, pieces_fournies=["soe"])  # l'état certifié ne suffit pas
     assert _soumettre_avec(au_dela, profils, pieces_fournies=["records"]).pieces_fournies == [

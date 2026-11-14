@@ -17,6 +17,7 @@ from django.db import transaction
 from rest_framework.exceptions import PermissionDenied
 
 from core.audit import journaliser
+from core.i18n import msg
 from niveau1_socle.habilitations.permissions import est_habilite
 
 from ..models import DocumentReference, Exigence, Obligation, OrigineExigence, Periodicite
@@ -48,17 +49,18 @@ class ExigenceInvalide(ValueError):
 def valider_citation(document: DocumentReference, citation: dict) -> None:
     """Refuse la citation si son extrait n'est pas littéralement retrouvable dans le document."""
     if not isinstance(citation, dict):
-        raise CitationInvalide("La citation est un objet : extrait, paragraphe ou page")
+        raise CitationInvalide(msg("exigences.citation_objet_extrait_paragraphe_page"))
     extrait = citation.get("quote")
     if not isinstance(extrait, str) or not extrait.strip():
-        raise CitationInvalide("La citation doit contenir l'extrait exact (« quote »)")
+        raise CitationInvalide(msg("exigences.citation_doit_contenir_extrait_exact"))
     if citation.get("paragraph") in (None, "") and citation.get("page") in (None, ""):
-        raise CitationInvalide("La citation désigne un paragraphe ou une page")
+        raise CitationInvalide(msg("exigences.citation_designe_paragraphe_page"))
     voulu = normaliser(extrait)
     if len(voulu) < LONGUEUR_MINIMALE:
         raise CitationInvalide(
-            f"L'extrait est trop court pour désigner un passage ({LONGUEUR_MINIMALE} caractères "
-            "au moins)"
+            msg(
+                "exigences.extrait_trop_court_designer_passage", LONGUEUR_MINIMALE=LONGUEUR_MINIMALE
+            )
         )
     genre, pages = document_lu(document)
     normalisees = [normaliser(page) for page in pages]
@@ -68,21 +70,19 @@ def valider_citation(document: DocumentReference, citation: dict) -> None:
     if genre == "pdf" and page not in (None, ""):
         if type(page) is not int or not 1 <= page <= len(pages):
             raise CitationMalPlacee(
-                f"La page {page} n'existe pas (le document en compte {len(pages)})"
+                msg("exigences.page_existe_document_compte", page=page, v1=len(pages))
             )
         # L'extrait est sur la page citée, ou commence sur elle et se poursuit sur la suivante
         # (jamais entièrement sur la suivante : ce serait la mauvaise page).
         ici = normalisees[page - 1]
         suite = normalisees[page] if page < len(pages) else ""
         if not (voulu in ici or (voulu in f"{ici} {suite}" and voulu not in suite)):
-            raise CitationMalPlacee(
-                f"La citation figure dans le document, mais pas à la page indiquée ({page})"
-            )
+            raise CitationMalPlacee(msg("exigences.citation_figure_document_mais_page", page=page))
 
 
 def _habilite(utilisateur, project_id) -> None:
     if not est_habilite(utilisateur, "parametrer", project_id):
-        raise PermissionDenied("Vous n'êtes pas habilité à « parametrer » sur ce projet.")
+        raise PermissionDenied(msg("exigences.vous_etes_habilite_parametrer_projet"))
 
 
 def proposer_exigence(
@@ -109,34 +109,32 @@ def proposer_exigence(
     """
     _habilite(utilisateur, project_id)
     if not (code or "").strip() or not (subject or "").strip():
-        raise ExigenceInvalide("Le code et la rubrique de l'exigence sont obligatoires")
+        raise ExigenceInvalide(msg("exigences.code_rubrique_exigence_obligatoires"))
     if document.project_id != project_id:
-        raise ExigenceInvalide("Le document référencé n'appartient pas au projet")
+        raise ExigenceInvalide(msg("exigences.document_reference_appartient_projet"))
     if document.superseded_by_id is not None:
         raise ExigenceInvalide(
-            f"Le document « {document.title} » est remplacé : citez la version en vigueur"
+            msg("exigences.document_remplace_citez_version_vigueur", title=document.title)
         )
     if obligation not in Obligation.values:
-        raise ExigenceInvalide(f"obligation inconnue : {obligation}")
+        raise ExigenceInvalide(msg("exigences.obligation_inconnue", obligation=obligation))
     if periodicity is not None and periodicity not in Periodicite.values:
-        raise ExigenceInvalide(f"périodicité inconnue : {periodicity}")
+        raise ExigenceInvalide(msg("exigences.periodicite_inconnue", periodicity=periodicity))
     if obligation == Obligation.CONDITIONNELLE and not (condition_expr or "").strip():
-        raise ExigenceInvalide("Une exigence conditionnelle précise sa condition")
+        raise ExigenceInvalide(msg("exigences.exigence_conditionnelle_precise_condition"))
     if source not in OrigineExigence.values:
-        raise ExigenceInvalide(f"origine inconnue : {source}")
+        raise ExigenceInvalide(msg("exigences.origine_inconnue", source=source))
     if source == OrigineExigence.ASSISTEE:
         if confidence is None or not Decimal(0) <= Decimal(str(confidence)) <= Decimal(1):
-            raise ExigenceInvalide("Une exigence assistée porte une confiance entre 0 et 1")
+            raise ExigenceInvalide(msg("exigences.exigence_assistee_porte_confiance_entre"))
     elif confidence is not None:
-        raise ExigenceInvalide(
-            "La confiance n'existe que pour une exigence proposée par l'assistant"
-        )
+        raise ExigenceInvalide(msg("exigences.confiance_existe_exigence_proposee_assistant"))
     if not isinstance(rule, dict):
-        raise ExigenceInvalide("La règle est un objet")
+        raise ExigenceInvalide(msg("exigences.regle_objet"))
     try:
         valider_citation(document, citation)
     except ExtractionImpossible as erreur:
-        raise CitationInvalide(f"Citation invérifiable : {erreur}") from erreur
+        raise CitationInvalide(msg("exigences.citation_inverifiable", erreur=erreur)) from erreur
     with transaction.atomic():
         derniere = (
             Exigence.objects.filter(project_id=project_id, code=code.strip())
@@ -193,12 +191,12 @@ def etayer_exigence(*, utilisateur, exigence: Exigence, citation: dict) -> Exige
     try:
         valider_citation(exigence.document, citation)
     except ExtractionImpossible as erreur:
-        raise CitationInvalide(f"Citation invérifiable : {erreur}") from erreur
+        raise CitationInvalide(msg("exigences.citation_inverifiable", erreur=erreur)) from erreur
     with transaction.atomic():
         exigence = Exigence.objects.select_for_update().get(pk=exigence.pk)
         if exigence.status != "proposed":
             raise ExigenceInvalide(
-                f"Seule une exigence proposée s'étaye (celle-ci est « {exigence.status} »)"
+                msg("exigences.seule_exigence_proposee_s_etaye", status=exigence.status)
             )
         avant = exigence.citation
         exigence.citation = citation

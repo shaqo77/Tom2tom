@@ -15,6 +15,8 @@ import ast
 import re
 from decimal import Decimal
 
+from core.i18n import msg
+
 NOEUDS_AUTORISES = (
     ast.Expression,
     ast.BinOp,
@@ -46,9 +48,11 @@ def _etendre_plages(formule: str, codes_connus: list[str]) -> str:
         try:
             i, j = codes_connus.index(debut), codes_connus.index(fin)
         except ValueError as e:
-            raise FormuleInvalide(f"rubrique inconnue dans la plage {debut}:{fin}") from e
+            raise FormuleInvalide(
+                msg("formules.rubrique_inconnue_plage", debut=debut, fin=fin)
+            ) from e
         if i > j:
-            raise FormuleInvalide(f"plage inversée {debut}:{fin}")
+            raise FormuleInvalide(msg("formules.plage_inversee", debut=debut, fin=fin))
         return ",".join(codes_connus[i : j + 1])
 
     return MOTIF_PLAGE.sub(remplacer, formule)
@@ -69,17 +73,17 @@ def valider(formule: str, codes_connus: list[str]) -> ast.Expression:
     try:
         arbre = ast.parse(_etendre_plages(formule, codes_connus), mode="eval")
     except SyntaxError as e:
-        raise FormuleInvalide(f"syntaxe invalide : {e}") from e
+        raise FormuleInvalide(msg("formules.syntaxe_invalide", e=e)) from e
 
     for noeud in ast.walk(arbre):
         if not isinstance(noeud, NOEUDS_AUTORISES):
             raise FormuleInvalide(f"construction interdite : {type(noeud).__name__}")
         if isinstance(noeud, ast.Call):
             if not isinstance(noeud.func, ast.Name) or noeud.func.id not in FONCTIONS_AUTORISEES:
-                raise FormuleInvalide("fonction non autorisée")
+                raise FormuleInvalide(msg("formules.fonction_non_autorisee_2"))
         if isinstance(noeud, ast.Name) and noeud.id not in FONCTIONS_AUTORISEES:
             if noeud.id not in codes_connus:
-                raise FormuleInvalide(f"rubrique inconnue : {noeud.id}")
+                raise FormuleInvalide(msg("formules.rubrique_inconnue", id=noeud.id))
     return arbre
 
 
@@ -92,7 +96,7 @@ def evaluer(formule: str, valeurs: dict[str, Decimal], codes_connus: list[str]) 
             return _eval(n.body)
         if isinstance(n, ast.Constant):
             if not isinstance(n.value, int | float | str):
-                raise FormuleInvalide("constante non numérique")
+                raise FormuleInvalide(msg("formules.constante_non_numerique"))
             return Decimal(str(n.value))
         if isinstance(n, ast.Name):
             return valeurs.get(n.id, Decimal(0))
@@ -109,7 +113,7 @@ def evaluer(formule: str, valeurs: dict[str, Decimal], codes_connus: list[str]) 
                 return g * d
             if isinstance(n.op, ast.Div):
                 if d == 0:
-                    raise FormuleInvalide("division par zéro")
+                    raise FormuleInvalide(msg("formules.division_zero"))
                 return g / d
         if isinstance(n, ast.Call):
             args = [_eval(a) for a in n.args]
@@ -125,7 +129,7 @@ def evaluer(formule: str, valeurs: dict[str, Decimal], codes_connus: list[str]) 
             if nom == "ROUND":
                 decimales = int(args[1]) if len(args) > 1 else 2
                 return args[0].quantize(Decimal(1).scaleb(-decimales))
-            raise FormuleInvalide(f"fonction non autorisée : {nom}")
-        raise FormuleInvalide(f"nœud non géré : {type(n).__name__}")
+            raise FormuleInvalide(msg("formules.fonction_non_autorisee", nom=nom))
+        raise FormuleInvalide(msg("formules.ud_non_gere", __name__=type(n).__name__))
 
     return _eval(arbre)

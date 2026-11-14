@@ -16,6 +16,7 @@ from django.db import connection, transaction
 from rest_framework.exceptions import PermissionDenied
 
 from core.audit import journaliser
+from core.i18n import msg
 from niveau1_socle.habilitations.permissions import est_habilite
 from niveau1_socle.referentiels.models import Tiers
 
@@ -31,7 +32,7 @@ class AvanceInvalide(ValueError):
 
 def _habilite(utilisateur, operation: str, project_id) -> None:
     if not est_habilite(utilisateur, operation, project_id):
-        raise PermissionDenied(f"Vous n'êtes pas habilité à « {operation} » sur ce projet.")
+        raise PermissionDenied(msg("avances.vous_etes_habilite_projet", operation=operation))
 
 
 # --- délai applicable -------------------------------------------------------------------------
@@ -53,7 +54,7 @@ def parametrer_delai(
     Les avances déjà versées gardent le délai de leur versement."""
     _habilite(utilisateur, "parametrer", project_id)
     if type(jours) is not int or jours <= 0:
-        raise AvanceInvalide("Le délai est un nombre entier de jours strictement positif")
+        raise AvanceInvalide(msg("avances.delai_nombre_entier_jours_strictement"))
     with transaction.atomic():
         with connection.cursor() as cur:
             cur.execute(
@@ -65,7 +66,10 @@ def parametrer_delai(
         if en_cours is not None:
             if date_effet <= en_cours.valid_from:
                 raise AvanceInvalide(
-                    f"La nouvelle version doit prendre effet après le {en_cours.valid_from}"
+                    msg(
+                        "avances.nouvelle_version_doit_prendre_effet",
+                        valid_from=en_cours.valid_from,
+                    )
                 )
             DelaiAvance.objects.filter(pk=en_cours.pk).update(valid_to=date_effet)
         numero = (versions.order_by("-version").values_list("version", flat=True).first() or 0) + 1
@@ -111,19 +115,21 @@ def verser_avance(
     _habilite(utilisateur, "saisir", project_id)
     montant = Decimal(str(montant))
     if montant <= 0:
-        raise AvanceInvalide("Une avance a un montant strictement positif")
+        raise AvanceInvalide(msg("avances.avance_montant_strictement_positif"))
     if not (reference or "").strip():
-        raise AvanceInvalide("La référence de l'avance est obligatoire")
+        raise AvanceInvalide(msg("avances.reference_avance_obligatoire"))
     if delai_jours is None:
         delai = delai_applicable(project_id, date_versement)
         if delai is None:
             raise AvanceInvalide(
-                f"Aucun délai de justification n'est paramétré à la date du {date_versement} : "
-                "paramétrez-le ou précisez le délai de cette avance"
+                msg(
+                    "avances.aucun_delai_justification_parametre_date",
+                    date_versement=date_versement,
+                )
             )
         delai_jours = delai.jours
     elif type(delai_jours) is not int or delai_jours <= 0:
-        raise AvanceInvalide("Le délai est un nombre entier de jours strictement positif")
+        raise AvanceInvalide(msg("avances.delai_nombre_entier_jours_strictement"))
     with transaction.atomic():
         avance = Avance.objects.create(
             org_id=utilisateur.org_id,
@@ -168,19 +174,22 @@ def justifier_avance(
     qui reste ; le refus est tranché par la base, sous verrou de l'avance."""
     _habilite(utilisateur, "saisir", avance.project_id)
     if type not in TypeJustification.values:
-        raise AvanceInvalide(f"type de justification inconnu : {type}")
+        raise AvanceInvalide(msg("avances.type_justification_inconnu", type=type))
     montant = Decimal(str(montant))
     if montant <= 0:
-        raise AvanceInvalide("Une justification a un montant strictement positif")
+        raise AvanceInvalide(msg("avances.justification_montant_strictement_positif"))
     if type == TypeJustification.DEPENSE and not (reference or "").strip():
-        raise AvanceInvalide("Une dépense se justifie par une pièce : indiquez sa référence")
+        raise AvanceInvalide(msg("avances.depense_justifie_piece_indiquez_reference"))
     with transaction.atomic():
         courante = Avance.objects.select_for_update().get(pk=avance.pk)
         deja = sum((j.montant for j in courante.justifications.all()), ZERO)
         if deja + montant > courante.montant:
             raise AvanceInvalide(
-                f"On ne justifie pas plus que l'avance : reste {courante.montant - deja}, "
-                f"{montant} demandé"
+                msg(
+                    "avances.on_justifie_plus_avance_reste",
+                    v1=courante.montant - deja,
+                    montant=montant,
+                )
             )
         justification = JustificationAvance.objects.create(
             org_id=utilisateur.org_id,
@@ -288,14 +297,21 @@ def alertes(
     resultat = []
     for s in suivi(utilisateur, project_id, date, preavis=preavis):
         if s.niveau == "echue":
-            message = (
-                f"Avance {s.avance.reference} ({s.avance.tiers.code}) : {s.reste} non justifié, "
-                f"échue depuis {s.jours_de_retard} jour(s) (échéance {s.echeance})"
+            message = msg(
+                "avances.avance_non_justifie_echue_depuis",
+                reference=s.avance.reference,
+                code=s.avance.tiers.code,
+                reste=s.reste,
+                jours_de_retard=s.jours_de_retard,
+                echeance=s.echeance,
             )
         elif s.niveau == "a_echeance":
-            message = (
-                f"Avance {s.avance.reference} ({s.avance.tiers.code}) : {s.reste} à justifier "
-                f"avant le {s.echeance}"
+            message = msg(
+                "avances.avance_justifier_avant",
+                reference=s.avance.reference,
+                code=s.avance.tiers.code,
+                reste=s.reste,
+                echeance=s.echeance,
             )
         else:
             continue

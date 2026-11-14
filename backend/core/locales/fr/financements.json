@@ -1,0 +1,12 @@
+{
+  "financements.accord_aucune_nouvelle_y_possible": "L'accord {numero} est {status} : aucune nouvelle {pour} n'y est possible (son historique reste consultable)",
+  "financements.accord_existe": "L'accord {agreement_id} n'existe pas",
+  "financements.accord_peut_passer": "Un accord {status} ne peut pas passer à {nouveau}",
+  "financements.code_nom_bailleur_obligatoires": "Le code et le nom du bailleur sont obligatoires",
+  "financements.motif_obligatoire_suspendre_clore_annuler": "Le motif est obligatoire pour suspendre, clore ou annuler",
+  "financements.numero_accord_obligatoire": "Le numéro d'accord est obligatoire",
+  "financements.numero_compte_obligatoire": "Le numéro de compte est obligatoire",
+  "financements.statut_accord_inconnu": "statut d'accord inconnu : {nouveau}",
+  "financements.vous_etes_habilite": "Vous n'êtes pas habilité à « {operation} ».",
+  "financements.vous_etes_habilite_projet": "Vous n'êtes pas habilité à « {operation} » sur ce projet."
+}

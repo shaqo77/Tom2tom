@@ -2,6 +2,8 @@
 
 from graphlib import CycleError, TopologicalSorter
 
+from core.i18n import msg
+
 from .formules import FormuleInvalide, references
 
 
@@ -22,4 +24,4 @@ def ordonner(formules: dict[str, str], codes_connus: list[str]) -> list[str]:
         return list(TopologicalSorter(graphe).static_order())
     except CycleError as e:
         chaine = " → ".join(e.args[1])
-        raise ReferenceCirculaire(f"référence circulaire : {chaine}") from e
+        raise ReferenceCirculaire(msg("dependances.reference_circulaire", chaine=chaine)) from e

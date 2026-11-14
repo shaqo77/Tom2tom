@@ -12,6 +12,8 @@ from typing import Any
 from django.db import connection
 from django.db.models import Q
 
+from core.i18n import msg
+
 from .models import RegleMapping, StatutMapping, TableMapping
 
 CHAMPS_FILTRES = {
@@ -52,7 +54,7 @@ def _liste_valeurs(valeurs: Any, champ: str) -> list[str]:
         or not valeurs
         or any(not isinstance(v, str) or not v for v in valeurs)
     ):
-        raise MappingInvalide(f"{champ} doit contenir au moins une valeur textuelle")
+        raise MappingInvalide(msg("resolveur.doit_contenir_moins_valeur_textuelle", champ=champ))
     return list(valeurs)
 
 
@@ -61,7 +63,7 @@ def _ajouter_comptes(match: Mapping[str, Any], conds: list[str], params: list) -
         return
     plages = match["accounts"]
     if not isinstance(plages, Sequence) or isinstance(plages, str | bytes) or not plages:
-        raise MappingInvalide("accounts doit contenir au moins une fourchette de comptes")
+        raise MappingInvalide(msg("resolveur.accounts_doit_contenir_moins_fourchette"))
     ors = []
     for plage in plages:
         if (
@@ -70,10 +72,10 @@ def _ajouter_comptes(match: Mapping[str, Any], conds: list[str], params: list) -
             or len(plage) != 2
             or any(not isinstance(borne, str) or not borne for borne in plage)
         ):
-            raise MappingInvalide("fourchette de comptes invalide : [début, fin] attendu")
+            raise MappingInvalide(msg("resolveur.fourchette_comptes_invalide_debut_fin"))
         debut, fin = plage
         if debut > fin:
-            raise MappingInvalide(f"fourchette inversée : {debut} > {fin}")
+            raise MappingInvalide(msg("resolveur.fourchette_inversee", debut=debut, fin=fin))
         # La borne haute est inclusive, y compris pour les sous-comptes préfixés.
         ors.append("(compte >= %s AND compte < %s)")
         params += [debut, fin + "\uffff"]
@@ -83,12 +85,12 @@ def _ajouter_comptes(match: Mapping[str, Any], conds: list[str], params: list) -
 def construire_predicat(match: Mapping[str, Any]) -> tuple[str, list]:
     """Compile une sélection paramétrée sur les colonnes de LigneEcriture."""
     if not isinstance(match, Mapping):
-        raise MappingInvalide("match doit être un objet JSON")
+        raise MappingInvalide(msg("resolveur.match_doit_etre_objet_json"))
     inconnues = set(match) - {"accounts", *CHAMPS_FILTRES}
     if inconnues:
-        raise MappingInvalide(f"clé de filtre inconnue : {sorted(inconnues)!r}")
+        raise MappingInvalide(msg("resolveur.cle_filtre_inconnue", v1=sorted(inconnues)))
     if not match:
-        raise MappingInvalide("une règle doit contenir au moins un critère")
+        raise MappingInvalide(msg("resolveur.regle_doit_contenir_moins_critere"))
 
     conds: list[str] = []
     params: list = []
@@ -106,11 +108,9 @@ def construire_cas_sql(regles: Iterable[RegleMapping]) -> tuple[str, list]:
     morceaux, params = [], []
     for regle in sorted(regles, key=lambda r: r.priority):
         if getattr(regle, "condition_expr", None):
-            raise MappingInvalide(
-                "condition_expr n'est pas exécutable : utilisez les filtres match déclarés"
-            )
+            raise MappingInvalide(msg("resolveur.condition_expr_executable_utilisez_filtres"))
         if not isinstance(regle.target_code, str) or not regle.target_code:
-            raise MappingInvalide("target_code doit être une rubrique non vide")
+            raise MappingInvalide(msg("resolveur.target_code_doit_etre_rubrique"))
         predicat, params_predicat = construire_predicat(regle.match)
         morceaux.append(f"WHEN {predicat} THEN %s")
         params += [*params_predicat, regle.target_code]
@@ -146,7 +146,7 @@ def table_active(
     )
     if table is None:
         raise MappingIndisponible(
-            f"Aucun mapping actif {code!r} à la date d'effet {date_effet.isoformat()}"
+            msg("resolveur.aucun_mapping_actif_date_effet", code=code, v1=date_effet.isoformat())
         )
     return table
 
@@ -156,7 +156,7 @@ def _parametres_periode(periode: Mapping[str, Any]) -> tuple[str, list, datetime
         project_id = periode["project_id"]
         fiscal_year = periode["fiscal_year"]
     except KeyError as e:
-        raise MappingInvalide(f"paramètre de période manquant : {e.args[0]}") from e
+        raise MappingInvalide(msg("resolveur.parametre_periode_manquant", v1=e.args[0])) from e
     debut = periode.get("period_from", 1)
     fin = periode.get("period_to", 12)
     if (
@@ -165,7 +165,7 @@ def _parametres_periode(periode: Mapping[str, Any]) -> tuple[str, list, datetime
         or type(fin) is not int
         or not 1 <= debut <= fin <= 12
     ):
-        raise MappingInvalide("exercice ou plage de périodes invalide")
+        raise MappingInvalide(msg("resolveur.exercice_plage_periodes_invalide"))
     date_effet = periode.get("date_effet") or datetime.date(fiscal_year, 12, 31)
     where = (
         "project_id = %s AND fiscal_year = %s "
@@ -182,7 +182,9 @@ def comptes_non_mappes(table: TableMapping, periode: Mapping[str, Any]) -> list[
         or date_effet < table.valid_from
         or (table.valid_to is not None and date_effet >= table.valid_to)
     ):
-        raise MappingIndisponible(f"La version {table.version} n'est pas active à {date_effet}")
+        raise MappingIndisponible(
+            msg("resolveur.version_active", version=table.version, date_effet=date_effet)
+        )
     regles = list(table.regles.all().order_by("priority"))
     cas, params_cas = construire_cas_sql(regles)
     # Pas de filtre org_id : la politique RLS impose le périmètre courant.

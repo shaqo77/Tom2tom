@@ -19,6 +19,7 @@ from django.utils import timezone
 from rest_framework.exceptions import PermissionDenied
 
 from core.audit import journaliser
+from core.i18n import msg
 from niveau1_socle.decaissements.models import SoldeCategorie
 from niveau1_socle.financements.models import Accord, Categorie
 from niveau1_socle.habilitations.permissions import est_habilite
@@ -39,7 +40,7 @@ class SoldeInsuffisant(ReallocationRefusee):
 
 def _habilite(utilisateur, operation, project_id) -> None:
     if not est_habilite(utilisateur, operation, project_id):
-        raise PermissionDenied(f"Vous n'êtes pas habilité à « {operation} » sur ce projet.")
+        raise PermissionDenied(msg("reallocation.vous_etes_habilite_projet", operation=operation))
 
 
 def solde_categorie(profil, categorie) -> Decimal:
@@ -47,7 +48,7 @@ def solde_categorie(profil, categorie) -> Decimal:
     regle = profil.regles.filter(category=categorie).first()
     if regle is None:
         raise ReallocationRefusee(
-            f"La catégorie {categorie.code} n'a pas de règle dans le profil en vigueur"
+            msg("reallocation.categorie_regle_profil_vigueur", code=categorie.code)
         )
     solde = SoldeCategorie.objects.filter(categorie=categorie).first()
     return regle.allocation - (solde.utilise if solde else Decimal(0))
@@ -67,19 +68,21 @@ def demander_reallocation(
     _habilite(utilisateur, "parametrer", accord.project_id)
     montant = Decimal(str(montant))
     if montant <= 0:
-        raise ReallocationRefusee("Le montant à transférer est strictement positif")
+        raise ReallocationRefusee(msg("reallocation.montant_transferer_strictement_positif"))
     if source.pk == cible.pk:
-        raise ReallocationRefusee("La catégorie source et la catégorie cible sont distinctes")
+        raise ReallocationRefusee(msg("reallocation.categorie_source_categorie_cible_distinctes"))
     if source.accord_id != accord.pk or cible.accord_id != accord.pk:
-        raise ReallocationRefusee("Les deux catégories appartiennent à l'accord")
+        raise ReallocationRefusee(msg("reallocation.deux_categories_appartiennent_accord"))
     if source.devise_id != cible.devise_id:
-        raise ReallocationRefusee("Les deux catégories n'ont pas la même devise")
+        raise ReallocationRefusee(msg("reallocation.deux_categories_ont_meme_devise"))
     if not (motif or "").strip():
-        raise ReallocationRefusee("Une réallocation est motivée")
+        raise ReallocationRefusee(msg("reallocation.reallocation_motivee"))
     if document is not None and document.project_id != accord.project_id:
-        raise ReallocationRefusee("Le justificatif n'appartient pas au projet")
+        raise ReallocationRefusee(msg("reallocation.justificatif_appartient_projet"))
     if profil_en_vigueur(accord, date_effet) is None:
-        raise ReallocationRefusee(f"Aucun profil de décaissement n'est en vigueur le {date_effet}")
+        raise ReallocationRefusee(
+            msg("reallocation.aucun_profil_decaissement_vigueur", date_effet=date_effet)
+        )
     with transaction.atomic():
         realloc = Reallocation.objects.create(
             org_id=utilisateur.org_id,
@@ -124,9 +127,13 @@ def approuver_reallocation(*, utilisateur, reallocation: Reallocation) -> Reallo
         with transaction.atomic():
             realloc = Reallocation.objects.select_for_update().get(pk=reallocation.pk)
             if realloc.status != StatutReallocation.DEMANDEE:
-                raise ReallocationRefusee(f"Cette réallocation est déjà « {realloc.status} »")
+                raise ReallocationRefusee(
+                    msg("reallocation.reallocation_deja", status=realloc.status)
+                )
             if utilisateur.id == realloc.demandeur:
-                raise ReallocationRefusee("L'approbateur doit être distinct du demandeur")
+                raise ReallocationRefusee(
+                    msg("reallocation.approbateur_doit_etre_distinct_demandeur")
+                )
             accord = Accord.objects.select_for_update().get(pk=realloc.accord_id)
             source, cible = list(
                 Categorie.objects.select_for_update()
@@ -138,23 +145,29 @@ def approuver_reallocation(*, utilisateur, reallocation: Reallocation) -> Reallo
             base = profil_en_vigueur(accord, realloc.date_effet)
             if base is None:
                 raise ReallocationRefusee(
-                    f"Aucun profil de décaissement n'est en vigueur le {realloc.date_effet}"
+                    msg(
+                        "reallocation.aucun_profil_decaissement_vigueur",
+                        date_effet=realloc.date_effet,
+                    )
                 )
             if base.valid_from >= realloc.date_effet:
                 raise ReallocationRefusee(
-                    f"Une version du profil prend déjà effet le {base.valid_from} : choisissez une "
-                    "date d'effet postérieure"
+                    msg("reallocation.version_profil_prend_deja_effet", valid_from=base.valid_from)
                 )
             disponible = solde_categorie(base, source)
             if disponible < realloc.montant:
                 raise SoldeInsuffisant(
-                    f"Catégorie {source.code} : solde {disponible}, transfert demandé "
-                    f"{realloc.montant}"
+                    msg(
+                        "reallocation.categorie_solde_transfert_demande",
+                        code=source.code,
+                        disponible=disponible,
+                        montant=realloc.montant,
+                    )
                 )
             alloc_source = base.regles.get(category=source).allocation
             if not base.regles.filter(category=cible).exists():
                 raise ReallocationRefusee(
-                    f"La catégorie {cible.code} n'a pas de règle dans le profil en vigueur"
+                    msg("reallocation.categorie_regle_profil_vigueur", code=cible.code)
                 )
             alloc_cible = base.regles.get(category=cible).allocation
             nouveau = nouvelle_version(
@@ -185,21 +198,21 @@ def approuver_reallocation(*, utilisateur, reallocation: Reallocation) -> Reallo
             )
     except ActivationRefusee as erreur:
         raise ReallocationRefusee(
-            f"La nouvelle version du profil est refusée : {erreur}"
+            msg("reallocation.nouvelle_version_profil_refusee", erreur=erreur)
         ) from erreur
     except IntegrityError as erreur:
-        raise ReallocationRefusee("Cette réallocation vient d'être décidée") from erreur
+        raise ReallocationRefusee(msg("reallocation.reallocation_vient_etre_decidee")) from erreur
     return realloc
 
 
 def rejeter_reallocation(*, utilisateur, reallocation: Reallocation, motif: str) -> Reallocation:
     _habilite(utilisateur, "valider", reallocation.project_id)
     if not (motif or "").strip():
-        raise ReallocationRefusee("Un rejet exige un motif")
+        raise ReallocationRefusee(msg("reallocation.rejet_exige_motif"))
     with transaction.atomic():
         realloc = Reallocation.objects.select_for_update().get(pk=reallocation.pk)
         if realloc.status != StatutReallocation.DEMANDEE:
-            raise ReallocationRefusee(f"Cette réallocation est déjà « {realloc.status} »")
+            raise ReallocationRefusee(msg("reallocation.reallocation_deja", status=realloc.status))
         realloc.status = StatutReallocation.REJETEE
         realloc.approbateur = utilisateur.id
         realloc.decided_at = timezone.now()

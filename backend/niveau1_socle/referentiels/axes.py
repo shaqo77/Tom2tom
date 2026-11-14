@@ -1,5 +1,7 @@
 """Imputation sur les axes analytiques. Voir L2-T03."""
 
+from core.i18n import msg
+
 from .models import ValeurDimension
 
 
@@ -19,9 +21,9 @@ def exiger_valeur_imputable(code_plan: str, code: str) -> ValeurDimension:
     """Retourne la valeur d'axe, ou refuse l'imputation qui ne lui est pas permise."""
     valeur = ValeurDimension.objects.filter(plan__code=code_plan, code=code).first()
     if valeur is None:
-        raise ValeurIntrouvable(f"La valeur {code} n'existe pas dans le plan {code_plan}")
+        raise ValeurIntrouvable(msg("axes.valeur_existe_plan", code=code, code_plan=code_plan))
     if not valeur.is_postable:
-        raise ValeurNonImputable(f"La valeur {code} n'est pas imputable : c'est un regroupement")
+        raise ValeurNonImputable(msg("axes.valeur_imputable_c_regroupement", code=code))
     if not valeur.is_active:
-        raise ValeurInactive(f"La valeur {code} est inactive")
+        raise ValeurInactive(msg("axes.valeur_inactive", code=code))
     return valeur
