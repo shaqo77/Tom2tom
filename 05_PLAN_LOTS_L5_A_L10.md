@@ -537,6 +537,12 @@ Rejouer sur un rapport en préparation les motifs de rejet connus du bailleur, e
 
 Enregistrer le résultat des soumissions réelles pour alimenter l'**indicateur phare : le taux de rapports acceptés au premier envoi**.
 
+> **Réalisation de L6-T07** (`backend/niveau4_reporting/publication/revue.py`, modèles `MotifRejet`, `SimulationRevue`, `SoumissionBailleur`, migrations `publication/0005-0006`, `tests/test_revue_bailleur_bd.py`, 14 tests, 7 mutations vérifiées ; suite complète verte). *Avec T07, le lot L6 est livré tâche par tâche ; son contrôle de sortie reste à exécuter.*
+> - `simuler_revue` rejoue sur l'objet en préparation les contrôles ACTIFS : ceux du type avances sur chaque avance échue (via le moteur, contexte `contexte_avance`), les contrôles bloquants non traités de l'objet (dérogations approuvées prises en compte) et ses avertissements. **Avis** : `no_go` si un constat est bloquant OU recoupe un motif de rejet connu ; `go_reserves` s'il y a d'autres constats ; `go` sinon. Chaque constat porte son message dans chaque langue (l'avance et ses jours de retard sont nommés), l'action corrective du contrôle et, s'il y a lieu, le motif connu avec sa source. La simulation est gardée (ajout seul) et écrit au journal d'évaluation (déclencheur : service `simulation_revue`).
+> - `MotifRejet` : donnée (un motif appris d'un rejet s'ajoute sans déployer), relié au contrôle qui le détecte, désactivable, jamais supprimé.
+> - `enregistrer_envoi` / `enregistrer_issue` : envois numérotés par (projet, rapport, période) sous verrou, un nouvel envoi n'est possible qu'après l'issue du précédent, l'issue se pose UNE fois, un rejet exige son motif. `taux_acceptation_premier_envoi` : acceptés / décidés **sur les premiers envois** de la fenêtre ; `None` sans issue connue (aucun taux inventé).
+> - **Limites assumées** : seuls les contrôles du type avances sont rejoués sur des objets que la simulation sait énumérer ; les autres types (dépenses, budget) ne sont vus que par leurs évaluations déjà journalisées sur l'objet, faute d'énumération des objets d'un rapport avant les modèles d'états en base. La règle « un motif connu force le no-go » est un choix de prudence, pas une exigence du plan. L'indicateur n'est pas ventilé par bailleur ni comparé à l'avis simulé (calibrage) ; pas d'API HTTP.
+
 **Contrôle.** Un rapport avec une avance non justifiée au-delà du délai reçoit un avis `no-go` qui nomme l'avance et le nombre de jours de retard.
 
 ---

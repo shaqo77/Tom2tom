@@ -31,6 +31,8 @@ IDENTIQUES_ADMIS = {
     "guide.paragraphe",
     "guide.plafond_fixe",
     "guide.plafond_variable",
+    "enum.publication.avis_revue.go",
+    "enum.publication.avis_revue.no_go",
     # Mots identiques en français et en anglais (et non des traductions oubliées) :
     "enum.comptabilite.origine_ecriture.import",
     "enum.controles.resultat.information",

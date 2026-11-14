@@ -64,3 +64,100 @@ class FichierRapport(ModeleOrganisation):
                 condition=Q(format__in=["xlsx", "pdf"]), name="fichier_format_ferme"
             ),
         ]
+
+
+class MotifRejet(ModeleOrganisation):
+    """Un motif pour lequel un bailleur a déjà rejeté (ou rejetterait) un rapport. L6-T07.
+
+    Donnée, pas code : on ajoute un motif appris d'un rejet sans déployer. Il pointe le CONTRÔLE qui
+    le détecte ; la simulation de revue le rejoue et marque les constats qui le recoupent.
+    """
+
+    project_id = models.UUIDField(db_index=True)
+    code = models.CharField(max_length=64)
+    label = models.JSONField()  # {"fr": …, "en": …}
+    controle_code = models.CharField(max_length=64)
+    source = models.TextField(blank=True, default="")  # où ce rejet a été constaté
+    actif = models.BooleanField(default=True)
+
+    class Meta:
+        constraints = [
+            models.UniqueConstraint(fields=["project_id", "code"], name="uq_motifrejet_code"),
+        ]
+
+
+class AvisRevue(models.TextChoices):
+    GO = "go", "Go"
+    GO_RESERVES = "go_reserves", "Go avec réserves"
+    NO_GO = "no_go", "No-go"
+
+
+class SimulationRevue(ModeleOrganisation):
+    """Le résultat d'une simulation de revue bailleur, gardé tel quel. Ajout seul."""
+
+    project_id = models.UUIDField(db_index=True)
+    objet_type = models.CharField(max_length=40)
+    objet_id = models.UUIDField(null=True, blank=True)
+    date_effet = models.DateField()
+    avis = models.CharField(max_length=12, choices=AvisRevue.choices)
+    constats = models.JSONField()  # la liste des constats, textes figés dans chaque langue
+    lancee_par = models.UUIDField()
+
+    class Meta:
+        constraints = [
+            models.CheckConstraint(
+                condition=Q(avis__in=AvisRevue.values), name="simulation_avis_ferme"
+            ),
+        ]
+
+
+class ResultatSoumission(models.TextChoices):
+    EN_ATTENTE = "en_attente", "En attente"
+    ACCEPTE = "accepte", "Accepté"
+    REJETE = "rejete", "Rejeté"
+
+
+class SoumissionBailleur(ModeleOrganisation):
+    """Un envoi réel d'un rapport au bailleur et son issue. Alimente l'indicateur phare.
+
+    `numero_envoi` compte les envois d'un même rapport (modèle, période) : le premier envoi est le
+    seul qui compte pour « accepté au premier envoi ». L'issue se pose UNE fois.
+    """
+
+    project_id = models.UUIDField(db_index=True)
+    template_code = models.CharField(max_length=64)
+    period_to = models.DateField()
+    numero_envoi = models.PositiveSmallIntegerField()
+    rapport_id = models.UUIDField(null=True, blank=True)
+    simulation = models.ForeignKey(
+        SimulationRevue, null=True, blank=True, on_delete=models.PROTECT, related_name="+"
+    )
+    envoyee_le = models.DateField()
+    resultat = models.CharField(
+        max_length=12, choices=ResultatSoumission.choices, default=ResultatSoumission.EN_ATTENTE
+    )
+    motif_rejet = models.TextField(blank=True, default="")
+    decidee_le = models.DateField(null=True, blank=True)
+    saisie_par = models.UUIDField()
+
+    class Meta:
+        constraints = [
+            models.UniqueConstraint(
+                fields=["project_id", "template_code", "period_to", "numero_envoi"],
+                name="uq_soumission_envoi",
+            ),
+            models.CheckConstraint(
+                condition=Q(resultat__in=ResultatSoumission.values),
+                name="soumission_resultat_ferme",
+            ),
+            models.CheckConstraint(condition=Q(numero_envoi__gte=1), name="soumission_numero_pos"),
+            # Une issue porte sa date ; un rejet porte son motif ; « en attente » ne porte rien.
+            models.CheckConstraint(
+                condition=(
+                    Q(resultat="en_attente") & Q(decidee_le__isnull=True) & Q(motif_rejet="")
+                )
+                | (Q(resultat="accepte") & Q(decidee_le__isnull=False) & Q(motif_rejet=""))
+                | (Q(resultat="rejete") & Q(decidee_le__isnull=False) & ~Q(motif_rejet="")),
+                name="soumission_issue_coherente",
+            ),
+        ]

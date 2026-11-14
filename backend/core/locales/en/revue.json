@@ -1,0 +1,10 @@
+{
+  "revue.avance_en_retard": "Advance {reference} ({tiers}) not justified beyond the deadline: {reste} outstanding, {jours_de_retard} day(s) late",
+  "revue.controle_inconnu": "No control “{code}” in this project: a motive points to the control that detects it",
+  "revue.envoi_en_attente": "A previous submission of this report is still awaiting its outcome",
+  "revue.habilitation_requise": "You are not authorised to “{operation}” on this project",
+  "revue.issue_deja_posee": "The outcome of this submission is already recorded ({resultat})",
+  "revue.motif_code_obligatoire": "A rejection motive has a code",
+  "revue.motif_toutes_langues": "A rejection motive label is required in every supported language",
+  "revue.rejet_motive": "A rejection requires the reason given by the donor"
+}

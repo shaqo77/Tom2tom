@@ -51,7 +51,13 @@ from niveau4_reporting.controles.services import (
     trancher,
     valider_controle,
 )
-from niveau4_reporting.publication.models import FichierRapport, RapportPublie
+from niveau4_reporting.publication.models import (
+    FichierRapport,
+    MotifRejet,
+    RapportPublie,
+    SimulationRevue,
+    SoumissionBailleur,
+)
 from tests.outils import connexion_proprietaire
 from tests.outils_profil import creer_profil
 from tests.test_cycle_ecriture_bd import decor  # noqa: F401
@@ -332,6 +338,32 @@ def _peupler(organisation, projet, profils, accord, categories):
         periode_debut=datetime.date(2026, 1, 1),
         periode_fin=datetime.date(2026, 3, 31),
         date_echeance=datetime.date(2026, 5, 15),
+    )
+    MotifRejet.objects.create(  # un motif de rejet connu, une simulation et un envoi (L6-T07)
+        org_id=organisation.id,
+        project_id=projet.id,
+        code="M1",
+        label={"fr": "m", "en": "m"},
+        controle_code="REVUE",
+    )
+    simulation = SimulationRevue.objects.create(
+        org_id=organisation.id,
+        project_id=projet.id,
+        objet_type="rapport",
+        date_effet=datetime.date(2026, 6, 1),
+        avis="go",
+        constats=[],
+        lancee_par=dora.id,
+    )
+    SoumissionBailleur.objects.create(
+        org_id=organisation.id,
+        project_id=projet.id,
+        template_code="TER",
+        period_to=datetime.date(2026, 3, 31),
+        numero_envoi=1,
+        simulation=simulation,
+        envoyee_le=datetime.date(2026, 5, 10),
+        saisie_par=dora.id,
     )
     # Justification, dérogation et circuit de validation (L6-T02).
     justifier(utilisateur=amina, evaluation=evaluation, texte="Pièces attendues du fournisseur")
