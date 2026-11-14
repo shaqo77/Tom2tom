@@ -396,6 +396,12 @@ Aucune requête SQL, aucun JavaScript, aucun `eval`/`exec` (règle 5). Une condi
 
 **Dérogation formelle.** Distincte de la justification : une justification **explique** une anomalie, une dérogation **autorise** à poursuivre malgré un contrôle bloquant. Modèle `Derogation` : contrôle et opération visés (périmètre limité à cet objet), motif, durée de validité, demandeur, **approbateur distinct et habilité**, document justificatif. Le **résultat initial du contrôle n'est jamais effacé ni réécrit** : l'opération apparaît comme « bénéficiant d'une dérogation approuvée », et les deux lignes (échec, dérogation) figurent au dossier de conformité et au journal d'audit.
 
+> **Réalisation de L6-T02a — justifications et dérogations** (`backend/niveau4_reporting/controles/derogations.py`, modèles `Justification` et `Derogation`, migrations `controles/0006-0007`, `tests/test_derogations_bd.py`, 17 tests, 5 mutations vérifiées). *Le circuit à étapes (T02b) reste à faire.*
+> - **Justification** : textuelle, nominative (nom figé), en ajout seul. Elle **explique** et ne lève aucun blocage.
+> - **Dérogation** : demandée (`saisir`), décidée une seule fois par une AUTRE personne habilitée (`valider`) ; l'égalité demandeur/approbateur est refusée par le service ET par une contrainte de base. Périmètre déduit de l'évaluation par la base (contrôle, projet, objet) ; validité `[valide_du, valide_jusquau[`. La ligne est verrouillée à la décision, un trigger interdit toute seconde décision.
+> - `controles_en_attente` / `exiger_controles_tranches` acceptent une `date` et ne comptent plus un résultat bloquant couvert par une dérogation approuvée et valide ; le résultat initial n'est jamais modifié. `dossier_de_conformite` rend le fil échec → justification → dérogation.
+> - **Limites assumées** : il n'existe pas d'opération « approuver » dans les habilitations (ensemble fermé) : l'approbation exige `valider`. Le document justificatif est une **référence** textuelle, pas encore un lien vers un document stocké. Une dérogation ne vise que la dernière évaluation du contrôle sur l'objet.
+
 **Circuit borné.** Conformément à la note 06 §3.2 : 1 à 5 étapes, chacune avec un rôle requis, une condition d'entrée optionnelle (seuil de montant, catégorie, bailleur) et un motif obligatoire en cas de rejet. Pas de moteur de processus général.
 
 **Contrôles.**

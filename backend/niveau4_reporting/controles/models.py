@@ -187,3 +187,92 @@ class DecisionControle(ModeleOrganisation):
             ),
             models.CheckConstraint(condition=~Q(motif=""), name="decision_controle_motivee"),
         ]
+
+
+class Justification(ModeleOrganisation):
+    """Ce qu'une personne dit d'une anomalie : elle EXPLIQUE, elle n'autorise rien. Ajout seul.
+
+    Textuelle, nominative (l'auteur est figé avec son nom) et conservée. Une justification ne lève
+    jamais un blocage : seule une correction ou une dérogation approuvée le fait.
+    """
+
+    evaluation = models.ForeignKey(
+        EvaluationControle, on_delete=models.PROTECT, related_name="justifications"
+    )
+    texte = models.TextField()
+    auteur_id = models.UUIDField()
+    auteur_nom = models.CharField(max_length=150)
+
+    class Meta:
+        constraints = [
+            models.CheckConstraint(condition=~Q(texte=""), name="justification_texte_obligatoire"),
+        ]
+
+
+class StatutDerogation(models.TextChoices):
+    DEMANDEE = "demandee", "Demandée"
+    APPROUVEE = "approuvee", "Approuvée"
+    REFUSEE = "refusee", "Refusée"
+
+
+class Derogation(ModeleOrganisation):
+    """L'autorisation formelle de poursuivre malgré UN contrôle bloquant, sur UN objet. L6-T02.
+
+    Le résultat initial (l'évaluation visée) n'est ni effacé ni réécrit : la dérogation s'ajoute à
+    côté. Elle vaut pour `[valide_du, valide_jusquau[` (fin exclue), pour le contrôle et l'objet de
+    l'évaluation visée, et son approbateur est une autre personne que son demandeur.
+    """
+
+    evaluation = models.ForeignKey(
+        EvaluationControle, on_delete=models.PROTECT, related_name="derogations"
+    )
+    controle = models.ForeignKey(Controle, on_delete=models.PROTECT, related_name="derogations")
+    project_id = models.UUIDField(db_index=True)
+    objet_type = models.CharField(max_length=40)
+    objet_id = models.UUIDField(null=True, blank=True)
+    motif = models.TextField()
+    justificatif = models.CharField(max_length=255)  # référence du document justificatif
+    valide_du = models.DateField()
+    valide_jusquau = models.DateField()  # exclu
+    statut = models.CharField(
+        max_length=10, choices=StatutDerogation.choices, default=StatutDerogation.DEMANDEE
+    )
+    demandeur_id = models.UUIDField()
+    approbateur_id = models.UUIDField(null=True, blank=True)
+    decidee_le = models.DateTimeField(null=True, blank=True)
+    motif_decision = models.TextField(blank=True, default="")
+
+    class Meta:
+        indexes = [models.Index(fields=["project_id", "objet_type", "objet_id"])]
+        constraints = [
+            models.CheckConstraint(
+                condition=Q(statut__in=StatutDerogation.values), name="derogation_statut_ferme"
+            ),
+            models.CheckConstraint(condition=~Q(motif=""), name="derogation_motivee"),
+            models.CheckConstraint(condition=~Q(justificatif=""), name="derogation_justifiee"),
+            models.CheckConstraint(
+                condition=Q(valide_du__lt=models.F("valide_jusquau")),
+                name="derogation_periode_non_vide",
+            ),
+            # Jamais son propre approbateur.
+            models.CheckConstraint(
+                condition=Q(approbateur_id__isnull=True)
+                | ~Q(approbateur_id=models.F("demandeur_id")),
+                name="derogation_approbateur_distinct",
+            ),
+            # Décidée = un approbateur, une date, un motif ; demandée = rien de tout cela.
+            models.CheckConstraint(
+                condition=(
+                    Q(statut=StatutDerogation.DEMANDEE)
+                    & Q(approbateur_id__isnull=True)
+                    & Q(decidee_le__isnull=True)
+                )
+                | (
+                    ~Q(statut=StatutDerogation.DEMANDEE)
+                    & Q(approbateur_id__isnull=False)
+                    & Q(decidee_le__isnull=False)
+                    & ~Q(motif_decision="")
+                ),
+                name="derogation_decision_coherente",
+            ),
+        ]

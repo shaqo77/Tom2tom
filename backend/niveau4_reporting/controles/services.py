@@ -24,6 +24,7 @@ from niveau3_config.services.decaissement import profil_en_vigueur
 from . import conditions
 from .bibliotheque import livres_avec_risque
 from .decision import ParametresInvalides, decider, valider_parametres
+from .derogations import derogation_en_vigueur
 from .models import (
     Controle,
     Decision,
@@ -387,12 +388,17 @@ def trancher(*, utilisateur, evaluation: EvaluationControle, decision: str, moti
     return decision_enregistree
 
 
-def controles_en_attente(project_id, objet_type: str, objet_id=None) -> list[tuple]:
+def controles_en_attente(
+    project_id, objet_type: str, objet_id=None, date: datetime.date | None = None
+) -> list[tuple]:
     """Ce qui empêche d'avancer pour cet objet : `[(évaluation, raison), …]`.
 
     On ne regarde que la DERNIÈRE évaluation de chaque contrôle sur l'objet. Bloquent : un résultat
     `bloquant`, un contrôle `à vérifier` pas encore tranché, une décision « non conforme ».
+    Un résultat bloquant COUVERT par une dérogation approuvée à `date` (aujourd'hui par défaut)
+    ne bloque plus ; son résultat reste lisible dans le journal (L6-T02).
     """
+    date = date or datetime.date.today()
     evaluations = EvaluationControle.objects.filter(
         project_id=project_id, objet_type=objet_type, objet_id=objet_id
     ).order_by("created_at", "id")
@@ -402,6 +408,14 @@ def controles_en_attente(project_id, objet_type: str, objet_id=None) -> list[tup
     en_attente = []
     for evaluation in dernieres.values():
         if evaluation.resultat == Resultat.BLOQUANT:
+            if derogation_en_vigueur(
+                controle_id=evaluation.controle_id,
+                project_id=project_id,
+                objet_type=objet_type,
+                objet_id=objet_id,
+                date=date,
+            ):
+                continue
             en_attente.append((evaluation, msg("controles.controle_bloquant")))
         elif evaluation.resultat == Resultat.A_VERIFIER:
             derniere = evaluation.decisions.order_by("-decided_at", "-id").first()
@@ -412,9 +426,11 @@ def controles_en_attente(project_id, objet_type: str, objet_id=None) -> list[tup
     return sorted(en_attente, key=lambda x: x[0].controle.code)
 
 
-def exiger_controles_tranches(project_id, objet_type: str, objet_id=None) -> None:
+def exiger_controles_tranches(
+    project_id, objet_type: str, objet_id=None, date: datetime.date | None = None
+) -> None:
     """Refuse d'avancer tant qu'un contrôle bloque : vérifié au serveur (`CONTROLE_BLOQUANT`)."""
-    en_attente = controles_en_attente(project_id, objet_type, objet_id)
+    en_attente = controles_en_attente(project_id, objet_type, objet_id, date)
     if en_attente:
         detail = Liste(
             [
