@@ -42,6 +42,7 @@ INSTALLED_APPS = [
     "niveau3_config",
     "niveau4_reporting.mapping",
     "niveau4_reporting.moteur",
+    "niveau4_reporting.controles",
 ]
 
 MIDDLEWARE = [
