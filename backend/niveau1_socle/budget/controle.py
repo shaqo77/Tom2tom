@@ -23,7 +23,7 @@ from decimal import Decimal
 from django.db import connection, transaction
 
 from core.audit import journaliser
-from core.i18n import msg
+from core.i18n import Liste, msg
 
 from .models import AXES_CONTROLE, ControleBudgetaire, ModeControle
 from .services import BudgetInvalide, _habilite
@@ -62,12 +62,20 @@ class Depassement:
         """De combien la ligne serait dépassée une fois l'opération prise en compte."""
         return self.engage + self.consomme + self.impact - self.budget
 
-    def __str__(self) -> str:
-        axes = "+".join(self.axes) or "projet"
-        return (
-            f"ligne {axes} : disponible {self.disponible}, opération {self.impact}, "
-            f"dépassement {self.depassement}"
+    @property
+    def message(self):
+        """Le dépassement, dans la langue de qui le lit."""
+        axes = "+".join(self.axes)
+        return msg(
+            "budget.ligne_depassement" if axes else "budget.ligne_projet_depassement",
+            **({"axes": axes} if axes else {}),
+            disponible=self.disponible,
+            impact=self.impact,
+            depassement=self.depassement,
         )
+
+    def __str__(self) -> str:
+        return str(self.message)
 
 
 @dataclass
@@ -86,7 +94,7 @@ class DepassementBudgetaire(ValueError):
     def __init__(self, depassements: list[Depassement]):
         self.depassements = depassements
         super().__init__(
-            "Dépassement budgétaire bloquant : " + " ; ".join(str(d) for d in depassements)
+            msg("budget.depassement_bloquant", details=Liste([d.message for d in depassements]))
         )
 
 

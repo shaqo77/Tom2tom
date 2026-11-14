@@ -12,6 +12,7 @@
   "controles.declare_non_conforme": "declared non-compliant",
   "controles.declencheur_exige_utilisateur_service_deux": "A trigger is required: a user or a service, not both",
   "controles.en_attente_ligne": "{code} ({raison})",
+  "controles.libelle_action_invalides": "Invalid label or corrective action: {erreur}",
   "controles.regle_invalide": "Invalid rule: {erreur}",
   "controles.rejet_exige_motif": "A rejection requires a reason",
   "controles.seul_controle_verifier_tranche_celui": "Only a check “to be verified” can be decided (this one is “{resultat}”)",

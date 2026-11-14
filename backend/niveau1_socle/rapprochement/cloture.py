@@ -8,6 +8,8 @@ l'état de rapprochement.
 
 from django.db import connection
 
+from core.i18n import Liste, msg
+
 MAX_COMPTES_CITES = 5
 
 
@@ -24,10 +26,14 @@ def mouvements_non_rapproches(periode) -> str | None:
         comptes = cur.fetchall()
     if not comptes:
         return None
-    cites = ", ".join(f"{code} ({n})" for code, n in comptes[:MAX_COMPTES_CITES])
+    cites = Liste(
+        [msg("cloture.compte_cite", code=code, n=n) for code, n in comptes[:MAX_COMPTES_CITES]],
+        ", ",
+    )
     reste = len(comptes) - MAX_COMPTES_CITES
-    suite = f" et {reste} autre(s)" if reste > 0 else ""
-    return f"Mouvements de relevé non rapprochés : {cites}{suite}"
+    if reste > 0:
+        return msg("cloture.mouvements_non_rapproches_et_autres", cites=cites, reste=reste)
+    return msg("cloture.mouvements_non_rapproches", cites=cites)
 
 
 CONTROLES_DE_CLOTURE = (mouvements_non_rapproches,)

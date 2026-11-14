@@ -67,7 +67,7 @@ class Controle(ModeleOrganisation):
     applicable_si = models.JSONField(null=True, blank=True)  # même forme ; sinon non applicable
     # Règle de pièces : {"type_piece": "facture", "validee": true}. Vide pour les autres règles.
     parametres = models.JSONField(default=dict, blank=True)
-    action_corrective = models.TextField(blank=True, default="")
+    action_corrective = models.JSONField(blank=True, default=dict)  # {"fr": …, "en": …}
     valid_from = models.DateField()
     valid_to = models.DateField(null=True, blank=True)  # exclu : [valid_from, valid_to[
     status = models.CharField(
@@ -126,8 +126,9 @@ class EvaluationControle(ModeleOrganisation):
     severity = models.CharField(max_length=14, choices=Severite.choices)
     valeur_constatee = models.TextField(blank=True, default="")
     valeur_attendue = models.TextField(blank=True, default="")
-    message = models.TextField(blank=True, default="")
-    action_corrective = models.TextField(blank=True, default="")
+    # Figés à l'écriture dans CHAQUE langue (le journal est immuable) : {"fr": …, "en": …}.
+    message = models.JSONField(blank=True, default=dict)
+    action_corrective = models.JSONField(blank=True, default=dict)
     # Le profil de décaissement résolu à la date de l'opération (L5-T04), s'il y en a un.
     profile_version_id = models.UUIDField(null=True, blank=True)
     exigence_id = models.UUIDField(null=True, blank=True)

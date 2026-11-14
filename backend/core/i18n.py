@@ -202,6 +202,40 @@ class Message:
         return (Message, (self.cle, self.params))
 
 
+class Localise(Message):
+    """Un texte déjà multilingue, tel qu'une donnée de la base (`{"fr": …, "en": …}`), placé dans un
+    message : il se rend dans la langue du message qui le porte, sinon en français, sinon en la
+    première langue disponible. Un texte simple (non JSONB) vaut pour toutes les langues."""
+
+    __slots__ = ("textes",)
+
+    def __init__(self, textes):
+        super().__init__("", {})
+        self.textes = textes if isinstance(textes, dict) else {LANGUE_PAR_DEFAUT: str(textes)}
+
+    def rendre(self, langue: str | None = None) -> str:
+        langue = normaliser_langue(langue) if langue else langue_courante()
+        if not self.textes:
+            return ""
+        return str(
+            self.textes.get(langue)
+            or self.textes.get(LANGUE_PAR_DEFAUT)
+            or next(iter(self.textes.values()))
+        )
+
+    def __repr__(self) -> str:
+        return f"Localise({self.textes!r})"
+
+    def __eq__(self, autre) -> bool:
+        return isinstance(autre, Localise) and self.textes == autre.textes
+
+    def __hash__(self) -> int:
+        return hash(("localise", tuple(sorted(self.textes))))
+
+    def __reduce__(self):
+        return (Localise, (self.textes,))
+
+
 class Liste(Message):
     """Une liste de messages (ou de textes), rendue dans UNE langue puis assemblée : on n'assemble
     jamais des textes déjà rendus, la ponctuation d'une langue n'étant pas celle d'une autre."""
@@ -254,6 +288,58 @@ def texte(objet, langue: str | None = None) -> str:
     return objet.rendre(langue) if isinstance(objet, Message) else str(objet)
 
 
+def formater_date(date, langue: str | None = None) -> str:
+    """Une date comme la lit un lecteur de cette langue : 14/11/2026 ou 14 November 2026."""
+    langue = normaliser_langue(langue) if langue else langue_courante()
+    return date.strftime("%d/%m/%Y") if langue == "fr" else f"{date.day} {date:%B %Y}"
+
+
+def formater_montant(valeur, langue: str | None = None) -> str:
+    """1 234 567,89 en français ; 1,234,567.89 en anglais. Deux décimales."""
+    langue = normaliser_langue(langue) if langue else langue_courante()
+    entier, _, decimales = f"{valeur:,.2f}".partition(".")
+    if langue == "fr":
+        return f"{entier.replace(',', ' ')},{decimales}"
+    return f"{entier}.{decimales}"
+
+
+def formater_pourcentage(taux, langue: str | None = None) -> str:
+    """Un taux (0,8) en pourcentage (80 %), sans zéros inutiles."""
+    langue = normaliser_langue(langue) if langue else langue_courante()
+    texte_ = f"{(taux * 100).normalize():f}"
+    if langue == "fr":
+        return texte_.replace(".", ",") + " %"
+    return texte_ + "%"
+
+
+def normaliser_textes(valeur, *, obligatoire: bool = False) -> dict[str, str]:
+    """Un texte de la base, multilingue : `{"fr": …, "en": …}`.
+
+    Accepte un dictionnaire (langues gérées seulement, textes non vides) ; un texte simple vaut pour
+    le français ; `None` ou vide donne `{}`. Avec `obligatoire`, le français est requis. Lève
+    `ValueError` sinon : on n'enregistre jamais une langue que le système ne gère pas.
+    """
+    if valeur is None or valeur == "":
+        resultat: dict[str, str] = {}
+    elif isinstance(valeur, str):
+        resultat = {LANGUE_PAR_DEFAUT: valeur.strip()} if valeur.strip() else {}
+    elif isinstance(valeur, dict):
+        inconnues = set(valeur) - set(LANGUES)
+        if inconnues:
+            raise ValueError(f"langues non gérées : {sorted(inconnues)}")
+        resultat = {}
+        for langue, texte_ in valeur.items():
+            if not isinstance(texte_, str):
+                raise ValueError(f"le texte ({langue}) est une chaîne")
+            if texte_.strip():
+                resultat[langue] = texte_.strip()
+    else:
+        raise ValueError("un texte multilingue est un objet {langue: texte}")
+    if obligatoire and LANGUE_PAR_DEFAUT not in resultat:
+        raise ValueError(f"le texte {LANGUE_PAR_DEFAUT} est obligatoire")
+    return resultat
+
+
 def textes(objet) -> dict[str, str]:
     """Le texte dans chaque langue ; un texte brut (non catalogué) est le même partout."""
     if isinstance(objet, BaseException):
@@ -261,6 +347,20 @@ def textes(objet) -> dict[str, str]:
     if isinstance(objet, Message):
         return objet.toutes()
     return {langue: str(objet) for langue in LANGUES}
+
+
+def _snake(nom: str) -> str:
+    return re.sub(r"(?<!^)(?=[A-Z])", "_", nom).lower()
+
+
+def famille_de(classe) -> str:
+    """`<application>.<classe en snake_case>` : la famille de libellés d'un ensemble fermé."""
+    return f"{classe.__module__.split('.')[-2]}.{_snake(classe.__name__)}"
+
+
+def libelle_valeur(classe, valeur, langue: str | None = None) -> str:
+    """Le libellé d'une valeur d'un ensemble fermé (une `TextChoices`), dans la langue voulue."""
+    return libelle(famille_de(classe), str(valeur), langue)
 
 
 def libelle(famille: str, valeur: str, langue: str | None = None) -> str:

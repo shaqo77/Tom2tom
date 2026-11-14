@@ -8,9 +8,8 @@ qui décident lesquelles s'appliquent. Importer un profil ne produit donc que de
 from django.db import models
 from django.db.models import Q
 
+from core.i18n import msg
 from core.models import ModeleOrganisation
-
-MENTION_LORSQUE_REQUIS = "lorsque requis"
 
 
 class StatutProfilBailleur(models.TextChoices):
@@ -42,7 +41,7 @@ class ProfilBailleur(ModeleOrganisation):
     code = models.CharField(max_length=64)
     version = models.PositiveIntegerField(default=1)
     label = models.JSONField()  # {"fr": …, "en": …}
-    description = models.TextField(blank=True, default="")
+    description = models.JSONField(blank=True, default=dict)  # {"fr": …, "en": …}
     status = models.CharField(
         max_length=10, choices=StatutProfilBailleur.choices, default=StatutProfilBailleur.BROUILLON
     )
@@ -91,9 +90,9 @@ class ElementProfil(ModeleOrganisation):
         ]
 
     @property
-    def mention(self) -> str:
+    def mention(self):
         """Aucun élément n'est un modèle universel : le document du projet décide (L5-T06)."""
-        return MENTION_LORSQUE_REQUIS
+        return msg("presentation.lorsque_requis")
 
     def __str__(self) -> str:
         return f"{self.profil_id}/{self.kind}/{self.code}"

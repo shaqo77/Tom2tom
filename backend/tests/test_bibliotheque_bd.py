@@ -132,7 +132,8 @@ def test_un_controle_installe_s_active_puis_s_evalue_comme_n_importe_quel_autre(
         service="x",
     )
     assert (ko.resultat, ok.resultat) == ("bloquant", "reussi")
-    assert ko.action_corrective == "Imputer la dépense à une catégorie de l'accord"
+    assert ko.action_corrective["fr"] == "Imputer la dépense à une catégorie de l'accord"
+    assert ko.action_corrective["en"] == "Assign the expense to a category of the agreement"
 
 
 # --- les règles de pièces, de bout en bout -------------------------------------------------

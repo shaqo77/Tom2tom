@@ -1,8 +1,11 @@
 {
   "budget.aucune_version_approuvee_reviser_approuvez": "Aucune version approuvée à réviser : approuvez d'abord le budget initial",
   "budget.axe_inconnu": "axe inconnu : {v1}",
+  "budget.depassement_bloquant": "Dépassement budgétaire bloquant : {details}",
   "budget.devise_inconnue": "Devise inconnue : {devise}",
   "budget.identifiant_inconnu": "identifiant inconnu : {v1}",
+  "budget.ligne_depassement": "ligne {axes} : disponible {disponible}, opération {impact}, dépassement {depassement}",
+  "budget.ligne_projet_depassement": "ligne projet : disponible {disponible}, opération {impact}, dépassement {depassement}",
   "budget.montant_budget_jamais_negatif": "Un montant de budget n'est jamais négatif",
   "budget.montant_negatif_taux_non_positif": "Montant négatif ou taux non positif",
   "budget.motif_obligatoire_revision_reallocation": "Le motif est obligatoire pour une révision ou une réallocation",

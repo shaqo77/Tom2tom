@@ -327,3 +327,16 @@ def test_les_details_rares_sont_lisibles(avec_profil):
     assert "Accord IDA-6789 — version 1" in en_2026
     assert "(taxes comprises) ; allocation 100,00" in en_2026
     assert "au 01/01/2027 (exclu)" in en_2026  # la fin de validité de V1 est dite au lecteur
+
+
+def test_le_guide_en_anglais_est_rendu_dans_la_langue_demandee(avec_profil):
+    """Même configuration, même date : le texte change de langue, pas les faits."""
+    organisation, projet, profils, document, rfi = avec_profil
+    fr = _texte(generer_guide(utilisateur=profils["dora"], project_id=projet.id, date=DATE))
+    en = _texte(
+        generer_guide(utilisateur=profils["dora"], project_id=projet.id, date=DATE, langue="en")
+    )
+    assert fr != en
+    assert "Configuration guide" in en or "configuration guide" in en.lower()
+    assert "Guide de configuration" in fr
+    assert "RFI" in en and "RFI" in fr

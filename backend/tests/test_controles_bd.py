@@ -75,12 +75,15 @@ def _creer(ctl, code="DEPASSEMENT", **champs):
         "utilisateur": profils["dora"],
         "project_id": projet.id,
         "code": code,
-        "label": {"fr": "Dépassement du budget"},
+        "label": {"fr": "Dépassement du budget", "en": "Budget overrun"},
         "type_regle": "budget",
         "severity": "bloquant",
         "valid_from": DEBUT,
         "expression": DEPASSEMENT,
-        "action_corrective": "Demander une réallocation budgétaire",
+        "action_corrective": {
+            "fr": "Demander une réallocation budgétaire",
+            "en": "Request a budget reallocation",
+        },
     } | champs
     return creer_controle(**donnees)
 
@@ -250,8 +253,16 @@ def test_chaque_evaluation_laisse_une_ligne_de_journal_complete(ctl):
     assert evaluation.controle_id == controle.id and evaluation.controle_version == 1
     assert evaluation.valeur_constatee == "1250.50"
     assert evaluation.valeur_attendue == "lte 1000"
-    assert "Dépassement du budget" in evaluation.message and "1250.50" in evaluation.message
-    assert evaluation.action_corrective == "Demander une réallocation budgétaire"
+    assert (
+        "Dépassement du budget" in evaluation.message["fr"]
+        and "1250.50" in evaluation.message["fr"]
+    )
+    assert evaluation.message["en"].startswith("Budget overrun: ")
+    assert "1250.50" in evaluation.message["en"] and "expected: lte" in evaluation.message["en"]
+    assert evaluation.action_corrective == {
+        "fr": "Demander une réallocation budgétaire",
+        "en": "Request a budget reallocation",
+    }
     assert evaluation.evaluee_le == D(2026, 6, 15)
     assert (evaluation.exigence_code, evaluation.exigence_clause) == ("BUDGET-CTRL", "§ 4.2")
     assert evaluation.exigence_id == exigence.id
@@ -267,7 +278,7 @@ def test_le_resultat_suit_la_severite_du_controle_et_un_succes_n_a_pas_d_action(
         ko = _evaluer(controle, {"depense_cumulee": M("1001")}, ctl)
         ok = _evaluer(controle, {"depense_cumulee": M("1000")}, ctl)
         assert (ko.resultat, ok.resultat) == (severite, "reussi")
-        assert ko.action_corrective and ok.action_corrective == ""
+        assert ko.action_corrective and ok.action_corrective == {}
         assert ok.valeur_constatee == "" and ok.valeur_attendue == ""
     assert EvaluationControle.objects.count() == 6
 
@@ -299,7 +310,7 @@ def test_un_controle_conditionnel_non_applicable_est_note_dans_le_journal(ctl):
     }
     controle = _actif(ctl, applicable_si=applicable_si)
     petit = _evaluer(controle, {"montant": M("100"), "depense_cumulee": M("9999")}, ctl)
-    assert petit.resultat == "non_applicable" and "non applicable" in petit.message
+    assert petit.resultat == "non_applicable" and "non applicable" in petit.message["fr"]
     gros = _evaluer(controle, {"montant": M("6000"), "depense_cumulee": M("9999")}, ctl)
     assert gros.resultat == "bloquant"
     assert EvaluationControle.objects.count() == 2  # les deux évaluations sont au journal

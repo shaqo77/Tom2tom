@@ -197,7 +197,8 @@ def test_toutes_les_conditions_doivent_etre_vraies_et_le_constat_est_lisible():
     constats = evaluer(prete, {"montant": D("900"), "disponible_categorie": D("400")})
     assert [c.satisfaite for c in constats] == [True, False]
     assert not reussit(constats)
-    assert constats[1].lisible() == "disponible_categorie = 400 ; attendu : gte 500"
+    assert str(constats[1].lisible()) == "disponible_categorie = 400 ; attendu : gte 500"
+    assert constats[1].lisible().rendre("en") == "disponible_categorie = 400; expected: gte 500"
 
 
 def test_une_valeur_absente_ne_satisfait_pas_une_comparaison():

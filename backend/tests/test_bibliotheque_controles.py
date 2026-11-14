@@ -95,7 +95,7 @@ def test_chaque_controle_livre_se_declenche_quand_il_le_doit(code):
     definition = LIVRES[code]
     resultat = decision(definition, ko)
     assert resultat.resultat == definition.severity, resultat.message
-    assert resultat.premier_echec is not None and definition.label["fr"] in resultat.message
+    assert resultat.premier_echec is not None and definition.label["fr"] in str(resultat.message)
 
 
 @pytest.mark.parametrize("code", sorted(CAS))
@@ -138,7 +138,8 @@ def test_chaque_definition_livree_est_valide_pour_le_langage_ferme():
         if d.applicable_si is not None:
             conditions.preparer_expression(d.applicable_si, d.type_regle)
         assert d.severity in ("bloquant", "avertissement", "information")
-        assert d.label["fr"] and d.label["en"] and d.action_corrective
+        assert d.label["fr"] and d.label["en"]
+        assert d.action_corrective["fr"] and d.action_corrective["en"]
 
 
 def test_les_seuils_de_risque_sont_parametres():
@@ -339,5 +340,5 @@ def test_un_controle_manuel_est_a_verifier_sans_rien_evaluer():
         libelle="Revue des pièces", mode="manuel", severity="bloquant", type_regle="pieces",
         expression=None, applicable_si=None, parametres={}, contexte={},
     )  # fmt: skip
-    assert resultat.resultat == "a_verifier" and "vérification humaine" in resultat.message
+    assert resultat.resultat == "a_verifier" and "vérification humaine" in str(resultat.message)
     assert resultat.constats == [] and resultat.premier_echec is None

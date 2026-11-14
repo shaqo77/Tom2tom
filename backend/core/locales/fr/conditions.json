@@ -3,6 +3,7 @@
   "conditions.champ_hors_schema_type_regle": "{lieu} : champ « {nom} » hors du schéma de ce type de règle",
   "conditions.cles_inconnues": "{lieu} : clés inconnues {v1}",
   "conditions.cles_inconnues_2": "clés inconnues {v1}",
+  "conditions.constat": "{champ} = {constate} ; attendu : {operateur}{attendu_texte}",
   "conditions.date_iso": "{contexte} : « {valeur} » n'est pas une date ISO",
   "conditions.date_iso_aaaa_mm_jj": "{contexte} : date ISO (AAAA-MM-JJ) attendue",
   "conditions.decimal": "{contexte} : « {valeur} » n'est pas un décimal",

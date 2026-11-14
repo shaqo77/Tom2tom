@@ -22,6 +22,24 @@ IDENTIQUES_ADMIS = {
     "erreur.exemple",
     "controles.en_attente_ligne",
     "rattachement.orphelin",
+    # Mises en forme sans mot de langue (ou mot identique) :
+    "cloture.compte_cite",
+    "guide.attente_ligne",
+    "guide.document_version",
+    "guide.exigence_titre",
+    "guide.page",
+    "guide.paragraphe",
+    "guide.plafond_fixe",
+    "guide.plafond_variable",
+    # Mots identiques en français et en anglais (et non des traductions oubliées) :
+    "enum.comptabilite.origine_ecriture.import",
+    "enum.controles.resultat.information",
+    "enum.controles.severite.information",
+    "enum.controles.type_declencheur.service",
+    "enum.niveau2_profils.type_element.nomenclature",
+    "enum.niveau3_config.plafond_compte.variable",
+    "enum.niveau3_config.statut_exigence.active",
+    "enum.niveau3_config.type_cible.mapping",
 }
 # Les erreurs de programmation ne se traduisent pas : elles s'adressent à qui écrit le code.
 ERREURS_DE_PROGRAMMATION = {
@@ -32,7 +50,8 @@ FRANCAIS = re.compile(
     r"[éèàêçùôîâû]|\b(le|la|les|un|une|des|est|sont|pas|ne|du|de|pour|au|aux|sur|dans|doit)\b", re.I
 )
 # Les fichiers qui définissent le mécanisme lui-même, ou qui s'adressent à l'exploitation.
-EXEMPTES = {"core/i18n.py", "core/checks.py"}
+# Messages destinés au développeur qui livre un catalogue (refus de démarrer), pas à l'utilisateur.
+EXEMPTES = {"core/i18n.py", "core/checks.py", "niveau4_reporting/controles/bibliotheque.py"}
 
 
 def _sources():

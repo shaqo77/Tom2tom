@@ -13,7 +13,8 @@ from django.core.management import call_command
 from django.core.management.base import CommandError
 from rest_framework.exceptions import PermissionDenied
 
-from niveau2_profils.models import MENTION_LORSQUE_REQUIS, ElementProfil, TypeElement
+from core.i18n import activer
+from niveau2_profils.models import ElementProfil, TypeElement
 from niveau2_profils.services.catalogue import (
     DOSSIER,
     charger_profil,
@@ -52,9 +53,12 @@ def test_le_catalogue_livre_le_profil_banque_mondiale():
 
 def test_le_profil_ne_se_presente_pas_comme_universel():
     donnees = lire_profil_livre("banque_mondiale")
-    assert "n'est pas un modèle universel" in donnees["description"]
-    assert "lorsque requis" in donnees["description"]
-    assert "n'est pas un modèle universel" in AVERTISSEMENT
+    assert "n'est pas un modèle universel" in donnees["description"]["fr"]
+    assert "lorsque requis" in donnees["description"]["fr"]
+    assert "not a universal template" in donnees["description"]["en"]
+    assert "when required" in donnees["description"]["en"]
+    assert "n'est pas un modèle universel" in str(AVERTISSEMENT)
+    assert "not a universal template" in AVERTISSEMENT.rendre("en")
 
 
 def test_chaque_element_du_catalogue_est_valide_et_rien_nest_impose():
@@ -117,12 +121,20 @@ def test_chaque_element_presente_porte_la_mention_lorsque_requis(base):
     _, _, profils = base
     profil = charger_profil(utilisateur=profils["dora"], nom="banque_mondiale", publier=True)
     vue = presenter_profil(profil)
-    assert vue["avertissement"] == AVERTISSEMENT
+    assert vue["avertissement"] == str(AVERTISSEMENT)
     assert len(vue["elements"]) == profil.elements.count() > 0
-    assert {e["mention"] for e in vue["elements"]} == {MENTION_LORSQUE_REQUIS}
+    assert {e["mention"] for e in vue["elements"]} == {"lorsque requis"}
     assert {e["code"] for e in vue["elements"] if e["type"] == "report_family"} == FAMILLES
-    assert all(element.mention == "lorsque requis" for element in profil.elements.all())
-    assert presenter_profil(profil, langue="en")["libelle"] == "World Bank (IDA)"
+    assert all(str(element.mention) == "lorsque requis" for element in profil.elements.all())
+    en = presenter_profil(profil, langue="en")
+    assert en["libelle"] == "World Bank (IDA)"
+    assert {e["mention"] for e in en["elements"]} == {"when required"}
+    assert "not a universal template" in en["avertissement"]
+    assert "not a universal template" in en["description"]
+    assert {e["libelle"] for e in en["elements"] if e["type"] == "report_family"} >= {
+        "Interim financial report (IFR)",
+        "Withdrawal applications",
+    }  # chaque élément est lisible en anglais
 
 
 @pytestmark_bd
@@ -163,3 +175,19 @@ def test_la_commande_charge_le_profil_et_refuse_un_utilisateur_inconnu(base):
             organisation=str(organisation.id),
             utilisateur="fantome",
         )
+
+
+@pytestmark_bd
+def test_l_import_ecrit_les_textes_dans_la_langue_de_celui_qui_importe(base):
+    organisation, projet, profils = base
+    profil = charger_profil(utilisateur=profils["dora"], nom="banque_mondiale", publier=True)
+    document = _document(profils, projet, fabriquer_pdf(PAGES))
+    with activer("en"):
+        importer_profil(
+            utilisateur=profils["dora"], profil=profil, project_id=projet.id, document=document
+        )
+    rfi = Exigence.objects.get(code="RFI")
+    assert rfi.subject == "Interim financial report"
+    assert rfi.citation["quote"].startswith("To be supported by")
+    assert rfi.citation["paragraph"] == "to be confirmed"
+    assert rfi.citation["origine"].startswith("profile BANQUE_MONDIALE v1, element RFI")

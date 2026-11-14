@@ -12,6 +12,7 @@
   "controles.declare_non_conforme": "déclaré non conforme",
   "controles.declencheur_exige_utilisateur_service_deux": "Un déclencheur est exigé : un utilisateur ou un service, pas les deux",
   "controles.en_attente_ligne": "{code} ({raison})",
+  "controles.libelle_action_invalides": "Libellé ou action corrective invalide : {erreur}",
   "controles.regle_invalide": "Règle invalide : {erreur}",
   "controles.rejet_exige_motif": "Un rejet exige un motif",
   "controles.seul_controle_verifier_tranche_celui": "Seul un contrôle « à vérifier » se tranche (celui-ci est « {resultat} »)",

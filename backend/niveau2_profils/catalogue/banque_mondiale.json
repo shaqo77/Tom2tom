@@ -1,23 +1,51 @@
 {
   "code": "BANQUE_MONDIALE",
   "version": 1,
-  "label": {"fr": "Banque mondiale (IDA)", "en": "World Bank (IDA)"},
-  "description": "Bibliothèque d'exigences POSSIBLES pour un projet financé par la Banque mondiale. Ce n'est pas un modèle universel : le DFIL et l'accord de financement du projet décident de ce qui s'applique, avec quelle périodicité et selon quel modèle. Chaque élément se lit « lorsque requis ».",
+  "label": {
+    "fr": "Banque mondiale (IDA)",
+    "en": "World Bank (IDA)"
+  },
+  "description": {
+    "fr": "Bibliothèque d'exigences POSSIBLES pour un projet financé par la Banque mondiale. Ce n'est pas un modèle universel : le DFIL et l'accord de financement du projet décident de ce qui s'applique, avec quelle périodicité et selon quel modèle. Chaque élément se lit « lorsque requis ».",
+    "en": "Library of POSSIBLE requirements for a project financed by the World Bank. This is not a universal template: the project's DFIL and financing agreement decide what applies, with what periodicity and according to which template. Each element reads “when required”."
+  },
   "elements": [
     {
       "kind": "document_reference",
       "code": "CG-IDA",
-      "label": {"fr": "Conditions générales de l'IDA pour le financement des projets d'investissement"},
-      "contenu": {"note": "À rapprocher de la version citée par l'accord de financement du projet."}
+      "label": {
+        "fr": "Conditions générales de l'IDA pour le financement des projets d'investissement",
+        "en": "General Conditions of the IDA for Investment Project Financing"
+      },
+      "contenu": {
+        "note": {
+          "fr": "À rapprocher de la version citée par l'accord de financement du projet.",
+          "en": "Compare with the version cited by the project's financing agreement."
+        }
+      }
     },
     {
       "kind": "report_family",
       "code": "RFI",
-      "label": {"fr": "Rapport financier intermédiaire (RFI)"},
-      "contenu": {"delai_type": "45 jours après la fin de chaque trimestre civil, sous les conditions générales de l'IDA"},
+      "label": {
+        "fr": "Rapport financier intermédiaire (RFI)",
+        "en": "Interim financial report (IFR)"
+      },
+      "contenu": {
+        "delai_type": {
+          "fr": "45 jours après la fin de chaque trimestre civil, sous les conditions générales de l'IDA",
+          "en": "45 days after the end of each calendar quarter, under the IDA general conditions"
+        }
+      },
       "exigence": {
-        "subject": "Rapport financier intermédiaire",
-        "rule": {"kind": "report", "template": "IFR"},
+        "subject": {
+          "fr": "Rapport financier intermédiaire",
+          "en": "Interim financial report"
+        },
+        "rule": {
+          "kind": "report",
+          "template": "IFR"
+        },
         "obligation": "optional",
         "periodicity": "quarterly",
         "due_offset_days": 45
@@ -26,60 +54,114 @@
     {
       "kind": "report_family",
       "code": "RESSOURCES-EMPLOIS",
-      "label": {"fr": "État des ressources et emplois"},
+      "label": {
+        "fr": "État des ressources et emplois",
+        "en": "Statement of sources and uses of funds"
+      },
       "exigence": {
-        "subject": "État des ressources et emplois",
-        "rule": {"kind": "report", "template": "SOURCES_USES"},
+        "subject": {
+          "fr": "État des ressources et emplois",
+          "en": "Statement of sources and uses of funds"
+        },
+        "rule": {
+          "kind": "report",
+          "template": "SOURCES_USES"
+        },
         "obligation": "optional"
       }
     },
     {
       "kind": "report_family",
       "code": "DEPENSES-AXES",
-      "label": {"fr": "Dépenses par composante, activité, catégorie et source de financement"},
+      "label": {
+        "fr": "Dépenses par composante, activité, catégorie et source de financement",
+        "en": "Expenditure by component, activity, category and source of financing"
+      },
       "exigence": {
-        "subject": "Dépenses par composante, activité, catégorie et source de financement",
-        "rule": {"kind": "report", "template": "EXPENDITURE_BY_AXIS"},
+        "subject": {
+          "fr": "Dépenses par composante, activité, catégorie et source de financement",
+          "en": "Expenditure by component, activity, category and source of financing"
+        },
+        "rule": {
+          "kind": "report",
+          "template": "EXPENDITURE_BY_AXIS"
+        },
         "obligation": "optional"
       }
     },
     {
       "kind": "report_family",
       "code": "COMPTE-DESIGNE",
-      "label": {"fr": "Activité et rapprochement du compte désigné"},
+      "label": {
+        "fr": "Activité et rapprochement du compte désigné",
+        "en": "Designated account activity and reconciliation"
+      },
       "exigence": {
-        "subject": "Activité et rapprochement du compte désigné",
-        "rule": {"kind": "report", "template": "DESIGNATED_ACCOUNT"},
+        "subject": {
+          "fr": "Activité et rapprochement du compte désigné",
+          "en": "Designated account activity and reconciliation"
+        },
+        "rule": {
+          "kind": "report",
+          "template": "DESIGNATED_ACCOUNT"
+        },
         "obligation": "optional"
       }
     },
     {
       "kind": "report_family",
       "code": "TRESORERIE-AVANCES",
-      "label": {"fr": "Prévisions de trésorerie et suivi des avances"},
+      "label": {
+        "fr": "Prévisions de trésorerie et suivi des avances",
+        "en": "Cash forecasts and advance monitoring"
+      },
       "exigence": {
-        "subject": "Prévisions de trésorerie et suivi des avances",
-        "rule": {"kind": "report", "template": "CASH_FORECAST"},
+        "subject": {
+          "fr": "Prévisions de trésorerie et suivi des avances",
+          "en": "Cash forecasts and advance monitoring"
+        },
+        "rule": {
+          "kind": "report",
+          "template": "CASH_FORECAST"
+        },
         "obligation": "optional"
       }
     },
     {
       "kind": "report_family",
       "code": "DEMANDES-RETRAIT",
-      "label": {"fr": "Demandes de retrait"},
+      "label": {
+        "fr": "Demandes de retrait",
+        "en": "Withdrawal applications"
+      },
       "exigence": {
-        "subject": "Demandes de retrait",
-        "rule": {"kind": "report", "template": "WITHDRAWAL_APPLICATION"},
+        "subject": {
+          "fr": "Demandes de retrait",
+          "en": "Withdrawal applications"
+        },
+        "rule": {
+          "kind": "report",
+          "template": "WITHDRAWAL_APPLICATION"
+        },
         "obligation": "optional"
       }
     },
     {
       "kind": "report_family",
       "code": "ETATS-AUDIT",
-      "label": {"fr": "États annuels pour l'audit"},
+      "label": {
+        "fr": "États annuels pour l'audit",
+        "en": "Annual statements for the audit"
+      },
       "exigence": {
-        "subject": "États annuels pour l'audit",
-        "rule": {"kind": "report", "template": "ANNUAL_AUDIT_STATEMENTS"},
+        "subject": {
+          "fr": "États annuels pour l'audit",
+          "en": "Annual statements for the audit"
+        },
+        "rule": {
+          "kind": "report",
+          "template": "ANNUAL_AUDIT_STATEMENTS"
+        },
         "obligation": "optional"
       }
     }

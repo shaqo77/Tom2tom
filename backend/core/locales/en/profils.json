@@ -1,4 +1,5 @@
 {
+  "profils.citation_a_etayer": "To be supported by a passage of the project's contractual document",
   "profils.code_libelle_element_obligatoires": "The code and the label of the element are required",
   "profils.code_libelle_json_langue_profil": "The code and the label (JSON per language) of the profile are required",
   "profils.document_appartient_projet": "The document does not belong to the project",
@@ -6,7 +7,10 @@
   "profils.exigence_conditionnelle_precise_condition": "A conditional requirement states its condition",
   "profils.exigence_element_objet": "The requirement of an element is an object",
   "profils.exigence_element_rubrique_subject": "The requirement of an element has a subject (`subject`)",
+  "profils.libelle_description_invalides": "Invalid label or description: {erreur}",
   "profils.obligation_inconnue": "unknown obligation: {v1}",
+  "profils.origine_element": "profile {profil} v{version}, element {element}",
+  "profils.paragraphe_a_confirmer": "to be confirmed",
   "profils.periodicite_inconnue": "unknown periodicity: {v1}",
   "profils.profil_deja_publie": "This profile is already published",
   "profils.profil_publie_recoit_plus_element": "A published profile no longer receives elements: publish a version",

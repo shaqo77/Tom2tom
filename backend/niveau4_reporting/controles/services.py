@@ -15,7 +15,7 @@ from rest_framework.exceptions import PermissionDenied
 
 from core.audit import journaliser
 from core.erreurs import CodeErreur, ErreurMetier
-from core.i18n import Liste, msg
+from core.i18n import Liste, msg, normaliser_textes
 from niveau1_socle.habilitations.permissions import est_habilite
 from niveau3_config.models import Exigence, RattachementExigence, StatutExigence, TypeCible
 from niveau3_config.services.activation import _fermer_les_precedentes, _transition
@@ -42,10 +42,6 @@ def _habilite(utilisateur, operation: str, project_id) -> None:
         raise PermissionDenied(msg("controles.vous_etes_habilite_projet", operation=operation))
 
 
-def _libelle(controle: Controle) -> str:
-    return controle.label.get("fr") or next(iter(controle.label.values()))
-
-
 # --- enregistrement et cycle de vie --------------------------------------------------------
 
 
@@ -60,13 +56,20 @@ def creer_controle(
     valid_from: datetime.date,
     expression: dict | None = None,
     applicable_si: dict | None = None,
-    action_corrective: str = "",
+    action_corrective: dict | str | None = None,
     manuel: bool = False,
     parametres: dict | None = None,
 ) -> Controle:
     """Enregistre un contrôle en brouillon ; une condition hors schéma est refusée ICI."""
     _habilite(utilisateur, "parametrer", project_id)
-    if not (code or "").strip() or not isinstance(label, dict) or not label:
+    try:
+        label = normaliser_textes(label, obligatoire=True)
+        action_corrective = normaliser_textes(action_corrective)
+    except ValueError as erreur:
+        raise ErreurMetier(
+            CodeErreur.REGLE_INVALIDE, msg("controles.libelle_action_invalides", erreur=str(erreur))
+        ) from erreur
+    if not (code or "").strip() or not label:
         raise ErreurMetier(CodeErreur.REGLE_INVALIDE, msg("controles.code_libelle_controle_requis"))
     if severity not in Severite.values:
         raise ErreurMetier(
@@ -263,7 +266,7 @@ def evaluer_controle(
             msg("controles.controle_actif", code=controle.code, date_operation=date_operation),
         )
     decision = decider(
-        libelle=_libelle(controle),
+        libelle=controle.label,
         mode=controle.mode,
         severity=controle.severity,
         type_regle=controle.type_regle,
@@ -291,9 +294,9 @@ def evaluer_controle(
                 if premier_echec
                 else ""
             ),
-            message=message,
+            message=message.toutes(),
             action_corrective=(
-                controle.action_corrective if resultat not in (Resultat.REUSSI,) else ""
+                controle.action_corrective if resultat not in (Resultat.REUSSI,) else {}
             ),
             profile_version_id=profil.id if profil else None,
             exigence_id=exigence_id,

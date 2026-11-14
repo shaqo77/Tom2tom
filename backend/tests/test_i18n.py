@@ -236,3 +236,150 @@ def test_les_codes_d_erreur_restent_les_douze_du_plan():
 
 def test_les_langues_gerees_sont_le_francais_et_l_anglais_pour_l_instant():
     assert i18n.LANGUES == ("fr", "en") and i18n.LANGUE_PAR_DEFAUT == "fr"
+
+
+# --- les libellés des ensembles fermés ------------------------------------------------------
+
+
+def test_chaque_ensemble_ferme_a_ses_libelles_dans_les_deux_langues():
+    """Aucune `TextChoices` du code n'est sans libellé : un statut sans traduction se verrait."""
+    import importlib
+    import inspect
+
+    from django.apps import apps
+    from django.db import models
+
+    from core.i18n import famille_de
+
+    attendues = set()
+    for config in apps.get_app_configs():
+        if not config.name.startswith(("niveau", "core")):
+            continue
+        module = importlib.import_module(config.name + ".models")
+        for _, classe in vars(module).items():
+            if (
+                inspect.isclass(classe)
+                and issubclass(classe, models.TextChoices)
+                and classe is not models.TextChoices
+                and classe.__module__ == module.__name__
+            ):
+                attendues |= {f"enum.{famille_de(classe)}.{m.value}" for m in classe}
+    assert len(attendues) > 150
+    for langue in ("fr", "en"):
+        manquantes = attendues - set(catalogue()[langue])
+        assert not manquantes, f"{langue} : libellés manquants {sorted(manquantes)[:5]}"
+    # Aucun libellé orphelin : hors ensembles « non classe » (operation, piece_exigee).
+    orphelins = {
+        c
+        for c in catalogue()["fr"]
+        if c.startswith("enum.")
+        and c not in attendues
+        and not c.startswith(("enum.operation.", "enum.piece_exigee."))
+    }
+    assert not orphelins, sorted(orphelins)[:5]
+
+
+def test_libelle_valeur_rend_le_libelle_dans_la_langue_demandee():
+    from core.i18n import libelle_valeur
+    from niveau3_config.models import StatutExigence
+
+    assert libelle_valeur(StatutExigence, "proposed") == "Proposée"
+    assert libelle_valeur(StatutExigence, "proposed", "en") == "Proposed"
+    with activer("en"):
+        assert libelle_valeur(StatutExigence, StatutExigence.ACTIVE) == "Active"
+    assert (
+        libelle_valeur(StatutExigence, "inconnu") == "inconnu"
+    )  # une valeur inconnue : telle quelle
+
+
+# --- messages composés : listes, textes multilingues, messages imbriqués ---------------------
+
+
+def test_un_message_imbrique_se_rend_dans_la_meme_langue_que_son_parent():
+    from core.i18n import Liste, Localise
+
+    interieur = msg("erreur.inconnue")
+    parent = msg("erreur.exemple", nom=interieur, n=Decimal("1"))
+    assert str(parent) == "Le projet Une erreur est survenue compte 1.00 unités"
+    assert parent.rendre("en") == "Project An error occurred has 1.00 units"  # PAS « Une erreur… »
+    liste = Liste([msg("erreur.inconnue"), "brut", Localise({"fr": "texte", "en": "text"})])
+    assert liste.rendre("fr") == "Une erreur est survenue ; brut ; texte"
+    assert liste.rendre("en") == "An error occurred ; brut ; text"
+    assert Liste([msg("erreur.inconnue")], " | ").toutes() == {
+        "fr": "Une erreur est survenue",
+        "en": "An error occurred",
+    }
+    with activer("en"):
+        assert str(liste) == "An error occurred ; brut ; text"
+
+
+def test_un_texte_localise_retombe_sur_le_francais_puis_sur_la_premiere_langue():
+    from core.i18n import Localise
+
+    assert Localise({"fr": "bonjour", "en": "hello"}).rendre("en") == "hello"
+    assert Localise({"fr": "bonjour"}).rendre("en") == "bonjour"  # pas de traduction : le français
+    assert Localise({"en": "hello"}).rendre("fr") == "hello"  # ni français : la première langue
+    assert Localise({}).rendre("fr") == "" and Localise("brut").rendre("en") == "brut"
+    assert Localise({"fr": "a"}) == Localise({"fr": "a"}) and hash(Localise({"fr": "a"}))
+    assert pickle.loads(pickle.dumps(Localise({"fr": "a"}))) == Localise({"fr": "a"})
+
+
+def test_une_liste_est_comparable_et_se_serialise():
+    from core.i18n import Liste
+
+    a = Liste([msg("erreur.inconnue")], "; ")
+    assert a == Liste([msg("erreur.inconnue")], "; ") and a != Liste([], "; ") and hash(a)
+    assert pickle.loads(pickle.dumps(a)) == a and "Liste" in repr(a)
+
+
+# --- formats propres à chaque langue --------------------------------------------------------
+
+
+def test_les_dates_les_montants_et_les_pourcentages_suivent_la_langue():
+    import datetime
+
+    from core.i18n import formater_date, formater_montant, formater_pourcentage
+
+    jour = datetime.date(2026, 11, 4)
+    assert formater_date(jour, "fr") == "04/11/2026"
+    assert formater_date(jour, "en") == "4 November 2026"
+    assert formater_montant(Decimal("1234567.5"), "fr") == "1 234 567,50"
+    assert formater_montant(Decimal("1234567.5"), "en") == "1,234,567.50"
+    assert (
+        formater_montant(Decimal("0"), "fr") == "0,00"
+        and formater_montant(Decimal("-12.3"), "en") == "-12.30"
+    )
+    assert formater_pourcentage(Decimal("0.800000"), "fr") == "80 %"
+    assert formater_pourcentage(Decimal("0.8"), "en") == "80%"
+    assert formater_pourcentage(Decimal("0.125"), "fr") == "12,5 %"
+    with activer("en"):
+        assert (
+            formater_date(jour) == "4 November 2026"
+            and formater_montant(Decimal("1000")) == "1,000.00"
+        )
+
+
+def test_normaliser_textes_accepte_les_langues_gerees_seulement():
+    from core.i18n import normaliser_textes
+
+    assert normaliser_textes({"fr": " a ", "en": "b"}) == {"fr": "a", "en": "b"}
+    assert normaliser_textes("simple") == {"fr": "simple"}
+    assert (
+        normaliser_textes(None) == {}
+        and normaliser_textes("") == {}
+        and normaliser_textes("  ") == {}
+    )
+    assert normaliser_textes({"fr": "a", "en": "  "}) == {"fr": "a"}  # un texte vide est ignoré
+    assert normaliser_textes({"fr": "a"}, obligatoire=True) == {"fr": "a"}
+    for faux, message in [
+        ({"de": "x"}, "langues non gérées"),
+        ({"fr": 3}, "chaîne"),
+        (["x"], "objet"),
+        ({"en": "x"}, "obligatoire") if False else (None, None),
+    ]:
+        if message:
+            with pytest.raises(ValueError, match=message):
+                normaliser_textes(faux)
+    for vide in ({"en": "only"}, None, "", "  ", {"fr": " "}):
+        with pytest.raises(ValueError, match="obligatoire"):
+            normaliser_textes(vide, obligatoire=True)

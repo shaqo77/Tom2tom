@@ -10,6 +10,8 @@ bancaire (L3-T07b, `niveau1_socle/rapprochement/cloture.py`).
 
 from django.db import connection
 
+from core.i18n import Liste, msg
+
 from .models import Ecriture
 
 MAX_GROUPES_CITES = 5
@@ -20,10 +22,12 @@ def ecritures_non_comptabilisees(periode) -> str | None:
     nombre = Ecriture.objects.filter(periode=periode, status__in=["draft", "validated"]).count()
     if nombre == 0:
         return None
-    pluriel = "s" if nombre > 1 else ""
-    return (
-        f"{nombre} écriture{pluriel} non comptabilisée{pluriel} (brouillon ou validée) dans la "
-        f"période {periode.numero}"
+    return msg(
+        "cloture.ecritures_non_comptabilisees"
+        if nombre > 1
+        else "cloture.ecriture_non_comptabilisee",
+        nombre=nombre,
+        numero=periode.numero,
     )
 
 
@@ -53,12 +57,17 @@ def groupes_soldes_non_lettres(periode) -> str | None:
         groupes = cur.fetchall()
     if not groupes:
         return None
-    cites = ", ".join(
-        f"{compte} / {tiers} ({n} lignes)" for compte, tiers, n in groupes[:MAX_GROUPES_CITES]
+    cites = Liste(
+        [
+            msg("cloture.groupe_cite", compte=compte, tiers=tiers, n=n)
+            for compte, tiers, n in groupes[:MAX_GROUPES_CITES]
+        ],
+        ", ",
     )
     reste = len(groupes) - MAX_GROUPES_CITES
-    suite = f" et {reste} autre(s)" if reste > 0 else ""
-    return f"Groupes soldés non lettrés : {cites}{suite}"
+    if reste > 0:
+        return msg("cloture.groupes_non_lettres_et_autres", cites=cites, reste=reste)
+    return msg("cloture.groupes_non_lettres", cites=cites)
 
 
 CONTROLES_DE_CLOTURE = (ecritures_non_comptabilisees, groupes_soldes_non_lettres)

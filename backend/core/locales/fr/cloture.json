@@ -1,0 +1,10 @@
+{
+  "cloture.compte_cite": "{code} ({n})",
+  "cloture.ecriture_non_comptabilisee": "{nombre} écriture non comptabilisée (brouillon ou validée) dans la période {numero}",
+  "cloture.ecritures_non_comptabilisees": "{nombre} écritures non comptabilisées (brouillon ou validée) dans la période {numero}",
+  "cloture.groupe_cite": "{compte} / {tiers} ({n} lignes)",
+  "cloture.groupes_non_lettres": "Groupes soldés non lettrés : {cites}",
+  "cloture.groupes_non_lettres_et_autres": "Groupes soldés non lettrés : {cites} et {reste} autre(s)",
+  "cloture.mouvements_non_rapproches": "Mouvements de relevé non rapprochés : {cites}",
+  "cloture.mouvements_non_rapproches_et_autres": "Mouvements de relevé non rapprochés : {cites} et {reste} autre(s)"
+}

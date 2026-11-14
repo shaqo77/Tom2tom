@@ -1,8 +1,11 @@
 {
   "budget.aucune_version_approuvee_reviser_approuvez": "No approved version to revise: approve the initial budget first",
   "budget.axe_inconnu": "unknown axis: {v1}",
+  "budget.depassement_bloquant": "Blocking budget overrun: {details}",
   "budget.devise_inconnue": "Unknown currency: {devise}",
   "budget.identifiant_inconnu": "unknown identifier: {v1}",
+  "budget.ligne_depassement": "line {axes}: available {disponible}, operation {impact}, overrun {depassement}",
+  "budget.ligne_projet_depassement": "project line: available {disponible}, operation {impact}, overrun {depassement}",
   "budget.montant_budget_jamais_negatif": "A budget amount is never negative",
   "budget.montant_negatif_taux_non_positif": "Negative amount or non-positive rate",
   "budget.motif_obligatoire_revision_reallocation": "A reason is required for a revision or a reallocation",

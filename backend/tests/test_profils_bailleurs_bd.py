@@ -361,7 +361,7 @@ def test_un_profil_publie_ne_change_plus_y_compris_en_sql_direct(base):
         ("UPDATE niveau2_profils_elementprofil SET code='X' WHERE id=%s", [element.id], "éléments"),
         ("DELETE FROM niveau2_profils_elementprofil WHERE id=%s", [element.id], "éléments"),
         (
-            "UPDATE niveau2_profils_profilbailleur SET description='x' WHERE id=%s",
+            'UPDATE niveau2_profils_profilbailleur SET description=\'{"fr": "x"}\' WHERE id=%s',
             [profil.id],
             "ne se modifie pas",
         ),

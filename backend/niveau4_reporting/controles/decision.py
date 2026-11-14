@@ -12,7 +12,7 @@ absente. Il n'existe pas de liste universelle de justificatifs.
 
 from dataclasses import dataclass, field
 
-from core.i18n import msg
+from core.i18n import Liste, Localise, Message, msg
 
 from . import conditions
 from .models import ModeControle, Resultat
@@ -62,13 +62,13 @@ def pieces_retenues(pieces, parametres: dict) -> list:
 class Decision:
     resultat: Resultat
     constats: list = field(default_factory=list)  # les constats de l'expression (échec ou succès)
-    message: str = ""
+    message: Message | None = None
     premier_echec: conditions.Constat | None = None
 
 
 def decider(
     *,
-    libelle: str,
+    libelle: dict | str,
     mode: str,
     severity: str,
     type_regle: str,
@@ -77,23 +77,32 @@ def decider(
     parametres: dict | None,
     contexte: dict,
 ) -> Decision:
+    libelle = Localise(libelle)
     if mode == ModeControle.MANUEL:
-        return Decision(Resultat.A_VERIFIER, [], f"{libelle} : vérification humaine requise")
+        return Decision(
+            Resultat.A_VERIFIER, [], msg("decision.verification_humaine_requise", libelle=libelle)
+        )
     if applicable_si is not None:
         applicable = conditions.reussit(
             conditions.evaluer(conditions.preparer_expression(applicable_si, type_regle), contexte)
         )
         if not applicable:
-            return Decision(Resultat.NON_APPLICABLE, [], f"{libelle} : non applicable")
+            return Decision(
+                Resultat.NON_APPLICABLE, [], msg("decision.non_applicable", libelle=libelle)
+            )
     if parametres and parametres.get("type_piece"):
         contexte = {**contexte, "pieces": pieces_retenues(contexte.get("pieces"), parametres)}
     constats = conditions.evaluer(conditions.preparer_expression(expression, type_regle), contexte)
     if conditions.reussit(constats):
-        return Decision(Resultat.REUSSI, constats, f"{libelle} : réussi")
+        return Decision(Resultat.REUSSI, constats, msg("decision.reussi", libelle=libelle))
     echecs = [c for c in constats if not c.satisfaite]
     return Decision(
         Resultat(severity),
         constats,
-        f"{libelle} : {'; '.join(c.lisible() for c in echecs)}",
+        msg(
+            "decision.echec",
+            libelle=libelle,
+            details=Liste([c.lisible() for c in echecs], "; "),
+        ),
         echecs[0],
     )

@@ -17,7 +17,7 @@ from django.utils import timezone
 from rest_framework.exceptions import PermissionDenied
 
 from core.audit import journaliser
-from core.i18n import msg
+from core.i18n import Localise, msg, normaliser_textes
 from niveau1_socle.financements.models import Bailleur
 from niveau1_socle.habilitations.models import Habilitation
 from niveau1_socle.habilitations.permissions import est_habilite
@@ -40,7 +40,6 @@ CHAMPS_EXIGENCE = {
     "due_offset_days",
     "condition_expr",
 }
-CITATION_A_ETAYER = "À étayer par un passage du document contractuel du projet"
 
 
 class ProfilInvalide(ValueError):
@@ -61,7 +60,11 @@ def _valider_exigence_type(payload) -> None:
     inconnus = set(payload) - CHAMPS_EXIGENCE
     if inconnus:
         raise ProfilInvalide(f"Champs d'exigence inconnus : {sorted(inconnus)}")
-    if not str(payload.get("subject", "")).strip():
+    try:
+        sujet = normaliser_textes(payload.get("subject"), obligatoire=True)
+    except ValueError as erreur:
+        raise ProfilInvalide(msg("profils.exigence_element_rubrique_subject")) from erreur
+    if not sujet:
         raise ProfilInvalide(msg("profils.exigence_element_rubrique_subject"))
     if not isinstance(payload.get("rule", {}), dict):
         raise ProfilInvalide(msg("profils.regle_exigence_objet"))
@@ -82,11 +85,18 @@ def creer_profil_bailleur(
     code: str,
     label: dict,
     bailleur: Bailleur | None = None,
-    description: str = "",
+    description: dict | str | None = None,
     version: int = 1,
 ) -> ProfilBailleur:
     _habilite(utilisateur)
-    if not (code or "").strip() or not isinstance(label, dict) or not label:
+    try:
+        label = normaliser_textes(label, obligatoire=True)
+        description = normaliser_textes(description)
+    except ValueError as erreur:
+        raise ProfilInvalide(
+            msg("profils.libelle_description_invalides", erreur=str(erreur))
+        ) from erreur
+    if not (code or "").strip():
         raise ProfilInvalide(msg("profils.code_libelle_json_langue_profil"))
     with transaction.atomic():
         profil = ProfilBailleur.objects.create(
@@ -193,11 +203,18 @@ def _proposer_depuis_element(*, utilisateur, profil, element, project_id, docume
         donor_profile_id=profil.id,
         document=document,
         citation={
-            "quote": CITATION_A_ETAYER,
-            "paragraph": "à confirmer",
-            "origine": f"profil {profil.code} v{profil.version}, élément {element.code}",
+            "quote": str(msg("profils.citation_a_etayer")),
+            "paragraph": str(msg("profils.paragraphe_a_confirmer")),
+            "origine": str(
+                msg(
+                    "profils.origine_element",
+                    profil=profil.code,
+                    version=profil.version,
+                    element=element.code,
+                )
+            ),
         },
-        subject=modele["subject"].strip(),
+        subject=Localise(modele["subject"]).rendre().strip(),
         rule=modele.get("rule", {}),
         periodicity=modele.get("periodicity"),
         due_offset_days=modele.get("due_offset_days"),

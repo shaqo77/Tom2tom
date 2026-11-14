@@ -8,9 +8,10 @@ ACTIVÉE PAR DÉFAUT. Elle s'applique au serveur, en plus de l'habilitation :
 
 from rest_framework.exceptions import PermissionDenied
 
+from core.i18n import msg
 from niveau1_socle.organisations.models import Organisation
 
-MESSAGE = "Vous ne pouvez pas valider une pièce que vous avez vous-même saisie."
+MESSAGE = msg("separation.valider_sa_propre_saisie")
 
 
 def exiger_separation_des_taches(utilisateur, auteur_id) -> None:

@@ -13,10 +13,10 @@ projet n'est pas présumé entièrement financé par les bailleurs.
 from dataclasses import dataclass, field
 from decimal import Decimal
 
-from core.i18n import Message, libelle, msg
+from core.i18n import Message, libelle_valeur, msg
 from niveau1_socle.financements.services import montant_courant
 
-from ..models import ProfilDecaissement, StatutExigence, StatutProfil
+from ..models import MethodeDecaissementCode, ProfilDecaissement, StatutExigence, StatutProfil
 
 
 @dataclass(frozen=True)
@@ -70,7 +70,7 @@ def verifier_completude(profil: ProfilDecaissement) -> Completude:
                     "methode_sans_pieces",
                     msg(
                         "completude.methode_sans_pieces",
-                        methode=libelle("methode_decaissement", methode.method),
+                        methode=libelle_valeur(MethodeDecaissementCode, methode.method),
                     ),
                 )
             )

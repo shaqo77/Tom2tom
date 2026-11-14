@@ -1,4 +1,5 @@
 {
+  "profils.citation_a_etayer": "À étayer par un passage du document contractuel du projet",
   "profils.code_libelle_element_obligatoires": "Le code et le libellé de l'élément sont obligatoires",
   "profils.code_libelle_json_langue_profil": "Le code et le libellé (JSON par langue) du profil sont obligatoires",
   "profils.document_appartient_projet": "Le document n'appartient pas au projet",
@@ -6,7 +7,10 @@
   "profils.exigence_conditionnelle_precise_condition": "Une exigence conditionnelle précise sa condition",
   "profils.exigence_element_objet": "L'exigence d'un élément est un objet",
   "profils.exigence_element_rubrique_subject": "L'exigence d'un élément a une rubrique (`subject`)",
+  "profils.libelle_description_invalides": "Libellé ou description invalide : {erreur}",
   "profils.obligation_inconnue": "obligation inconnue : {v1}",
+  "profils.origine_element": "profil {profil} v{version}, élément {element}",
+  "profils.paragraphe_a_confirmer": "à confirmer",
   "profils.periodicite_inconnue": "périodicité inconnue : {v1}",
   "profils.profil_deja_publie": "Ce profil est déjà publié",
   "profils.profil_publie_recoit_plus_element": "Un profil publié ne reçoit plus d'élément : publiez une version",

@@ -362,9 +362,16 @@ class Constat:
     attendu: object
     satisfaite: bool
 
-    def lisible(self) -> str:
+    def lisible(self):
+        """Le constat, dans la langue de qui le lit."""
         attendu = "" if self.attendu is None else f" {self.attendu}"
-        return f"{self.champ} = {self.constate} ; attendu : {self.operateur}{attendu}"
+        return msg(
+            "conditions.constat",
+            champ=self.champ,
+            constate=self.constate,
+            operateur=self.operateur,
+            attendu_texte=attendu,
+        )
 
 
 def _verifier_type(valeur, type_champ: TypeChamp, nom: str):

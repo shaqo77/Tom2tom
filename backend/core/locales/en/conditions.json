@@ -3,6 +3,7 @@
   "conditions.champ_hors_schema_type_regle": "{lieu}: field “{nom}” is outside the schema of this rule type",
   "conditions.cles_inconnues": "{lieu}: unknown keys {v1}",
   "conditions.cles_inconnues_2": "unknown keys {v1}",
+  "conditions.constat": "{champ} = {constate}; expected: {operateur}{attendu_texte}",
   "conditions.date_iso": "{contexte}: “{valeur}” is not an ISO date",
   "conditions.date_iso_aaaa_mm_jj": "{contexte}: ISO date (YYYY-MM-DD) expected",
   "conditions.decimal": "{contexte}: “{valeur}” is not a decimal",

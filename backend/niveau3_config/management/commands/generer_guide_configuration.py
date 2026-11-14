@@ -19,6 +19,7 @@ class Command(BaseCommand):
         parser.add_argument("--projet", required=True, help="UUID du projet")
         parser.add_argument("--utilisateur", required=True, help="Nom de l'utilisateur")
         parser.add_argument("--date", help="AAAA-MM-JJ (par défaut aujourd'hui)")
+        parser.add_argument("--langue", choices=("fr", "en"), help="Langue du guide (défaut : fr)")
         parser.add_argument("--sortie", required=True, help="Chemin du fichier PDF à écrire")
 
     def handle(self, *args, **options):
@@ -38,6 +39,11 @@ class Command(BaseCommand):
             if options["date"]
             else datetime.date.today()
         )
-        contenu = generer_guide(utilisateur=utilisateur, project_id=options["projet"], date=date)
+        contenu = generer_guide(
+            utilisateur=utilisateur,
+            project_id=options["projet"],
+            date=date,
+            langue=options.get("langue") or "fr",
+        )
         Path(options["sortie"]).write_bytes(contenu)
         self.stdout.write(f"Guide écrit : {options['sortie']} ({len(contenu)} octets)")
