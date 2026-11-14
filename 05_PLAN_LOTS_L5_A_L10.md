@@ -352,6 +352,13 @@ Aucune requête SQL, aucun JavaScript, aucun `eval`/`exec` (règle 5). Une condi
 
 ---
 
+> **Réalisation de L6-T01a** (`backend/niveau4_reporting/controles/conditions.py`). *L6-T01 est livrée en trois temps : T01a le langage de conditions (ici), T01b les contrôles, leur journal, leurs résultats et les codes d'erreur, T01c la bibliothèque des huit familles et les contrôles de risque.*
+> - **Le langage, fermé** : les dix-sept opérateurs du plan (`eq`, `neq`, `gt`, `gte`, `lt`, `lte`, `in`, `not_in`, `est_renseigne`, `est_absent`, `avant`, `apres`, `entre`, `est_vrai`, `est_faux`, `somme_lte`, `nombre_eq`), et aucun autre : un test compare le jeu au tableau du plan. `entre` est semi-ouvert `[du, au[` (propriété vérifiée sur toutes les dates : `avant`, `entre` et « à partir de `au` » partitionnent le temps).
+> - **Une expression n'est jamais du texte** : `{"type_regle": …, "conditions": [{"champ", "op", "valeur"}, …]}`, validée par un **schéma propre à chaque type de règle** (codification, pièces, éligibilité, budget, trésorerie, avances, rapport, cohérence, risque : un champ d'un type est refusé dans un autre). Refusés **à l'enregistrement**, avec un message qui nomme la condition : opérateur inconnu, champ hors schéma, opérateur incompatible avec le type du champ, valeur absente ou superflue, date non ISO, intervalle vide ou à l'envers, liste vide ou de plus de 200 valeurs, plus de 20 conditions, clés inconnues.
+> - **Règles 1 et 5** : un montant s'écrit en chaîne ou en entier (un nombre à virgule flottante est refusé) ; le contexte d'évaluation doit fournir des `Decimal` (un `float`, un booléen pour un entier ou un horodatage pour une date lève `TypeError`) ; la somme de `somme_lte` est exacte (0,1 + 0,2 ≤ 0,30). Un test d'analyse syntaxique interdit `eval`, `exec`, `compile`, `getattr`, `open`, les imports dynamiques et `os`/`subprocess` dans le module ; une charge (`__import__('os')…`, `DROP TABLE`) placée dans une valeur n'est que du texte comparé.
+> - **Décisions à connaître** : (1) les conditions d'une expression se lisent ensemble, en ET implicite (le plan ne prévoit ni `et` ni `ou` : ce ne sont pas des opérateurs) ; (2) une valeur absente ne satisfait aucune comparaison (`neq` et `not_in` sont vrais : l'absence ne vaut rien) ; un booléen absent n'est ni vrai ni faux ; (3) les champs des schémas sont ceux que les contextes de T01c devront fournir : en ajouter un est une décision de schéma, pas de paramétrage.
+> - **Limites** : le langage n'a pas de condition sur les éléments d'une liste (« une pièce de type X, validée ») : le contexte de la règle de pièces (T01c) fournit les décomptes déjà filtrés. Rien n'est encore enregistré en base : T01b.
+
 ### L6-T02 — Le workflow de validation
 
 ```
