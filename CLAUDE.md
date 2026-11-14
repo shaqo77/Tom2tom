@@ -85,6 +85,20 @@ Les libellés sont du JSONB, jamais `label_fr`/`label_en`. Un test de convention
   `config.settings.migrate` désactive ce contrôle, car le propriétaire doit pouvoir migrer.
 - `core_auditlog` est en ajout seul (INSERT/SELECT uniquement pour `sigf_app`), chaîné par empreinte.
 
+## Où va quoi (langues : fr et en ; l'arabe viendra)
+
+- **En base (JSONB `{"fr","en"}`)** : tout contenu métier qu'un administrateur peut changer sans
+  déploiement : libellés, descriptions, actions correctives, profils, contrôles, exigences.
+- **Catalogues versionnés `core/locales/<langue>/<domaine>.json`** : les messages liés à la version du
+  code (erreurs, anomalies, guide). Clés stables, paramètres nommés, `msg("domaine.cle", **params)` ;
+  jamais de texte français en dur dans un `raise`/message (test `test_catalogue_messages`).
+- **Dans le code** : ce qui change avec le code : ensembles fermés (`TextChoices`, libellés par
+  `enum.<app>.<classe>.<valeur>`), opérateurs du langage de conditions, formats.
+- La langue est choisie par requête (`Utilisateur.langue`, puis `Accept-Language`, puis `fr`) ;
+  les journaux figent le message dans toutes les langues (`Message.toutes()`).
+- Sécurité : `config/settings/prod.py` durcit (HSTS, cookies, clé ≥ 50 car.), `check --deploy` est
+  testé (`test_securite_reglages`) ; un nom reçu n'est jamais un morceau de chemin (liste blanche).
+
 ## Secrets et environnement
 
 - `backend/.env` n'est pas versionné. **Ne le créez pas avec de vrais identifiants.**

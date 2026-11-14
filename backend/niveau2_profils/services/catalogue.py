@@ -26,11 +26,12 @@ def profils_livres() -> list[str]:
 
 
 def lire_profil_livre(nom: str) -> dict:
-    chemin = DOSSIER / f"{nom}.json"
-    if not chemin.is_file():
+    # Liste blanche : `nom` ne devient jamais un morceau de chemin (« ../../secret » refusé).
+    if nom not in profils_livres():
         raise FileNotFoundError(
             msg("catalogue.aucun_profil_livre_disponibles", nom=nom, v1=profils_livres())
         )
+    chemin = DOSSIER / f"{nom}.json"
     return json.loads(chemin.read_text(encoding="utf-8"))
 
 
