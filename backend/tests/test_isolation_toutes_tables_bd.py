@@ -17,6 +17,7 @@ Deux cases du contrôle de sortie le demandent :
 """
 
 import datetime
+import uuid
 from decimal import Decimal
 
 import pytest
@@ -36,6 +37,12 @@ from niveau1_socle.rapprochement.services import importer_mouvements, rapprocher
 from niveau1_socle.referentiels.models import Tiers
 from niveau2_profils.services.profils import ajouter_element, creer_profil_bailleur
 from niveau3_config.models import Reallocation
+from niveau4_reporting.controles.circuit import creer_circuit, decider_etape, ouvrir_demande
+from niveau4_reporting.controles.derogations import (
+    decider_derogation,
+    demander_derogation,
+    justifier,
+)
 from niveau4_reporting.controles.services import (
     activer_controle,
     creer_controle,
@@ -278,6 +285,58 @@ def _peupler(organisation, projet, profils, accord, categories):
         service="isolation",
     )
     trancher(utilisateur=profils["bruno"], evaluation=evaluation, decision="conforme", motif="Vu")
+    # Justification, dérogation et circuit de validation (L6-T02).
+    justifier(utilisateur=amina, evaluation=evaluation, texte="Pièces attendues du fournisseur")
+    depassement = creer_controle(
+        utilisateur=dora,
+        project_id=projet.id,
+        code="PLAFOND",
+        label={"fr": "Plafond", "en": "Ceiling"},
+        type_regle="budget",
+        severity="bloquant",
+        valid_from=datetime.date(2026, 1, 1),
+        expression={
+            "type_regle": "budget",
+            "conditions": [{"champ": "depense_cumulee", "op": "lte", "valeur": "1000"}],
+        },
+    )
+    depassement = activer_controle(
+        utilisateur=dora,
+        controle=valider_controle(utilisateur=profils["bruno"], controle=depassement),
+    )
+    bloque = evaluer_controle(
+        depassement,
+        {"montant": D(10), "depense_cumulee": D(5000)},
+        date_operation=datetime.date(2026, 6, 1),
+        objet_type="depense",
+        service="isolation",
+    )
+    derogation = demander_derogation(
+        utilisateur=amina,
+        evaluation=bloque,
+        motif="Urgence",
+        justificatif="NO-1",
+        valide_du=datetime.date(2026, 6, 1),
+        valide_jusquau=datetime.date(2026, 7, 1),
+    )
+    decider_derogation(
+        utilisateur=profils["bruno"], derogation=derogation, approuver=True, motif="Vu"
+    )
+    creer_circuit(
+        utilisateur=dora,
+        project_id=projet.id,
+        objet_type="depense",
+        valid_from=datetime.date(2026, 1, 1),
+        etapes=[{"nom": {"fr": "Validation", "en": "Validation"}, "operation": "valider"}],
+    )
+    demande = ouvrir_demande(
+        utilisateur=amina,
+        project_id=projet.id,
+        objet_type="depense",
+        objet_id=uuid.uuid4(),
+        date_effet=datetime.date(2026, 6, 1),
+    )
+    decider_etape(utilisateur=profils["bruno"], demande=demande, rang=1, approuver=True)
     bibliotheque = creer_profil_bailleur(
         utilisateur=dora, code="IDA", label={"fr": "Banque mondiale"}
     )

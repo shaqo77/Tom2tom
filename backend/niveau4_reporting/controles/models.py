@@ -276,3 +276,100 @@ class Derogation(ModeleOrganisation):
                 name="derogation_decision_coherente",
             ),
         ]
+
+
+class Circuit(ModeleOrganisation):
+    """Le circuit de validation d'un type d'objet, de 1 à 5 étapes. Voir L6-T02b.
+
+    Versionné `[valid_from, valid_to[` : une fois créé il ne change plus, on en crée un autre
+    (règle 7). Ce n'est PAS un moteur de processus : des étapes ordonnées, un rôle chacune.
+    """
+
+    project_id = models.UUIDField(db_index=True)
+    objet_type = models.CharField(max_length=40)
+    version = models.PositiveIntegerField(default=1)
+    valid_from = models.DateField()
+    valid_to = models.DateField(null=True, blank=True)  # exclu
+
+    class Meta:
+        constraints = [
+            models.UniqueConstraint(
+                fields=["project_id", "objet_type", "version"], name="uq_circuit_version"
+            ),
+        ]
+
+
+class EtapeCircuit(ModeleOrganisation):
+    circuit = models.ForeignKey(Circuit, on_delete=models.PROTECT, related_name="etapes")
+    rang = models.PositiveSmallIntegerField()  # 1 à 5
+    nom = models.JSONField()  # {"fr": …, "en": …}
+    operation = models.CharField(max_length=24)  # l'habilitation requise (ensemble fermé)
+    # Condition d'entrée facultative : {"montant_min": "5000", "categories": […], "bailleurs": […]}.
+    condition = models.JSONField(null=True, blank=True)
+    exige_controles_tranches = models.BooleanField(default=False)
+
+    class Meta:
+        constraints = [
+            models.UniqueConstraint(fields=["circuit", "rang"], name="uq_etape_rang"),
+            models.CheckConstraint(
+                condition=Q(rang__gte=1, rang__lte=5), name="etape_rang_de_1_a_5"
+            ),
+        ]
+
+
+class StatutDemande(models.TextChoices):
+    EN_COURS = "en_cours", "En cours"
+    APPROUVEE = "approuvee", "Approuvée"
+    REJETEE = "rejetee", "Rejetée"
+
+
+class DemandeValidation(ModeleOrganisation):
+    circuit = models.ForeignKey(Circuit, on_delete=models.PROTECT, related_name="demandes")
+    project_id = models.UUIDField(db_index=True)
+    objet_type = models.CharField(max_length=40)
+    objet_id = models.UUIDField()
+    contexte = models.JSONField(default=dict)  # montant, categorie, bailleur : figés à l'ouverture
+    date_effet = models.DateField()
+    demandeur_id = models.UUIDField()
+    statut = models.CharField(
+        max_length=10, choices=StatutDemande.choices, default=StatutDemande.EN_COURS
+    )
+    rang_courant = models.PositiveSmallIntegerField(null=True, blank=True)
+
+    class Meta:
+        constraints = [
+            models.CheckConstraint(
+                condition=Q(statut__in=StatutDemande.values), name="demandevalidation_statut_ferme"
+            ),
+            # Une seule demande en cours par objet.
+            models.UniqueConstraint(
+                fields=["project_id", "objet_type", "objet_id"],
+                condition=Q(statut="en_cours"),
+                name="uq_demande_en_cours_par_objet",
+            ),
+            models.CheckConstraint(
+                condition=(Q(statut="en_cours") & Q(rang_courant__isnull=False))
+                | (~Q(statut="en_cours") & Q(rang_courant__isnull=True)),
+                name="demandevalidation_rang_selon_statut",
+            ),
+        ]
+
+
+class DecisionEtape(ModeleOrganisation):
+    """Une signature nominative sur une étape. En ajout seul ; le rejet est motivé."""
+
+    demande = models.ForeignKey(
+        DemandeValidation, on_delete=models.PROTECT, related_name="decisions"
+    )
+    rang = models.PositiveSmallIntegerField()
+    approuvee = models.BooleanField()
+    motif = models.TextField(blank=True, default="")
+    decided_by = models.UUIDField()
+    decided_by_nom = models.CharField(max_length=150)
+    decided_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        constraints = [
+            models.CheckConstraint(condition=Q(approuvee=True) | ~Q(motif=""), name="rejet_motive"),
+            models.UniqueConstraint(fields=["demande", "rang"], name="uq_decision_par_etape"),
+        ]

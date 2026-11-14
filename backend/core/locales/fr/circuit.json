@@ -1,0 +1,14 @@
+{
+  "circuit.aucun_circuit": "Aucun circuit de validation pour « {objet_type} » au {date}",
+  "circuit.aucune_etape_applicable": "Aucune étape du circuit ne s'applique à cet objet",
+  "circuit.condition_invalide": "La condition d'entrée d'une étape est invalide : montant_min (nombre), categories ou bailleurs (listes de codes)",
+  "circuit.de_une_a_cinq_etapes": "Un circuit compte de 1 à 5 étapes ({n} fournies)",
+  "circuit.deja_en_cours": "Une validation est déjà en cours pour cet objet",
+  "circuit.etape_non_courante": "L'étape {rang} n'est pas l'étape courante de cette demande (statut : {statut})",
+  "circuit.habilitation_requise": "Vous n'êtes pas habilité à « {operation} » sur ce projet",
+  "circuit.nom_toutes_langues": "Le nom d'une étape est requis dans toutes les langues gérées",
+  "circuit.operation_inconnue": "L'habilitation « {operation} » n'existe pas",
+  "circuit.periode_anterieure": "Le nouveau circuit doit commencer après le début du circuit en vigueur",
+  "circuit.rejet_motive": "Un rejet exige un motif",
+  "circuit.signataire_distinct": "Le demandeur ne peut pas signer une étape de sa propre demande"
+}

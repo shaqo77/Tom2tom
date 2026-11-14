@@ -404,6 +404,11 @@ Aucune requête SQL, aucun JavaScript, aucun `eval`/`exec` (règle 5). Une condi
 
 **Circuit borné.** Conformément à la note 06 §3.2 : 1 à 5 étapes, chacune avec un rôle requis, une condition d'entrée optionnelle (seuil de montant, catégorie, bailleur) et un motif obligatoire en cas de rejet. Pas de moteur de processus général.
 
+> **Réalisation de L6-T02b — le circuit de validation** (`backend/niveau4_reporting/controles/circuit.py`, modèles `Circuit`, `EtapeCircuit`, `DemandeValidation`, `DecisionEtape`, migrations `controles/0008-0009`, `tests/test_circuit_validation_bd.py`, 15 tests, 5 mutations vérifiées ; le test d'isolation de toutes les tables peuple les nouvelles tables). *Avec T02a, L6-T02 couvre les étapes 4 à 6 du workflow.*
+> - Circuit **versionné** `[valid_from, valid_to[` (une version close la précédente, aucune modification, pas de chevauchement garanti par EXCLUDE), de **1 à 5 étapes** (CHECK en base), chacune avec une habilitation requise (ensemble fermé), un nom dans chaque langue, une condition d'entrée facultative bornée (`montant_min`, `categories`, `bailleurs`) et un drapeau `exige_controles_tranches`.
+> - `decider_etape` verrouille la demande, exige que l'étape signée soit l'étape COURANTE (deux signatures concurrentes : une seule prend effet), l'habilitation de l'étape, un signataire différent du demandeur, un motif au rejet. Si l'étape l'exige, les contrôles de l'objet doivent être tranchés (dérogations approuvées comprises) : refusé au serveur avec `CONTROLE_BLOQUANT`, rien n'est signé ; un rejet reste possible.
+> - **Limites assumées** : les étapes 1-3 (extraction, génération, exécution des contrôles) et 7-8 (export, archivage de la version transmise) dépendent des rapports (L7) et ne sont pas dans ce circuit. Le contexte d'une demande (montant, catégorie, bailleur) est fourni par l'appelant, figé à l'ouverture. Un même signataire peut signer plusieurs étapes s'il détient les habilitations (seule la séparation avec le demandeur est imposée). Pas d'interface HTTP : services seuls.
+
 **Contrôles.**
 
 ```
