@@ -7,6 +7,7 @@ action corrective, exigence et clause sources, date, déclencheur.
 """
 
 import datetime
+from dataclasses import dataclass, field
 
 from django.db import IntegrityError, transaction
 from django.utils import timezone
@@ -20,6 +21,8 @@ from niveau3_config.services.activation import _fermer_les_precedentes, _transit
 from niveau3_config.services.decaissement import profil_en_vigueur
 
 from . import conditions
+from .bibliotheque import livres_avec_risque
+from .decision import ParametresInvalides, decider, valider_parametres
 from .models import (
     Controle,
     Decision,
@@ -58,6 +61,7 @@ def creer_controle(
     applicable_si: dict | None = None,
     action_corrective: str = "",
     manuel: bool = False,
+    parametres: dict | None = None,
 ) -> Controle:
     """Enregistre un contrôle en brouillon ; une condition hors schéma est refusée ICI."""
     _habilite(utilisateur, "parametrer", project_id)
@@ -81,7 +85,8 @@ def creer_controle(
             conditions.preparer_expression(expression, type_regle)
         if applicable_si is not None:
             conditions.preparer_expression(applicable_si, type_regle)
-    except conditions.ConditionInvalide as erreur:
+        parametres = valider_parametres(type_regle, parametres)
+    except (conditions.ConditionInvalide, ParametresInvalides) as erreur:
         raise ErreurMetier(CodeErreur.REGLE_INVALIDE, f"Règle invalide : {erreur}") from erreur
     with transaction.atomic():
         derniere = (
@@ -101,6 +106,7 @@ def creer_controle(
             mode=ModeControle.MANUEL if manuel else ModeControle.AUTOMATIQUE,
             expression=expression,
             applicable_si=applicable_si,
+            parametres=parametres,
             action_corrective=action_corrective,
             valid_from=valid_from,
             created_by=utilisateur.id,
@@ -251,36 +257,17 @@ def evaluer_controle(
             CodeErreur.AUCUNE_CONFIGURATION_A_LA_DATE,
             f"Le contrôle {controle.code} n'est pas actif le {date_operation}",
         )
-    constats: list[conditions.Constat] = []
-    if controle.mode == ModeControle.MANUEL:
-        resultat, message = (
-            Resultat.A_VERIFIER,
-            f"{_libelle(controle)} : vérification humaine requise",
-        )
-    else:
-        applicable = (
-            True
-            if controle.applicable_si is None
-            else conditions.reussit(
-                conditions.evaluer(
-                    conditions.preparer_expression(controle.applicable_si, controle.type_regle),
-                    contexte,
-                )
-            )
-        )
-        if not applicable:
-            resultat, message = Resultat.NON_APPLICABLE, f"{_libelle(controle)} : non applicable"
-        else:
-            constats = conditions.evaluer(
-                conditions.preparer_expression(controle.expression, controle.type_regle), contexte
-            )
-            if conditions.reussit(constats):
-                resultat, message = Resultat.REUSSI, f"{_libelle(controle)} : réussi"
-            else:
-                resultat = Resultat(controle.severity)
-                echecs = "; ".join(c.lisible() for c in constats if not c.satisfaite)
-                message = f"{_libelle(controle)} : {echecs}"
-    premier_echec = next((c for c in constats if not c.satisfaite), None)
+    decision = decider(
+        libelle=_libelle(controle),
+        mode=controle.mode,
+        severity=controle.severity,
+        type_regle=controle.type_regle,
+        expression=controle.expression,
+        applicable_si=controle.applicable_si,
+        parametres=controle.parametres,
+        contexte=contexte,
+    )
+    resultat, message, premier_echec = decision.resultat, decision.message, decision.premier_echec
     profil = profil_en_vigueur(accord, date_operation) if accord is not None else None
     exigence_id, exigence_code, clause = _source(controle, date_operation)
     with transaction.atomic():
@@ -421,3 +408,53 @@ def exiger_controles_tranches(project_id, objet_type: str, objet_id=None) -> Non
     if en_attente:
         detail = "; ".join(f"{e.controle.code} ({raison})" for e, raison in en_attente)
         raise ErreurMetier(CodeErreur.CONTROLE_BLOQUANT, f"Contrôles à traiter : {detail}")
+
+
+# --- la bibliothèque livrée ----------------------------------------------------------------
+
+
+@dataclass
+class ResultatInstallation:
+    crees: list = field(default_factory=list)
+    deja_presents: list = field(default_factory=list)  # codes qui existaient déjà dans le projet
+
+
+def installer_bibliotheque(
+    *, utilisateur, project_id, valid_from: datetime.date, codes: list[str] | None = None
+) -> ResultatInstallation:
+    """Installe les contrôles livrés EN BROUILLON : ni validés ni activés (règle 9).
+
+    Un code déjà présent dans le projet n'est pas recréé. `codes` restreint l'installation ; un
+    code inconnu de la bibliothèque est refusé.
+    """
+    _habilite(utilisateur, "parametrer", project_id)
+    livres = {d.code: d for d in livres_avec_risque()}
+    if codes is not None:
+        inconnus = sorted(set(codes) - set(livres))
+        if inconnus:
+            raise ErreurMetier(
+                CodeErreur.REGLE_INVALIDE, f"Contrôles inconnus de la bibliothèque : {inconnus}"
+            )
+        livres = {c: livres[c] for c in codes}
+    resultat = ResultatInstallation()
+    with transaction.atomic():
+        for code, d in livres.items():
+            if Controle.objects.filter(project_id=project_id, code=code).exists():
+                resultat.deja_presents.append(code)
+                continue
+            resultat.crees.append(
+                creer_controle(
+                    utilisateur=utilisateur,
+                    project_id=project_id,
+                    code=code,
+                    label=d.label,
+                    type_regle=d.type_regle,
+                    severity=d.severity,
+                    valid_from=valid_from,
+                    expression=d.expression,
+                    applicable_si=d.applicable_si,
+                    action_corrective=d.action_corrective,
+                    parametres=d.parametres,
+                )
+            )
+    return resultat

@@ -1,0 +1,97 @@
+"""La décision d'un contrôle, en logique pure : applicabilité, pièces, résultat. Voir L6-T01.
+
+Séparée du service pour être testée sans base : c'est ce module qui dit « réussi », « bloquant »,
+« non applicable » ou « à vérifier » ; le service ne fait que l'enregistrer au journal.
+
+Règle de pièces : une pièce requise est une règle de ce moteur (type de pièce, portée par
+`applicable_si` : catégorie, méthode, seuil de montant, nature), pas une table de plus. Le moteur
+ne retient, parmi les pièces fournies, que celles **du bon type, rattachées à l'opération**, et
+validées lorsque la règle l'exige : une pièce du mauvais type ou non rattachée est refusée comme
+absente. Il n'existe pas de liste universelle de justificatifs.
+"""
+
+from dataclasses import dataclass, field
+
+from . import conditions
+from .models import ModeControle, Resultat
+
+CLES_PARAMETRES = {"type_piece", "validee"}
+
+
+class ParametresInvalides(ValueError):
+    """Les paramètres d'une règle sortent de ce que son type de règle accepte."""
+
+
+def valider_parametres(type_regle: str, parametres) -> dict:
+    parametres = {} if parametres is None else parametres
+    if not isinstance(parametres, dict):
+        raise ParametresInvalides("les paramètres sont un objet")
+    if not parametres:
+        return {}
+    if type_regle != "pieces":
+        raise ParametresInvalides("seule une règle de pièces porte des paramètres")
+    inconnus = set(parametres) - CLES_PARAMETRES
+    if inconnus:
+        raise ParametresInvalides(f"paramètres inconnus : {sorted(inconnus)}")
+    type_piece = parametres.get("type_piece")
+    if not isinstance(type_piece, str) or not type_piece.strip():
+        raise ParametresInvalides("« type_piece » est le type de la pièce exigée")
+    validee = parametres.get("validee", False)
+    if not isinstance(validee, bool):
+        raise ParametresInvalides("« validee » est un booléen")
+    return {"type_piece": type_piece.strip(), "validee": validee}
+
+
+def pieces_retenues(pieces, parametres: dict) -> list:
+    """Les pièces qui comptent : du bon type, rattachées à l'opération, validées si exigé."""
+    retenues = []
+    for piece in pieces or ():
+        if piece.get("type") != parametres["type_piece"]:
+            continue
+        if piece.get("rattachee") is not True:
+            continue
+        if parametres.get("validee") and piece.get("valide") is not True:
+            continue
+        retenues.append(piece)
+    return retenues
+
+
+@dataclass
+class Decision:
+    resultat: Resultat
+    constats: list = field(default_factory=list)  # les constats de l'expression (échec ou succès)
+    message: str = ""
+    premier_echec: conditions.Constat | None = None
+
+
+def decider(
+    *,
+    libelle: str,
+    mode: str,
+    severity: str,
+    type_regle: str,
+    expression: dict | None,
+    applicable_si: dict | None,
+    parametres: dict | None,
+    contexte: dict,
+) -> Decision:
+    if mode == ModeControle.MANUEL:
+        return Decision(Resultat.A_VERIFIER, [], f"{libelle} : vérification humaine requise")
+    if applicable_si is not None:
+        applicable = conditions.reussit(
+            conditions.evaluer(conditions.preparer_expression(applicable_si, type_regle), contexte)
+        )
+        if not applicable:
+            return Decision(Resultat.NON_APPLICABLE, [], f"{libelle} : non applicable")
+    if parametres and parametres.get("type_piece"):
+        contexte = {**contexte, "pieces": pieces_retenues(contexte.get("pieces"), parametres)}
+    constats = conditions.evaluer(conditions.preparer_expression(expression, type_regle), contexte)
+    if conditions.reussit(constats):
+        return Decision(Resultat.REUSSI, constats, f"{libelle} : réussi")
+    echecs = [c for c in constats if not c.satisfaite]
+    return Decision(
+        Resultat(severity),
+        constats,
+        f"{libelle} : {'; '.join(c.lisible() for c in echecs)}",
+        echecs[0],
+    )

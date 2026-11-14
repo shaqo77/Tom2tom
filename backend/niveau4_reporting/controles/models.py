@@ -65,6 +65,8 @@ class Controle(ModeleOrganisation):
     )
     expression = models.JSONField(null=True, blank=True)
     applicable_si = models.JSONField(null=True, blank=True)  # même forme ; sinon non applicable
+    # Règle de pièces : {"type_piece": "facture", "validee": true}. Vide pour les autres règles.
+    parametres = models.JSONField(default=dict, blank=True)
     action_corrective = models.TextField(blank=True, default="")
     valid_from = models.DateField()
     valid_to = models.DateField(null=True, blank=True)  # exclu : [valid_from, valid_to[

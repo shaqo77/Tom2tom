@@ -146,12 +146,16 @@ SCHEMAS: dict[str, dict[str, Champ]] = {
         plafond_accord="decimal",
         utilise_accord="decimal",
         disponible_categorie="decimal",
+        disponible_ligne="decimal",
+        disponible_allocation="decimal",
+        disponible_accord="decimal",
     ),
     "tresorerie": _champs(
         ecart_rapprochement="decimal",
         ecart_justifie="booleen",
         solde_compte_designe="decimal",
         solde_attendu="decimal",
+        ecart_solde="decimal",
         plafond_compte_designe="decimal",
     ),
     "avances": _champs(
@@ -159,6 +163,7 @@ SCHEMAS: dict[str, dict[str, Champ]] = {
         montant_justifie="decimal",
         jours_depuis_versement="entier",
         delai_applicable_jours="entier",
+        jours_de_retard="entier",
         justifiee="booleen",
     ),
     "rapport": {
