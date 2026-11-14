@@ -37,7 +37,7 @@ from niveau1_socle.financements.services import (
 from niveau1_socle.rapprochement.services import importer_mouvements, rapprocher
 from niveau1_socle.referentiels.models import Tiers
 from niveau2_profils.services.profils import ajouter_element, creer_profil_bailleur
-from niveau3_config.models import Reallocation
+from niveau3_config.models import Echeance, Exigence, Reallocation
 from niveau4_reporting.controles.circuit import creer_circuit, decider_etape, ouvrir_demande
 from niveau4_reporting.controles.derogations import (
     decider_derogation,
@@ -143,7 +143,6 @@ NON_PEUPLEES = {
     "comptabilite_ligneschema": "test_schemas_ecriture_bd",
     "mapping_table": "test_mapping_bd, test_compilateur_bd",
     "mapping_rule": "test_mapping_bd, test_compilateur_bd",
-    "niveau3_config_exigence": "test_exigences_bd",
     "niveau3_config_rattachementexigence": "test_exigences_bd",
     "referentiels_correspondanceimport": "test_import_referentiels_bd",
     "referentiels_taux": "test_devises_taux_bd",
@@ -310,6 +309,29 @@ def _peupler(organisation, projet, profils, accord, categories):
         sha256=hashlib.sha256(b"%PDF").hexdigest(),
         taille=4,
         produit_par=dora.id,
+    )
+    exigence = Exigence.objects.create(
+        org_id=organisation.id,
+        project_id=projet.id,
+        code="RFI",
+        document=_document(organisation, projet, "Accord de financement"),
+        citation={"paragraph": "4.2", "quote": "remis dans les 45 jours"},
+        subject="RFI",
+        rule={},
+        periodicity="quarterly",
+        due_offset_days=45,
+        obligation="mandatory",
+        valid_from=datetime.date(2026, 1, 1),
+        version=1,
+        source="manual",
+    )
+    Echeance.objects.create(  # une échéance du calendrier des obligations (L6-T06)
+        org_id=organisation.id,
+        project_id=projet.id,
+        exigence=exigence,
+        periode_debut=datetime.date(2026, 1, 1),
+        periode_fin=datetime.date(2026, 3, 31),
+        date_echeance=datetime.date(2026, 5, 15),
     )
     # Justification, dérogation et circuit de validation (L6-T02).
     justifier(utilisateur=amina, evaluation=evaluation, texte="Pièces attendues du fournisseur")

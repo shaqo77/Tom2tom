@@ -521,6 +521,12 @@ Tâche de fond quotidienne : exécuter les contrôles **avant** l'échéance, al
 
 > **L'écran d'accueil est ce calendrier, à feux de signalisation — pas une arborescence de menus.** Le métier réel d'un responsable administratif et financier est de ne jamais rater une échéance et de ne jamais faire rejeter un rapport. Le produit doit être organisé autour de cela.
 
+> **Réalisation de L6-T06** (`backend/niveau3_config/services/calendrier.py`, modèle `Echeance`, migrations `niveau3_config/0012-0013`, commande `verifier_echeances`, `tests/test_calendrier_bd.py`, 13 tests, 8 mutations vérifiées ; suite complète verte).
+> - `generer_calendrier(projet, année)` (habilitation `parametrer`, idempotent) produit, pour chaque exigence ACTIVE périodique avec délai, une échéance par période civile à `fin de période + due_offset_days` (T1 + 45 jours = 15 mai, puis 14 août, 14 novembre, 14 février). Elle n'échéance une période que si l'exigence est en vigueur à sa fin (`[valid_from, valid_to[`). Une exigence périodique SANS délai est listée (`sans_delai`), jamais échéancée : aucun délai inventé. Une exigence « à l'événement » n'a pas de calendrier.
+> - Une exigence remplacée ou retirée **annule** ses échéances à remettre (jamais de suppression ; les remises ne bougent pas). La base interdit de changer la date ou l'exigence d'une échéance et de réécrire une remise.
+> - Le **feu** (vert, orange à 15 jours ou moins, rouge si dépassée) se calcule, il ne se stocke pas. `alertes_du_jour` : imminente (≤ 15 j), en retard, escalade (> 7 j de retard). `verifier_echeances` (tâche quotidienne) les liste et sort en code 2 s'il y a une escalade.
+> - **Limites assumées** : périodes civiles uniquement (pas d'exercice décalé) ; seuils 15 et 7 jours fixés dans le code, pas encore paramétrables par projet ; aucune notification n'est envoyée (la commande liste, l'ordonnanceur relaie) ; la tâche n'**exécute pas** encore les contrôles avant l'échéance (le plan le demande) : cela suppose de savoir quel objet contrôler pour un rapport donné, donc les modèles d'états en base ; l'écran d'accueil à feux est du front-end et n'est pas dans ce dépôt. `marquer_remise` reçoit l'identifiant du rapport publié sans le vérifier.
+
 **Contrôle.** Activer une exigence trimestrielle à 45 jours génère les quatre échéances de l'exercice, aux bonnes dates.
 
 ---

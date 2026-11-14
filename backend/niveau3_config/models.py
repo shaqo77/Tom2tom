@@ -505,3 +505,50 @@ class Reallocation(ModeleOrganisation):
 
     def __str__(self) -> str:
         return f"réallocation {self.montant} {self.source_id}→{self.cible_id} ({self.status})"
+
+
+class StatutEcheance(models.TextChoices):
+    A_REMETTRE = "a_remettre", "À remettre"
+    REMISE = "remise", "Remise"
+    ANNULEE = "annulee", "Annulée"
+
+
+class Echeance(ModeleOrganisation):
+    """Une échéance de remise, générée depuis une exigence périodique ACTIVE. Voir L6-T06.
+
+    Elle porte l'exigence PRÉCISE (donc sa version) qui l'a produite : la date et la source restent
+    lisibles même quand l'exigence est révisée plus tard. Le « feu » (vert, orange, rouge) ne se
+    stocke pas : il se calcule à la date du jour.
+    """
+
+    project_id = models.UUIDField(db_index=True)
+    exigence = models.ForeignKey(Exigence, on_delete=models.PROTECT, related_name="echeances")
+    periode_debut = models.DateField()
+    periode_fin = models.DateField()
+    date_echeance = models.DateField()
+    statut = models.CharField(
+        max_length=12, choices=StatutEcheance.choices, default=StatutEcheance.A_REMETTRE
+    )
+    rapport_id = models.UUIDField(null=True, blank=True)  # le rapport publié qui l'a remise
+    remise_le = models.DateTimeField(null=True, blank=True)
+    remise_par = models.UUIDField(null=True, blank=True)
+
+    class Meta:
+        indexes = [models.Index(fields=["project_id", "date_echeance"])]
+        constraints = [
+            models.UniqueConstraint(
+                fields=["exigence", "periode_fin"], name="uq_echeance_exigence_periode"
+            ),
+            models.CheckConstraint(
+                condition=Q(statut__in=StatutEcheance.values), name="echeance_statut_ferme"
+            ),
+            models.CheckConstraint(
+                condition=Q(periode_debut__lte=models.F("periode_fin")),
+                name="echeance_periode_coherente",
+            ),
+            models.CheckConstraint(
+                condition=~Q(statut="remise")
+                | Q(rapport_id__isnull=False, remise_le__isnull=False, remise_par__isnull=False),
+                name="echeance_remise_tracee",
+            ),
+        ]
