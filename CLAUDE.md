@@ -9,12 +9,16 @@ Documents de référence, à lire avant de toucher à l'architecture :
 (conventions, partie B ; règles, partie C), `04_PLAN_LOTS_L0_A_L4.md`, `05_PLAN_LOTS_L5_A_L10.md`.
 État actuel : lots **L0** à **L4** livrés (fondations : grand livre, clôtures, restitutions, budget,
 financements, cofinancement, demandes de retrait, avances, rapprochement bancaire), avec leur contrôle
-de sortie. Restent **L2-T05/T06** (paquets réglementaires : il manque la source du plan comptable) et
-les lots **L5** à **L10**. Le code vit dans `core/`, `niveau1_socle/` (organisations, habilitations,
-exercices, référentiels, comptabilité, budget, financements, décaissements, avances, rapprochement),
-`niveau3_config/` et `niveau4_reporting/` ; `niveau2_profils/`
-reste à faire (L5). Chaque tâche a sa note « Réalisation » dans `04_PLAN_LOTS_L0_A_L4.md`, avec ses
-limites assumées : à lire avant de s'appuyer sur un comportement.
+de sortie. Le lot **L5** (configuration et registre des exigences) est livré tâche par tâche (T01 à
+T07 : documents de référence, extraction, registre avec citation vérifiée, rattachement, profil de
+décaissement, activation et versionnement, réallocations et avenants, profils de bailleurs, profil
+Banque mondiale, guide de configuration) ; **son contrôle de sortie reste à exécuter**. Restent
+**L2-T05/T06** (paquets réglementaires : il manque la source du plan comptable) et les lots **L6** à
+**L10**. Le code vit dans `core/`, `niveau1_socle/` (organisations, habilitations, exercices,
+référentiels, comptabilité, budget, financements, décaissements, avances, rapprochement),
+`niveau2_profils/` (bibliothèque de profils de bailleurs), `niveau3_config/` et `niveau4_reporting/`.
+Chaque tâche a sa note « Réalisation » dans `04_PLAN_LOTS_L0_A_L4.md` ou `05_PLAN_LOTS_L5_A_L10.md`,
+avec ses limites assumées : à lire avant de s'appuyer sur un comportement.
 
 ## Commandes (depuis `backend/`)
 
