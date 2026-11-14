@@ -17,6 +17,7 @@ Deux cases du contrôle de sortie le demandent :
 """
 
 import datetime
+import hashlib
 import uuid
 from decimal import Decimal
 
@@ -50,7 +51,7 @@ from niveau4_reporting.controles.services import (
     trancher,
     valider_controle,
 )
-from niveau4_reporting.publication.models import RapportPublie
+from niveau4_reporting.publication.models import FichierRapport, RapportPublie
 from tests.outils import connexion_proprietaire
 from tests.outils_profil import creer_profil
 from tests.test_cycle_ecriture_bd import decor  # noqa: F401
@@ -298,6 +299,17 @@ def _peupler(organisation, projet, profils, accord, categories):
         seal=b"\x02" * 32,
         published_by=dora.id,
         published_at=datetime.datetime(2026, 4, 1, tzinfo=datetime.UTC),
+    )
+    FichierRapport.objects.create(  # un fichier de rapport avec son empreinte (L6-T05)
+        org_id=organisation.id,
+        rapport=RapportPublie.objects.get(project_id=projet.id),
+        format="pdf",
+        langue="fr",
+        nom="TER.pdf",
+        contenu=b"%PDF",
+        sha256=hashlib.sha256(b"%PDF").hexdigest(),
+        taille=4,
+        produit_par=dora.id,
     )
     # Justification, dérogation et circuit de validation (L6-T02).
     justifier(utilisateur=amina, evaluation=evaluation, texte="Pièces attendues du fournisseur")

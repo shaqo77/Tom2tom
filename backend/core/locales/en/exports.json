@@ -1,0 +1,7 @@
+{
+  "exports.fichier_altere": "The file “{nom}” no longer matches its recorded fingerprint: it has been tampered with",
+  "exports.format_inconnu": "Unknown file format: “{format}” (xlsx or pdf)",
+  "exports.habilitation_exporter": "You are not authorised to export this project's reports",
+  "exports.langue_inconnue": "Unknown language: “{langue}”",
+  "exports.pdf_droite_a_gauche": "The PDF cannot yet be written right-to-left: this language is not supported for this format"
+}

@@ -1,0 +1,7 @@
+{
+  "exports.fichier_altere": "Le fichier « {nom} » ne correspond plus à l'empreinte enregistrée : il a été altéré",
+  "exports.format_inconnu": "Format de fichier inconnu : « {format} » (xlsx ou pdf)",
+  "exports.habilitation_exporter": "Vous n'êtes pas habilité à exporter les rapports de ce projet",
+  "exports.langue_inconnue": "Langue inconnue : « {langue} »",
+  "exports.pdf_droite_a_gauche": "Le PDF ne sait pas encore s'écrire de droite à gauche : cette langue n'est pas prise en charge pour ce format"
+}

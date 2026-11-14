@@ -37,3 +37,30 @@ class RapportPublie(ModeleOrganisation):
                 name="rapport_periode_coherente",
             ),
         ]
+
+
+class FichierRapport(ModeleOrganisation):
+    """Un fichier produit pour un rapport publié, avec son empreinte. Ajout seul. Voir L6-T05.
+
+    Le contenu est gardé en base (`contenu`) avec son SHA-256 ; à la lecture on RECALCULE
+    l'empreinte et on la compare à celle enregistrée : un fichier altéré ne sort jamais comme bon.
+    """
+
+    rapport = models.ForeignKey(RapportPublie, on_delete=models.PROTECT, related_name="files")
+    format = models.CharField(max_length=8)  # xlsx | pdf
+    langue = models.CharField(max_length=8)
+    nom = models.CharField(max_length=200)
+    contenu = models.BinaryField()
+    sha256 = models.CharField(max_length=64)
+    taille = models.PositiveIntegerField()
+    produit_par = models.UUIDField()
+
+    class Meta:
+        constraints = [
+            models.UniqueConstraint(
+                fields=["rapport", "format", "langue"], name="uq_fichier_rapport_format_langue"
+            ),
+            models.CheckConstraint(
+                condition=Q(format__in=["xlsx", "pdf"]), name="fichier_format_ferme"
+            ),
+        ]

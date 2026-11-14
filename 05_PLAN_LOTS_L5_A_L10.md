@@ -504,6 +504,11 @@ PDF via Typst ou WeasyPrint, **compatible droite-à-gauche**.
 
 Les fichiers produits sont stockés avec leur empreinte dans `published_report.files`.
 
+> **Réalisation de L6-T05** (`backend/niveau4_reporting/publication/exports.py`, modèle `FichierRapport`, migrations `publication/0003-0004`, `tests/test_exports_rapport_bd.py`, 12 tests, mutations vérifiées).
+> - **Excel** (openpyxl) : montants en vrais nombres (`data_type == "n"`) au format de la devise (0 à 4 décimales selon `Devise.decimales` : DJF 0, USD 2, TND 3), feuille en `rightToLeft` pour une langue de droite à gauche, **octets déterministes** (dates d'entrée du ZIP et date de modification fixées sur la date de publication ; openpyxl pose « maintenant » à l'enregistrement, ce que la première version du test a révélé).
+> - **Stockage** : `FichierRapport` (une ligne par rapport, format et langue ; ajout seul) garde le contenu et son SHA-256 ; la base vérifie que l'empreinte et la taille correspondent au contenu, et `lire_fichier` la RECALCULE : un fichier altéré lève `FichierAltere`. Le plan parlait de `published_report.files` : le rapport publié étant immuable, les fichiers sont dans une table à part.
+> - **Écarts et limites assumés** : (1) le PDF utilise l'écrivain minimal du projet (latin, polices standard), pas Typst ni WeasyPrint (absents de l'environnement) : **le PDF de droite à gauche est refusé explicitement** (`exports.pdf_droite_a_gauche`) au lieu de produire un PDF faux ; il reste à faire quand l'arabe sera livré. (2) Le contenu est en base (`bytea`) : à reprendre vers un stockage objet quand les volumes l'exigeront. (3) Le « format conforme au modèle » se limite aux libellés, colonnes, nombres et gel de volet ; pas de gabarit bailleur imposé.
+
 **Contrôle.** Le fichier téléchargé a exactement l'empreinte enregistrée.
 
 ---
