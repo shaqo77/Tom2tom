@@ -577,6 +577,12 @@ Pour chaque rubrique : l'exigence satisfaite, **sa citation documentaire exacte*
 
 Export PDF, **scellé avec le rapport**.
 
+> **Réalisation de L7-T01** (`backend/niveau4_reporting/publication/dossier.py`, migration `publication/0007`, `tests/test_dossier_conformite_bd.py`, 7 tests, 7 mutations vérifiées).
+> - `construire_dossier(rapport)` : une ligne par rubrique portant une valeur (les intitulés `heading` n'en sont pas). Une rubrique d'agrégat par **mapping** hérite des exigences rattachées à la VERSION de ce mapping (celle du rapport) ; une rubrique **calculée** hérite de celles des rubriques dont sa formule dépend (sans doublon) ; une rubrique d'agrégat par **comptes sans mapping** n'a aucune source et est NOMMÉE dans la section « sans exigence source » du PDF et dans `non_couvertes`, jamais cachée. Chaque source donne exigence et version, document et version, annexe, page, paragraphe, **texte cité exact**, validateur et date.
+> - Les exigences retenues sont celles **en vigueur à la date de publication** (actives, ou remplacées depuis) : réviser l'exigence plus tard ne change pas le dossier d'un rapport déjà publié.
+> - `exporter_dossier` : PDF français ou anglais portant le scellé du rapport, enregistré dans `FichierRapport` (nouvelle colonne `nature` : `rapport` ou `dossier`, clé unique étendue) avec son SHA-256, idempotent, habilitation `exporter`.
+> - **Limites assumées** : la « couverture à 100 % » n'est PAS imposée à la publication : le plan compte sur la règle de L5-T03 « aucun objet actif sans exigence source », qui ne vise que les objets de configuration en base (mappings, contrôles) et pas une rubrique de modèle d'état en JSON ; ce cas est donc rendu visible dans le dossier (taux de couverture) plutôt que bloqué. La « règle appliquée » est une description lisible du mapping, des comptes ou de la formule, pas un lien vers la règle de mapping elle-même.
+
 **Contrôle.** Le dossier d'un rapport publié couvre **100 %** de ses rubriques. Une rubrique sans exigence source est impossible — la règle de L5-T03 l'interdit en amont.
 
 ---

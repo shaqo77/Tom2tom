@@ -1,0 +1,19 @@
+{
+  "dossier.annexe": "annex {valeur}",
+  "dossier.citation": "Quoted passage: “{extrait}”",
+  "dossier.couverture": "Rows covered by a requirement: {couvertes} of {total}",
+  "dossier.dependance_introuvable": "Computed rows with an unresolved dependency: {v1}",
+  "dossier.document_version": "{titre} (version {version})",
+  "dossier.exigence": "Requirement {code} (version {version})",
+  "dossier.ligne_sans_source": "- {code} {libelle} — {regle}",
+  "dossier.page": "page {valeur}",
+  "dossier.paragraphe": "§ {valeur}",
+  "dossier.periode": "Period from {du} to {au}",
+  "dossier.pied": "Compliance file — {rapport}",
+  "dossier.regle": "Rule applied: {regle}",
+  "dossier.scelle": "Report seal (SHA-256): {empreinte}",
+  "dossier.section_sans_source": "Rows WITHOUT a source requirement ({n})",
+  "dossier.source": "Source: {document}, {reperes}",
+  "dossier.titre": "Compliance file of report {rapport}",
+  "dossier.validation": "Validated by {nom} on {date}"
+}

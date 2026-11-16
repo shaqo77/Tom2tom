@@ -47,6 +47,7 @@ class FichierRapport(ModeleOrganisation):
     """
 
     rapport = models.ForeignKey(RapportPublie, on_delete=models.PROTECT, related_name="files")
+    nature = models.CharField(max_length=8, default="rapport")  # rapport | dossier (L7-T01)
     format = models.CharField(max_length=8)  # xlsx | pdf
     langue = models.CharField(max_length=8)
     nom = models.CharField(max_length=200)
@@ -58,7 +59,11 @@ class FichierRapport(ModeleOrganisation):
     class Meta:
         constraints = [
             models.UniqueConstraint(
-                fields=["rapport", "format", "langue"], name="uq_fichier_rapport_format_langue"
+                fields=["rapport", "nature", "format", "langue"],
+                name="uq_fichier_rapport_nature_format_langue",
+            ),
+            models.CheckConstraint(
+                condition=Q(nature__in=["rapport", "dossier"]), name="fichier_nature_fermee"
             ),
             models.CheckConstraint(
                 condition=Q(format__in=["xlsx", "pdf"]), name="fichier_format_ferme"

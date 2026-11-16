@@ -171,7 +171,9 @@ def exporter_rapport(*, utilisateur, rapport: RapportPublie, format: str, langue
     langue = (langue or "fr").strip().lower().replace("_", "-").split("-")[0]
     if langue not in LANGUES and langue not in LANGUES_DROITE_A_GAUCHE:
         raise ErreurMetier(CodeErreur.REGLE_INVALIDE, msg("exports.langue_inconnue", langue=langue))
-    existant = FichierRapport.objects.filter(rapport=rapport, format=format, langue=langue).first()
+    existant = FichierRapport.objects.filter(
+        rapport=rapport, nature="rapport", format=format, langue=langue
+    ).first()
     if existant is not None:
         return existant
     contenu = RENDUS[format](rapport, langue)
@@ -201,7 +203,7 @@ def exporter_rapport(*, utilisateur, rapport: RapportPublie, format: str, langue
     except IntegrityError:
         # Un export simultané du même fichier l'a créé entre-temps : on rend celui-là.
         concurrent = FichierRapport.objects.filter(
-            rapport=rapport, format=format, langue=langue
+            rapport=rapport, nature="rapport", format=format, langue=langue
         ).first()
         if concurrent is None:
             raise
