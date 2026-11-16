@@ -30,7 +30,11 @@ from niveau1_socle.budget.engagements import creer_engagement
 from niveau1_socle.budget.models import Engagement
 from niveau1_socle.budget.services import ajouter_ligne, approuver_version, creer_version
 from niveau1_socle.comptabilite.models import Ecriture, PieceJustificative
-from niveau1_socle.decaissements.services import preparer_demande, soumettre_demande
+from niveau1_socle.decaissements.services import (
+    accepter_demande,
+    preparer_demande,
+    soumettre_demande,
+)
 from niveau1_socle.financements.cles import creer_cle, creer_version_cle
 from niveau1_socle.financements.services import (
     creer_avenant,
@@ -58,6 +62,12 @@ from niveau1_socle.reprise.models import (
     Reprise,
 )
 from niveau1_socle.reversibilite.models import ExportOrganisation
+from niveau1_socle.tresorerie.models import (
+    AppariementDemande,
+    JustificationEcart,
+    PrevisionTresorerie,
+    SoldeReleve,
+)
 from niveau2_profils.services.profils import ajouter_element, creer_profil_bailleur
 from niveau3_config.models import Echeance, Exigence, Reallocation
 from niveau4_reporting.controles.circuit import creer_circuit, decider_etape, ouvrir_demande
@@ -274,6 +284,49 @@ def _peupler(organisation, projet, profils, accord, categories):
         ecarts={b: "Justificatif manquant"},
     )
     soumettre_demande(demande, utilisateur=bruno)
+    # Trésorerie (L9-T05) : solde de relevé, appariement d'un encaissement à la demande acceptée,
+    # prévision et justification d'écart.
+    accepter_demande(demande, utilisateur=bruno)
+    (encaissement,) = importer_mouvements(
+        utilisateur=claire, compte=compte, mouvements=[_mouvement(compte, "R2", "20")]
+    )[0]
+    AppariementDemande.objects.create(
+        org_id=organisation.id,
+        mouvement=encaissement,
+        demande=demande,
+        project_id=projet.id,
+        apparie_par=amina.id,
+    )
+    SoldeReleve.objects.create(
+        org_id=organisation.id,
+        compte=compte,
+        project_id=projet.id,
+        date_solde=datetime.date(2026, 1, 31),
+        solde=D(100),
+        saisi_par=amina.id,
+    )
+    PrevisionTresorerie.objects.create(
+        org_id=organisation.id,
+        project_id=projet.id,
+        devise="DJF",
+        annee=2026,
+        mois=4,
+        revision=1,
+        encaissements=D(10),
+        decaissements=D(5),
+        etablie_par=amina.id,
+    )
+    JustificationEcart.objects.create(
+        org_id=organisation.id,
+        compte=compte,
+        project_id=projet.id,
+        date_debut=DEBUT,
+        date_fin=FIN,
+        cible="releve",
+        montant=D(-1),
+        explication="Frais",
+        saisie_par=bruno.id,
+    )
     # Profil de décaissement (créé en dernier : il changerait les demandes préparées après lui).
     creer_profil(
         organisation,

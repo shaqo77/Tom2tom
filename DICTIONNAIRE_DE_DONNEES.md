@@ -3,7 +3,7 @@
 Généré depuis les modèles (`python manage.py generer_dictionnaire`). Ne le modifiez pas
 à la main : un test échoue si ce fichier n'est plus celui que les modèles produisent.
 
-95 tables. « Isolée » : la table porte `org_id` et sa politique de
+99 tables. « Isolée » : la table porte `org_id` et sa politique de
 sécurité par ligne (RLS). Les contraintes nommées sont contrôlées par la base.
 
 ## Index
@@ -103,6 +103,10 @@ sécurité par ligne (RLS). Les contraintes nommées sont contrôlées par la ba
 - [`reprise_rapportreprise`](#reprise_rapportreprise) — reprise.RapportReprise
 - [`reprise_reprise`](#reprise_reprise) — reprise.Reprise
 - [`reversibilite_exportorganisation`](#reversibilite_exportorganisation) — reversibilite.ExportOrganisation
+- [`tresorerie_appariementdemande`](#tresorerie_appariementdemande) — tresorerie.AppariementDemande
+- [`tresorerie_justificationecart`](#tresorerie_justificationecart) — tresorerie.JustificationEcart
+- [`tresorerie_previsiontresorerie`](#tresorerie_previsiontresorerie) — tresorerie.PrevisionTresorerie
+- [`tresorerie_soldereleve`](#tresorerie_soldereleve) — tresorerie.SoldeReleve
 
 ## auth_group
 
@@ -2408,3 +2412,102 @@ Modèle `reversibilite.ExportOrganisation` — isolée par organisation.
 | `erreur` | text | non |  |  | — |
 
 Contraintes : `export_pret_complet` (verification), `export_statut_ferme` (verification)
+
+## tresorerie_appariementdemande
+
+Modèle `tresorerie.AppariementDemande` — isolée par organisation.
+
+Un encaissement du relevé apparié à une demande de retrait. Voir L9-T05.
+
+| Colonne | Type | Null | Clé | Relation | Description |
+|---|---|---|---|---|---|
+| `id` | uuid | non | PK |  | Identifiant unique (UUID) de la ligne. |
+| `created_at` | timestamp with time zone | non |  |  | Date et heure de création de la ligne. |
+| `created_by` | uuid | oui |  |  | Identifiant de l'utilisateur qui a créé la ligne. |
+| `updated_at` | timestamp with time zone | non |  |  | Date et heure de la dernière modification. |
+| `updated_by` | uuid | oui |  |  | Identifiant de l'utilisateur qui l'a modifiée en dernier. |
+| `org_id` | uuid | non |  |  | Organisation propriétaire : l'isolation des données repose dessus (RLS). |
+| `mouvement_id` | uuid | non |  | `rapprochement_mouvementreleve.id` | — |
+| `demande_id` | uuid | non |  | `decaissements_demanderetrait.id` | — |
+| `project_id` | uuid | non |  |  | Projet auquel la ligne se rattache (cloisonné par habilitation). |
+| `apparie_par` | uuid | non |  |  | — |
+| `annule_at` | timestamp with time zone | oui |  |  | — |
+| `annule_par` | uuid | oui |  |  | — |
+| `motif_annulation` | text | non |  |  | — |
+
+Contraintes : `appariement_annulation_coherente` (verification), `uq_appariement_un_mouvement_une_demande` (unicite)
+
+## tresorerie_justificationecart
+
+Modèle `tresorerie.JustificationEcart` — isolée par organisation.
+
+L'explication d'une partie de l'écart d'un état de reconstitution. Ajout seul.
+
+| Colonne | Type | Null | Clé | Relation | Description |
+|---|---|---|---|---|---|
+| `id` | uuid | non | PK |  | Identifiant unique (UUID) de la ligne. |
+| `created_at` | timestamp with time zone | non |  |  | Date et heure de création de la ligne. |
+| `created_by` | uuid | oui |  |  | Identifiant de l'utilisateur qui a créé la ligne. |
+| `updated_at` | timestamp with time zone | non |  |  | Date et heure de la dernière modification. |
+| `updated_by` | uuid | oui |  |  | Identifiant de l'utilisateur qui l'a modifiée en dernier. |
+| `org_id` | uuid | non |  |  | Organisation propriétaire : l'isolation des données repose dessus (RLS). |
+| `compte_id` | uuid | non |  | `financements_comptebancaire.id` | — |
+| `project_id` | uuid | non |  |  | Projet auquel la ligne se rattache (cloisonné par habilitation). |
+| `date_debut` | date | non |  |  | — |
+| `date_fin` | date | non |  |  | — |
+| `cible` | varchar(10) | non |  |  | — |
+| `montant` | numeric(20, 4) | non |  |  | — |
+| `explication` | text | non |  |  | — |
+| `saisie_par` | uuid | non |  |  | — |
+
+Contraintes : `justifecart_cible_fermee` (verification), `justifecart_expliquee` (verification), `justifecart_montant_non_nul` (verification), `justifecart_periode` (verification)
+
+## tresorerie_previsiontresorerie
+
+Modèle `tresorerie.PrevisionTresorerie` — isolée par organisation.
+
+Une prévision d'encaissements et de décaissements, pour un mois et un axe. Ajout seul.
+
+| Colonne | Type | Null | Clé | Relation | Description |
+|---|---|---|---|---|---|
+| `id` | uuid | non | PK |  | Identifiant unique (UUID) de la ligne. |
+| `created_at` | timestamp with time zone | non |  |  | Date et heure de création de la ligne. |
+| `created_by` | uuid | oui |  |  | Identifiant de l'utilisateur qui a créé la ligne. |
+| `updated_at` | timestamp with time zone | non |  |  | Date et heure de la dernière modification. |
+| `updated_by` | uuid | oui |  |  | Identifiant de l'utilisateur qui l'a modifiée en dernier. |
+| `org_id` | uuid | non |  |  | Organisation propriétaire : l'isolation des données repose dessus (RLS). |
+| `project_id` | uuid | non |  |  | Projet auquel la ligne se rattache (cloisonné par habilitation). |
+| `devise` | varchar(3) | non |  |  | — |
+| `annee` | smallint | non |  |  | — |
+| `mois` | smallint | non |  |  | — |
+| `axe_id` | uuid | oui |  | `referentiels_valeurdimension.id` | — |
+| `revision` | smallint | non |  |  | — |
+| `encaissements` | numeric(20, 4) | non |  |  | — |
+| `decaissements` | numeric(20, 4) | non |  |  | — |
+| `motif` | text | non |  |  | — |
+| `etablie_par` | uuid | non |  |  | — |
+
+Contraintes : `prevision_mois` (verification), `prevision_positive` (verification), `prevision_revision` (verification), `prevision_revision_motivee` (verification), `uq_prevision_revision_axe` (unicite), `uq_prevision_revision_sans_axe` (unicite)
+
+## tresorerie_soldereleve
+
+Modèle `tresorerie.SoldeReleve` — isolée par organisation.
+
+Le solde de clôture d'un jour, tel que le relevé de la banque le donne. Ajout seul.
+
+| Colonne | Type | Null | Clé | Relation | Description |
+|---|---|---|---|---|---|
+| `id` | uuid | non | PK |  | Identifiant unique (UUID) de la ligne. |
+| `created_at` | timestamp with time zone | non |  |  | Date et heure de création de la ligne. |
+| `created_by` | uuid | oui |  |  | Identifiant de l'utilisateur qui a créé la ligne. |
+| `updated_at` | timestamp with time zone | non |  |  | Date et heure de la dernière modification. |
+| `updated_by` | uuid | oui |  |  | Identifiant de l'utilisateur qui l'a modifiée en dernier. |
+| `org_id` | uuid | non |  |  | Organisation propriétaire : l'isolation des données repose dessus (RLS). |
+| `compte_id` | uuid | non |  | `financements_comptebancaire.id` | — |
+| `project_id` | uuid | non |  |  | Projet auquel la ligne se rattache (cloisonné par habilitation). |
+| `date_solde` | date | non |  |  | — |
+| `solde` | numeric(20, 4) | non |  |  | — |
+| `reference` | varchar(100) | non |  |  | — |
+| `saisi_par` | uuid | non |  |  | — |
+
+Contraintes : `uq_soldereleve_jour` (unicite)

@@ -224,5 +224,7 @@
   "enum.reversibilite.statut_export.demande": "Requested",
   "enum.reversibilite.statut_export.echec": "Failed",
   "enum.reversibilite.statut_export.en_cours": "Being produced",
-  "enum.reversibilite.statut_export.pret": "Ready"
+  "enum.reversibilite.statut_export.pret": "Ready",
+  "enum.tresorerie.cible_ecart.comptable": "Gap with the general ledger",
+  "enum.tresorerie.cible_ecart.releve": "Gap with the statement balance"
 }

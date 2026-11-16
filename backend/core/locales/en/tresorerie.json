@@ -1,0 +1,14 @@
+{
+  "tresorerie.annulation_motivee": "Cancelling a match requires a reason",
+  "tresorerie.appariement_deja_annule": "This match is already cancelled",
+  "tresorerie.appariement_refuse": "Matching refused for request {demande}: {detail}",
+  "tresorerie.cible_inconnue": "Unknown gap target: {cible}",
+  "tresorerie.compte_non_designe": "Account {code} is not a designated account: no replenishment statement",
+  "tresorerie.explication_obligatoire": "A gap justification requires an explanation",
+  "tresorerie.habilitation_requise": "The “{operation}” permission is required on this project",
+  "tresorerie.montant_invalide": "Invalid amount for {champ}",
+  "tresorerie.mouvement_deja_apparie": "Movement {reference} is already matched to a request",
+  "tresorerie.periode_invalide": "Invalid period",
+  "tresorerie.revision_motivee": "Revising a forecast requires a reason",
+  "tresorerie.solde_existe": "A statement balance already exists for {date}"
+}

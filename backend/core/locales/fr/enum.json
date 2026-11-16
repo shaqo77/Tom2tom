@@ -224,5 +224,7 @@
   "enum.reversibilite.statut_export.demande": "Demandé",
   "enum.reversibilite.statut_export.echec": "En échec",
   "enum.reversibilite.statut_export.en_cours": "En cours de production",
-  "enum.reversibilite.statut_export.pret": "Prêt"
+  "enum.reversibilite.statut_export.pret": "Prêt",
+  "enum.tresorerie.cible_ecart.comptable": "Écart avec le grand livre",
+  "enum.tresorerie.cible_ecart.releve": "Écart avec le solde du relevé"
 }
