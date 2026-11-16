@@ -189,5 +189,11 @@
   "enum.referentiels.type_taux.bailleur": "Donor rate",
   "enum.referentiels.type_taux.budget": "Budget rate",
   "enum.referentiels.type_taux.cloture": "Closing rate",
-  "enum.referentiels.type_taux.officiel": "Official rate"
+  "enum.referentiels.type_taux.officiel": "Official rate",
+  "enum.reprise.mode_reprise.historique": "Entry history",
+  "enum.reprise.mode_reprise.ouverture": "Opening balances",
+  "enum.reprise.statut_reprise.acceptee": "Accepted and signed",
+  "enum.reprise.statut_reprise.controlee": "Checked, zero difference",
+  "enum.reprise.statut_reprise.en_cours": "In progress",
+  "enum.reprise.statut_reprise.refusee": "Refused (non-zero difference)"
 }

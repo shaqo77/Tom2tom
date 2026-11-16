@@ -189,5 +189,11 @@
   "enum.referentiels.type_taux.bailleur": "Taux du bailleur",
   "enum.referentiels.type_taux.budget": "Taux budgétaire",
   "enum.referentiels.type_taux.cloture": "Taux de clôture",
-  "enum.referentiels.type_taux.officiel": "Taux officiel"
+  "enum.referentiels.type_taux.officiel": "Taux officiel",
+  "enum.reprise.mode_reprise.historique": "Historique des écritures",
+  "enum.reprise.mode_reprise.ouverture": "Soldes d'ouverture",
+  "enum.reprise.statut_reprise.acceptee": "Acceptée et signée",
+  "enum.reprise.statut_reprise.controlee": "Contrôlée à écart nul",
+  "enum.reprise.statut_reprise.en_cours": "En cours",
+  "enum.reprise.statut_reprise.refusee": "Refusée (écart non nul)"
 }

@@ -659,6 +659,14 @@ Depuis une cellule : rubrique → prédicat de sélection → lignes d'écriture
 
 La voie est ouverte : les progiciels en place exportent vers Excel, et leurs propres intégrateurs migrent les historiques par fichiers Excel pré-formatés.
 
+> **Réalisation de L8-T01 et L8-T02** (`backend/niveau1_socle/reprise/{models,services}.py`, migrations `reprise/0001-0002`, `tests/test_reprise_bd.py`, 37 tests dont un de 50 000 écritures lancé avec `RUN_LENT=1`, 12 mutations vérifiées). T01 et T02 partagent le même code : l'idempotence est dans l'import lui-même, pas ajoutée après.
+> - **Chaîne** : `ouvrir_reprise` → `importer_balance_origine` (la balance du progiciel quitté, **équilibrée** sinon refusée) → soit `generer_soldes_ouverture` (une écriture d'ouverture à la date de bascule), soit `importer_historique` (les écritures antérieures avec accord, axe et tiers) → `controler_reprise` (rapproche balance d'origine et balance reprise **par compte, par accord, par axe**) → `signer_rapport`. Les deux modes s'excluent dans une même reprise. Une correspondance de colonnes (`correspondance={champ: en-tête}`) accueille les exports aux en-têtes différents.
+> - **La règle** : acceptée seulement à **écart nul sur la balance générale (par compte) ET sur le cumul par accord** ; l'écart par axe est listé mais ne bloque pas. Un écart non nul est listé ligne à ligne, la reprise est `refusée`, et le rapport ne se signe pas (service ET contrainte de base). La signature est nominative, d'une personne habilitée `valider` **autre que celle qui a ouvert la reprise**, sur le DERNIER rapport ; elle fait passer la reprise à `acceptée`, définitive. `reprise_acceptee(projet)` dit si la mise en service est permise.
+> - **Idempotence (T02)** : chaque pièce a une clé dérivée de la source (journal, numéro de pièce, date) et une empreinte de contenu. Rejouer le même fichier ne crée rien ; un fichier complété n'ajoute que les pièces nouvelles ; une pièce de même clé au **contenu différent** est un **conflit** qui arrête tout l'import, sans écrasement ni doublon. Trois imports du même fichier donnent 3 écritures, 6 lignes, 3 pièces reprises, sans trou de numérotation.
+> - **Tout ou rien** : références inconnues (compte, tiers, accord, axe, journal), compte non imputable, pièce déséquilibrée, date après la bascule, période absente ou non ouverte, montant illisible : l'import entier est rejeté, rien n'est écrit, chaque cause est nommée avec sa ligne.
+> - **Volume mesuré** : 50 000 écritures (100 000 lignes) importées, contrôlées à écart nul et signées en **154 s** au total sur la base locale. Une première version dépassait dix minutes : sur une base neuve, les tables n'ont pas de statistiques et les vérifications de clés étrangères font des parcours séquentiels, d'où un coût quadratique. `ANALYZE` après chaque lot rend le temps linéaire.
+> - **Limites assumées** : (1) « un export réel » n'existe pas dans le dépôt : le gros jeu est GÉNÉRÉ, avec une balance d'origine calculée à part ; (2) `ANALYZE` n'agit que pour le propriétaire des tables : avec le rôle applicatif de production, PostgreSQL l'ignore et l'autovacuum prend le relais, donc le temps réel dépend de lui : un `ANALYZE` par le rôle propriétaire avant une grosse reprise est recommandé ; (3) l'import se fait dans une seule transaction (tout ou rien), donc long et verrouillant pour 50 000 pièces ; (4) l'assistant de correspondance n'est pas encore SAUVEGARDÉ pour être rejoué (la correspondance se passe en paramètre) ; (5) seul le plan comptable avait un import de référentiel (L2-T07) : tiers, journaux, axes, accords et catégories doivent exister avant la reprise ; (6) les périodes des années antérieures doivent exister et rester ouvertes pendant l'import (leur clôture est une opération à part) ; (7) la mise en service n'est pas encore BLOQUÉE par `reprise_acceptee` dans les autres modules.
+
 **Contrôle.** Migrer un jeu de 50 000 écritures issu d'un export réel : écart nul, rapport signé produit.
 
 ---
@@ -666,6 +674,8 @@ La voie est ouverte : les progiciels en place exportent vers Excel, et leurs pro
 ### L8-T02 — L'import idempotent
 
 Chaque ligne importée porte une **clé d'idempotence** dérivée de la source. Rejouer un import ne crée **jamais** de doublon.
+
+> **Réalisation de L8-T02** : voir la note de L8-T01, qui porte le code et les tests des deux tâches (`test_trois_imports_du_meme_fichier_donnent_le_meme_nombre_d_ecritures`).
 
 **Contrôle.** Lancer trois fois le même import : le nombre d'écritures est identique après chaque passage.
 

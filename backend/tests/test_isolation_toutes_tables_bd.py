@@ -37,6 +37,12 @@ from niveau1_socle.financements.services import (
 )
 from niveau1_socle.rapprochement.services import importer_mouvements, rapprocher
 from niveau1_socle.referentiels.models import Tiers
+from niveau1_socle.reprise.models import (
+    LigneBalanceOrigine,
+    PieceReprise,
+    RapportReprise,
+    Reprise,
+)
 from niveau2_profils.services.profils import ajouter_element, creer_profil_bailleur
 from niveau3_config.models import Echeance, Exigence, Reallocation
 from niveau4_reporting.controles.circuit import creer_circuit, decider_etape, ouvrir_demande
@@ -387,6 +393,34 @@ def _peupler(organisation, projet, profils, accord, categories):
         sha256=b"\x04" * 32,
         taille=1,
         ajoutee_par=dora.id,
+    )
+    reprise = Reprise.objects.create(  # une reprise de données et son rapport (L8-T01)
+        org_id=organisation.id,
+        project_id=projet.id,
+        nom="Bascule",
+        date_bascule=datetime.date(2026, 3, 31),
+        devise="DJF",
+        cree_par=dora.id,
+    )
+    LigneBalanceOrigine.objects.create(
+        org_id=organisation.id, reprise=reprise, compte="6011", debit=D(1)
+    )
+    PieceReprise.objects.create(
+        org_id=organisation.id,
+        reprise=reprise,
+        cle="a" * 64,
+        contenu_sha256=b"\x05" * 32,
+        ecriture_id=uuid.uuid4(),
+    )
+    RapportReprise.objects.create(
+        org_id=organisation.id,
+        reprise=reprise,
+        accepte=True,
+        ecart_general=D(0),
+        ecart_accords=D(0),
+        nombre_ecritures=0,
+        ecarts=[],
+        contenu_sha256=b"\x06" * 32,
     )
     # Justification, dérogation et circuit de validation (L6-T02).
     justifier(utilisateur=amina, evaluation=evaluation, texte="Pièces attendues du fournisseur")
