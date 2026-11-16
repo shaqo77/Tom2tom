@@ -741,6 +741,14 @@ Généré depuis les modèles : table, colonne, type, description, relations. **
 
 Lignes prévisionnelles, méthodes, seuils, calendrier, états d'avancement.
 
+> **Réalisation de L9-T01** (`backend/niveau1_socle/marches/` : `models.py`, `plan.py`, migrations `0001`/`0002` ; `tests/test_plan_passation_bd.py`, 19 tests ; catalogues `passation.json` fr/en). Quatre tables isolées par RLS : `MethodePassation` (versionnée, seuils `[seuil_min, seuil_max[` par devise, exigence d'avis de non-objection), `PlanPassation`, `LignePassation`, `EtapeAvancement` (ajout seul).
+> - **Aucun seuil par défaut** : chaque projet pose les siens (habilitation `parametrer`). Une nouvelle version ferme la précédente à sa date d'effet ; la base refuse tout chevauchement (EXCLUDE) et toute modification du contenu d'une version.
+> - **Une ligne ne se prévoit qu'avec une méthode applicable** à son montant, dans la même devise, à la date de lancement prévue ; sinon refus, avec la plage citée. L'exigence d'avis est copiée de la méthode au moment de la saisie (instantané) : une nouvelle version de la méthode ne change pas les lignes déjà prévues.
+> - **Avancement** prévu → lancé → attribué → signé, ou annulé (motivé) avant la signature ; une étape ne se saute pas, sa date ne précède pas celle de l'étape d'avant. Signée ou annulée, la ligne est définitive. La base le garantit par trigger (statut qui ne recule pas, montant, méthode, devise, référence et exigence d'avis figés dès le lancement, aucune suppression).
+> - **Suivi** : `lignes_en_retard` (étape attendue, jours de retard, échéance du jour non comptée) et `synthese` (par statut et par méthode, jamais en mélangeant les devises).
+> - **Mutations vérifiées** (7, toutes détectées) : seuil maximal exclu, seuil minimal, saut d'étape, date antérieure, modification après lancement, jour de retard, relecture de l'avis. Deux ont d'abord survécu (bornes de seuil, jour d'échéance) : tests de bornes ajoutés.
+> - **Limites assumées** : l'engagement n'est pas encore relié au marché (L9-T02) ; une ligne n'est pas encore liée à un contrat (L9-T03) ; l'étape « prévu » est datée du jour de saisie et n'entre pas dans l'ordre des dates ; pas d'API HTTP ni de tableau de bord du plan.
+
 ### L9-T02 — Avis de non-objection
 
 Demande, pièces, statut, date de réception. **Blocage de l'engagement tant que l'avis requis n'est pas obtenu.**

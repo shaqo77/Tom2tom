@@ -35,6 +35,12 @@ from niveau1_socle.financements.services import (
     creer_avenant,
     creer_compte_bancaire,
 )
+from niveau1_socle.marches.models import (
+    EtapeAvancement,
+    LignePassation,
+    MethodePassation,
+    PlanPassation,
+)
 from niveau1_socle.rapprochement.services import importer_mouvements, rapprocher
 from niveau1_socle.referentiels.models import Tiers
 from niveau1_socle.reprise.models import (
@@ -425,6 +431,47 @@ def _peupler(organisation, projet, profils, accord, categories):
     )
     ExportOrganisation.objects.create(  # une demande d'export complet (L8-T03)
         org_id=organisation.id, demandeur_id=dora.id
+    )
+    # Plan de passation : méthode, plan, ligne et étape d'avancement (L9-T01).
+    methode = MethodePassation.objects.create(
+        org_id=organisation.id,
+        project_id=projet.id,
+        code="AON",
+        version=1,
+        label={"fr": "AON", "en": "NCB"},
+        devise="USD",
+        seuil_min=D(0),
+        valid_from=datetime.date(2026, 1, 1),
+    )
+    plan_passation = PlanPassation.objects.create(
+        org_id=organisation.id,
+        project_id=projet.id,
+        code="PPM",
+        nom="Plan",
+        cree_par=dora.id,
+        date_debut=datetime.date(2026, 1, 1),
+        date_fin=datetime.date(2026, 12, 31),
+    )
+    ligne_passation = LignePassation.objects.create(
+        org_id=organisation.id,
+        plan=plan_passation,
+        project_id=projet.id,
+        reference="M-001",
+        libelle="Véhicules",
+        montant_prevu=D(1000),
+        devise="USD",
+        methode=methode,
+        non_objection_requise=False,
+        date_lancement_prevue=datetime.date(2026, 2, 1),
+        date_attribution_prevue=datetime.date(2026, 3, 1),
+        date_signature_prevue=datetime.date(2026, 4, 1),
+    )
+    EtapeAvancement.objects.create(
+        org_id=organisation.id,
+        ligne=ligne_passation,
+        statut="prevu",
+        date_effet=datetime.date(2026, 1, 2),
+        par=dora.id,
     )
     # Justification, dérogation et circuit de validation (L6-T02).
     justifier(utilisateur=amina, evaluation=evaluation, texte="Pièces attendues du fournisseur")

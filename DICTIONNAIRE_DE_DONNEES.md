@@ -3,7 +3,7 @@
 Généré depuis les modèles (`python manage.py generer_dictionnaire`). Ne le modifiez pas
 à la main : un test échoue si ce fichier n'est plus celui que les modèles produisent.
 
-84 tables. « Isolée » : la table porte `org_id` et sa politique de
+88 tables. « Isolée » : la table porte `org_id` et sa politique de
 sécurité par ligne (RLS). Les contraintes nommées sont contrôlées par la base.
 
 ## Index
@@ -58,6 +58,10 @@ sécurité par ligne (RLS). Les contraintes nommées sont contrôlées par la ba
 - [`habilitations_role`](#habilitations_role) — habilitations.Role
 - [`mapping_rule`](#mapping_rule) — mapping.RegleMapping
 - [`mapping_table`](#mapping_table) — mapping.TableMapping
+- [`marches_etapeavancement`](#marches_etapeavancement) — marches.EtapeAvancement
+- [`marches_lignepassation`](#marches_lignepassation) — marches.LignePassation
+- [`marches_methodepassation`](#marches_methodepassation) — marches.MethodePassation
+- [`marches_planpassation`](#marches_planpassation) — marches.PlanPassation
 - [`niveau2_profils_elementprofil`](#niveau2_profils_elementprofil) — niveau2_profils.ElementProfil
 - [`niveau2_profils_profilbailleur`](#niveau2_profils_profilbailleur) — niveau2_profils.ProfilBailleur
 - [`niveau3_config_documentreference`](#niveau3_config_documentreference) — niveau3_config.DocumentReference
@@ -1273,6 +1277,104 @@ Une version d'une nomenclature bailleur pour un projet.
 | `validated_at` | timestamp with time zone | oui |  |  | — |
 
 Contraintes : `mapping_dates_coherentes` (verification), `mapping_validation_obligatoire` (verification), `uq_mapping_version` (unicite)
+
+## marches_etapeavancement
+
+Modèle `marches.EtapeAvancement` — isolée par organisation.
+
+Une étape franchie par une ligne, avec sa date et son auteur. En ajout seul.
+
+| Colonne | Type | Null | Clé | Relation | Description |
+|---|---|---|---|---|---|
+| `id` | uuid | non | PK |  | Identifiant unique (UUID) de la ligne. |
+| `created_at` | timestamp with time zone | non |  |  | Date et heure de création de la ligne. |
+| `created_by` | uuid | oui |  |  | Identifiant de l'utilisateur qui a créé la ligne. |
+| `updated_at` | timestamp with time zone | non |  |  | Date et heure de la dernière modification. |
+| `updated_by` | uuid | oui |  |  | Identifiant de l'utilisateur qui l'a modifiée en dernier. |
+| `org_id` | uuid | non |  |  | Organisation propriétaire : l'isolation des données repose dessus (RLS). |
+| `ligne_id` | uuid | non |  | `marches_lignepassation.id` | — |
+| `statut` | varchar(9) | non |  |  | — |
+| `date_effet` | date | non |  |  | — |
+| `note` | text | non |  |  | — |
+| `par` | uuid | non |  |  | — |
+
+Contraintes : `etape_annulation_motivee` (verification), `etape_statut_ferme` (verification), `uq_etape_une_fois` (unicite)
+
+## marches_lignepassation
+
+Modèle `marches.LignePassation` — isolée par organisation.
+
+| Colonne | Type | Null | Clé | Relation | Description |
+|---|---|---|---|---|---|
+| `id` | uuid | non | PK |  | Identifiant unique (UUID) de la ligne. |
+| `created_at` | timestamp with time zone | non |  |  | Date et heure de création de la ligne. |
+| `created_by` | uuid | oui |  |  | Identifiant de l'utilisateur qui a créé la ligne. |
+| `updated_at` | timestamp with time zone | non |  |  | Date et heure de la dernière modification. |
+| `updated_by` | uuid | oui |  |  | Identifiant de l'utilisateur qui l'a modifiée en dernier. |
+| `org_id` | uuid | non |  |  | Organisation propriétaire : l'isolation des données repose dessus (RLS). |
+| `plan_id` | uuid | non |  | `marches_planpassation.id` | — |
+| `project_id` | uuid | non |  |  | Projet auquel la ligne se rattache (cloisonné par habilitation). |
+| `reference` | varchar(40) | non |  |  | — |
+| `libelle` | varchar(255) | non |  |  | — |
+| `montant_prevu` | numeric(20, 4) | non |  |  | — |
+| `devise` | varchar(3) | non |  |  | — |
+| `methode_id` | uuid | non |  | `marches_methodepassation.id` | — |
+| `non_objection_requise` | boolean | non |  |  | — |
+| `categorie_id` | uuid | oui |  |  | — |
+| `date_lancement_prevue` | date | non |  |  | — |
+| `date_attribution_prevue` | date | non |  |  | — |
+| `date_signature_prevue` | date | non |  |  | — |
+| `statut` | varchar(9) | non |  |  | — |
+
+Contraintes : `ligne_calendrier_ordonne` (verification), `ligne_montant_positif` (verification), `lignepassation_statut_ferme` (verification), `uq_lignepassation_reference` (unicite)
+
+## marches_methodepassation
+
+Modèle `marches.MethodePassation` — isolée par organisation.
+
+Une méthode de passation, pour une plage de montants `[seuil_min, seuil_max[`, versionnée.
+
+| Colonne | Type | Null | Clé | Relation | Description |
+|---|---|---|---|---|---|
+| `id` | uuid | non | PK |  | Identifiant unique (UUID) de la ligne. |
+| `created_at` | timestamp with time zone | non |  |  | Date et heure de création de la ligne. |
+| `created_by` | uuid | oui |  |  | Identifiant de l'utilisateur qui a créé la ligne. |
+| `updated_at` | timestamp with time zone | non |  |  | Date et heure de la dernière modification. |
+| `updated_by` | uuid | oui |  |  | Identifiant de l'utilisateur qui l'a modifiée en dernier. |
+| `org_id` | uuid | non |  |  | Organisation propriétaire : l'isolation des données repose dessus (RLS). |
+| `project_id` | uuid | non |  |  | Projet auquel la ligne se rattache (cloisonné par habilitation). |
+| `code` | varchar(32) | non |  |  | — |
+| `version` | integer | non |  |  | Numéro de version : une configuration utilisée ne se modifie pas, on en crée une. |
+| `label` | jsonb | non |  |  | Libellé multilingue : objet JSON {"fr": …, "en": …}. |
+| `devise` | varchar(3) | non |  |  | — |
+| `seuil_min` | numeric(20, 4) | non |  |  | — |
+| `seuil_max` | numeric(20, 4) | oui |  |  | — |
+| `exige_non_objection` | boolean | non |  |  | — |
+| `valid_from` | date | non |  |  | Début de validité, inclus (intervalle semi-ouvert [valid_from, valid_to[). |
+| `valid_to` | date | oui |  |  | Fin de validité, EXCLUE ; vide si la ligne est ouverte. |
+
+Contraintes : `methode_plage_non_vide` (verification), `methode_seuil_min_positif` (verification), `methode_validite_coherente` (verification), `uq_methodepassation_version` (unicite)
+
+## marches_planpassation
+
+Modèle `marches.PlanPassation` — isolée par organisation.
+
+| Colonne | Type | Null | Clé | Relation | Description |
+|---|---|---|---|---|---|
+| `id` | uuid | non | PK |  | Identifiant unique (UUID) de la ligne. |
+| `created_at` | timestamp with time zone | non |  |  | Date et heure de création de la ligne. |
+| `created_by` | uuid | oui |  |  | Identifiant de l'utilisateur qui a créé la ligne. |
+| `updated_at` | timestamp with time zone | non |  |  | Date et heure de la dernière modification. |
+| `updated_by` | uuid | oui |  |  | Identifiant de l'utilisateur qui l'a modifiée en dernier. |
+| `org_id` | uuid | non |  |  | Organisation propriétaire : l'isolation des données repose dessus (RLS). |
+| `project_id` | uuid | non |  |  | Projet auquel la ligne se rattache (cloisonné par habilitation). |
+| `code` | varchar(40) | non |  |  | — |
+| `nom` | varchar(200) | non |  |  | — |
+| `date_debut` | date | non |  |  | — |
+| `date_fin` | date | non |  |  | — |
+| `cree_par` | uuid | non |  |  | — |
+
+Contraintes : `plan_periode_coherente` (verification), `uq_planpassation_code` (unicite)
 
 ## niveau2_profils_elementprofil
 

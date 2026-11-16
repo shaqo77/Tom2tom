@@ -1,0 +1,23 @@
+{
+  "passation.annulation_motivee": "A cancellation requires a reason",
+  "passation.calendrier_desordonne": "The schedule must satisfy launch ≤ award ≤ signature",
+  "passation.code_obligatoire": "Code, reference, name and label are required",
+  "passation.date_anterieure": "The step date cannot precede the previous step ({date})",
+  "passation.devise_differente": "The method is in {methode}, the line in {ligne}: currencies are never mixed",
+  "passation.devise_inconnue": "Unknown currency: {devise}",
+  "passation.etape_non_suivante": "Cannot go from “{actuel}” to “{demande}”: a step cannot be skipped",
+  "passation.habilitation_requise": "The “{operation}” permission is required on this project",
+  "passation.hors_du_plan": "Planned dates must stay within the plan period ({debut} to {fin})",
+  "passation.libelle_toutes_langues": "The method label must exist in every language",
+  "passation.ligne_definitive": "This line is “{statut}”: it no longer changes",
+  "passation.ligne_lancee": "This line is “{statut}”: amount and method are frozen once launched",
+  "passation.methode_inconnue": "No method “{code}” is in force on {date}",
+  "passation.methode_non_applicable": "Method {code} does not apply to {montant} {devise}: allowed range {plage}",
+  "passation.montant_invalide": "Invalid amount for {champ}: a strictly positive decimal is expected",
+  "passation.motif_obligatoire": "A reason is required to reschedule",
+  "passation.periode_vide": "The start date cannot be after the end date",
+  "passation.plage_invalide": "Invalid range: minimum threshold ≥ 0 and maximum threshold > minimum",
+  "passation.plan_existe": "A plan “{code}” already exists for this project",
+  "passation.reference_existe": "Reference “{reference}” already exists",
+  "passation.version_posterieure": "The new version must start after the version in force"
+}

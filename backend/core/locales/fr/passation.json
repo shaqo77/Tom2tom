@@ -1,0 +1,23 @@
+{
+  "passation.annulation_motivee": "Une annulation exige un motif",
+  "passation.calendrier_desordonne": "Le calendrier doit respecter lancement ≤ attribution ≤ signature",
+  "passation.code_obligatoire": "Le code, la référence, le nom et le libellé sont obligatoires",
+  "passation.date_anterieure": "La date de l'étape ne peut précéder celle de l'étape précédente ({date})",
+  "passation.devise_differente": "La méthode est en {methode}, la ligne en {ligne} : les devises ne se mélangent pas",
+  "passation.devise_inconnue": "Devise inconnue : {devise}",
+  "passation.etape_non_suivante": "Impossible de passer de « {actuel} » à « {demande} » : une étape ne se saute pas",
+  "passation.habilitation_requise": "L'habilitation « {operation} » est requise sur ce projet",
+  "passation.hors_du_plan": "Les dates prévues doivent rester dans la période du plan ({debut} à {fin})",
+  "passation.libelle_toutes_langues": "Le libellé de la méthode doit exister dans toutes les langues",
+  "passation.ligne_definitive": "Cette ligne est « {statut} » : elle ne change plus",
+  "passation.ligne_lancee": "Cette ligne est « {statut} » : montant et méthode ne se changent plus après le lancement",
+  "passation.methode_inconnue": "Aucune méthode « {code} » n'est en vigueur au {date}",
+  "passation.methode_non_applicable": "La méthode {code} ne s'applique pas à {montant} {devise} : plage admise {plage}",
+  "passation.montant_invalide": "Montant invalide pour {champ} : un nombre décimal strictement positif est attendu",
+  "passation.motif_obligatoire": "Un motif est obligatoire pour replanifier",
+  "passation.periode_vide": "La date de début ne peut suivre la date de fin",
+  "passation.plage_invalide": "Plage invalide : seuil minimal ≥ 0 et seuil maximal > seuil minimal",
+  "passation.plan_existe": "Un plan « {code} » existe déjà pour ce projet",
+  "passation.reference_existe": "La référence « {reference} » existe déjà",
+  "passation.version_posterieure": "La nouvelle version doit commencer après la version en vigueur"
+}
