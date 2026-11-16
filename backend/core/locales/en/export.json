@@ -1,0 +1,6 @@
+{
+  "export.duree_limitee": "An export link lasts from 1 minute to 24 hours",
+  "export.habilitation_requise": "The full export requires the “exporter” permission on every project of the organisation",
+  "export.lien_invalide": "Invalid or expired export link",
+  "export.pas_pret": "This export is not ready"
+}

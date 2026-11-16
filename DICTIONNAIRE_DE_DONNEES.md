@@ -3,7 +3,7 @@
 Généré depuis les modèles (`python manage.py generer_dictionnaire`). Ne le modifiez pas
 à la main : un test échoue si ce fichier n'est plus celui que les modèles produisent.
 
-83 tables. « Isolée » : la table porte `org_id` et sa politique de
+84 tables. « Isolée » : la table porte `org_id` et sa politique de
 sécurité par ligne (RLS). Les contraintes nommées sont contrôlées par la base.
 
 ## Index
@@ -91,6 +91,7 @@ sécurité par ligne (RLS). Les contraintes nommées sont contrôlées par la ba
 - [`reprise_piecereprise`](#reprise_piecereprise) — reprise.PieceReprise
 - [`reprise_rapportreprise`](#reprise_rapportreprise) — reprise.RapportReprise
 - [`reprise_reprise`](#reprise_reprise) — reprise.Reprise
+- [`reversibilite_exportorganisation`](#reversibilite_exportorganisation) — reversibilite.ExportOrganisation
 
 ## auth_group
 
@@ -2085,3 +2086,26 @@ Modèle `reprise.Reprise` — isolée par organisation.
 | `cree_par` | uuid | non |  |  | — |
 
 Contraintes : `reprise_mode_ferme` (verification), `reprise_statut_ferme` (verification)
+
+## reversibilite_exportorganisation
+
+Modèle `reversibilite.ExportOrganisation` — isolée par organisation.
+
+| Colonne | Type | Null | Clé | Relation | Description |
+|---|---|---|---|---|---|
+| `id` | uuid | non | PK |  | Identifiant unique (UUID) de la ligne. |
+| `created_at` | timestamp with time zone | non |  |  | Date et heure de création de la ligne. |
+| `created_by` | uuid | oui |  |  | Identifiant de l'utilisateur qui a créé la ligne. |
+| `updated_at` | timestamp with time zone | non |  |  | Date et heure de la dernière modification. |
+| `updated_by` | uuid | oui |  |  | Identifiant de l'utilisateur qui l'a modifiée en dernier. |
+| `org_id` | uuid | non |  |  | Organisation propriétaire : l'isolation des données repose dessus (RLS). |
+| `demandeur_id` | uuid | non |  |  | — |
+| `statut` | varchar(9) | non |  |  | — |
+| `produit_le` | timestamp with time zone | oui |  |  | — |
+| `file_ref` | varchar(512) | non |  |  | — |
+| `sha256` | varchar(64) | non |  |  | Empreinte SHA-256 du contenu : preuve d'intégrité. |
+| `taille` | bigint | oui |  |  | — |
+| `nombre_tables` | integer | oui |  |  | — |
+| `erreur` | text | non |  |  | — |
+
+Contraintes : `export_pret_complet` (verification), `export_statut_ferme` (verification)

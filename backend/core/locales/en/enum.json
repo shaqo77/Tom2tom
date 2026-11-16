@@ -195,5 +195,9 @@
   "enum.reprise.statut_reprise.acceptee": "Accepted and signed",
   "enum.reprise.statut_reprise.controlee": "Checked, zero difference",
   "enum.reprise.statut_reprise.en_cours": "In progress",
-  "enum.reprise.statut_reprise.refusee": "Refused (non-zero difference)"
+  "enum.reprise.statut_reprise.refusee": "Refused (non-zero difference)",
+  "enum.reversibilite.statut_export.demande": "Requested",
+  "enum.reversibilite.statut_export.echec": "Failed",
+  "enum.reversibilite.statut_export.en_cours": "Being produced",
+  "enum.reversibilite.statut_export.pret": "Ready"
 }

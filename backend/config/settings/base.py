@@ -39,6 +39,7 @@ INSTALLED_APPS = [
     "niveau1_socle.avances",
     "niveau1_socle.rapprochement",
     "niveau1_socle.reprise",
+    "niveau1_socle.reversibilite",
     "niveau2_profils",
     "niveau3_config",
     "niveau4_reporting.mapping",

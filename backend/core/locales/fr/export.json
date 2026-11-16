@@ -1,0 +1,6 @@
+{
+  "export.duree_limitee": "Un lien d'export dure de 1 minute à 24 heures",
+  "export.habilitation_requise": "L'export complet exige l'habilitation « exporter » sur tous les projets de l'organisation",
+  "export.lien_invalide": "Lien d'export invalide, expiré ou déjà révoqué",
+  "export.pas_pret": "Cet export n'est pas prêt"
+}

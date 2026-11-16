@@ -1,0 +1,5 @@
+{
+  "restauration.fichier_altere": "The archive file “{nom}” does not match its manifest fingerprint",
+  "restauration.instance_non_vierge": "Organisation {organisation} already exists in this instance: restoring requires a blank instance for it",
+  "restauration.lignes_differentes": "Table {table}: {obtenu} row(s) restored, {attendu} expected"
+}

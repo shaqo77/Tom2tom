@@ -195,5 +195,9 @@
   "enum.reprise.statut_reprise.acceptee": "Acceptée et signée",
   "enum.reprise.statut_reprise.controlee": "Contrôlée à écart nul",
   "enum.reprise.statut_reprise.en_cours": "En cours",
-  "enum.reprise.statut_reprise.refusee": "Refusée (écart non nul)"
+  "enum.reprise.statut_reprise.refusee": "Refusée (écart non nul)",
+  "enum.reversibilite.statut_export.demande": "Demandé",
+  "enum.reversibilite.statut_export.echec": "En échec",
+  "enum.reversibilite.statut_export.en_cours": "En cours de production",
+  "enum.reversibilite.statut_export.pret": "Prêt"
 }

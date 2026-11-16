@@ -43,6 +43,7 @@ from niveau1_socle.reprise.models import (
     RapportReprise,
     Reprise,
 )
+from niveau1_socle.reversibilite.models import ExportOrganisation
 from niveau2_profils.services.profils import ajouter_element, creer_profil_bailleur
 from niveau3_config.models import Echeance, Exigence, Reallocation
 from niveau4_reporting.controles.circuit import creer_circuit, decider_etape, ouvrir_demande
@@ -421,6 +422,9 @@ def _peupler(organisation, projet, profils, accord, categories):
         nombre_ecritures=0,
         ecarts=[],
         contenu_sha256=b"\x06" * 32,
+    )
+    ExportOrganisation.objects.create(  # une demande d'export complet (L8-T03)
+        org_id=organisation.id, demandeur_id=dora.id
     )
     # Justification, dérogation et circuit de validation (L6-T02).
     justifier(utilisateur=amina, evaluation=evaluation, texte="Pièces attendues du fournisseur")
