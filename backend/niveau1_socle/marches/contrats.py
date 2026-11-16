@@ -8,15 +8,17 @@ un horizon que l'appelant choisit (aucun délai n'est supposé).
 
 import datetime
 from dataclasses import dataclass
-from decimal import Decimal, InvalidOperation
+from decimal import Decimal
 
 from django.db import IntegrityError, transaction
-from rest_framework.exceptions import PermissionDenied
+from django.db.models import DecimalField, F, OuterRef, Subquery, Sum, Value
+from django.db.models.functions import Coalesce
 
 from core.audit import journaliser
 from core.erreurs import CodeErreur, ErreurMetier
 from core.i18n import msg
-from niveau1_socle.habilitations.permissions import est_habilite
+from core.metier import decimal as nombre_decimal
+from core.metier import habilite, refuser, traduire_integrite
 from niveau1_socle.referentiels.models import Tiers
 
 from .avis import avis_manquants
@@ -24,33 +26,18 @@ from .models import (
     AvenantContrat,
     AvisNonObjection,
     Contrat,
+    Decompte,
     Garantie,
     LignePassation,
     ObjetAvis,
+    Paiement,
     StatutAvis,
     StatutGarantie,
     StatutLigne,
     TypeGarantie,
 )
 
-
-def _habilite(utilisateur, operation: str, project_id) -> None:
-    if not est_habilite(utilisateur, operation, project_id):
-        raise PermissionDenied(msg("passation.habilitation_requise", operation=operation))
-
-
-def _refuser(cle: str, **params):
-    raise ErreurMetier(CodeErreur.REGLE_INVALIDE, msg(cle, **params))
-
-
-def _montant(valeur, champ: str) -> Decimal:
-    try:
-        nombre = Decimal(str(valeur))
-    except InvalidOperation:
-        _refuser("passation.montant_invalide", champ=champ)
-    if not nombre.is_finite() or isinstance(valeur, float) or nombre <= 0:
-        _refuser("passation.montant_invalide", champ=champ)
-    return nombre
+ZERO = Decimal("0")
 
 
 # --- le contrat et ses avenants ----------------------------------------------------------------
@@ -72,12 +59,12 @@ def conclure_contrat(
 
     Si le marché est soumis à non-objection, son avis doit être obtenu : sinon refus.
     """
-    _habilite(utilisateur, "saisir", ligne.project_id)
+    habilite(utilisateur, "saisir", ligne.project_id)
     if not (reference or "").strip() or not (objet or "").strip():
-        _refuser("passation.code_obligatoire")
-    montant = _montant(montant, "montant")
+        refuser("passation.code_obligatoire")
+    montant = nombre_decimal(montant, "montant")
     if date_fin < date_debut:
-        _refuser("passation.contrat_periode")
+        refuser("passation.contrat_periode")
     courante = LignePassation.objects.get(pk=ligne.pk)
     if courante.statut not in (StatutLigne.ATTRIBUE, StatutLigne.SIGNE):
         raise ErreurMetier(
@@ -86,7 +73,7 @@ def conclure_contrat(
         )
     manquants = avis_manquants(courante)
     if manquants:
-        _refuser(
+        refuser(
             "passation.contrat_sans_avis",
             reference=courante.reference,
             objets=", ".join(m for m in manquants if m) or "—",
@@ -121,8 +108,20 @@ def conclure_contrat(
                     "devise": contrat.devise,
                 },
             )
-    except IntegrityError:
-        _refuser("passation.contrat_existe", reference=reference.strip())
+    except IntegrityError as erreur:
+        raise traduire_integrite(
+            erreur,
+            {
+                "uq_contrat_reference": (
+                    "passation.contrat_reference_existe",
+                    {"reference": reference.strip()},
+                ),
+                "marches_contrat_ligne_id_key": (
+                    "passation.contrat_marche_deja_conclu",
+                    {"marche": courante.reference},
+                ),
+            },
+        ) from erreur
     return contrat
 
 
@@ -151,10 +150,10 @@ def ajouter_avenant(
     Sur un marché soumis à non-objection, `avis` doit être un avis obtenu d'objet « avenant » de
     la même ligne, qu'aucun autre avenant n'a déjà utilisé.
     """
-    _habilite(utilisateur, "saisir", contrat.project_id)
+    habilite(utilisateur, "saisir", contrat.project_id)
     if not (motif or "").strip():
-        _refuser("passation.avenant_motif")
-    montant = _montant(montant, "montant")
+        refuser("passation.avenant_motif")
+    montant = nombre_decimal(montant, "montant")
     with transaction.atomic():
         # Le verrou sur le contrat sérialise les avenants simultanés : numérotation sans trou.
         verrouille = Contrat.objects.select_for_update().get(pk=contrat.pk)
@@ -166,18 +165,23 @@ def ajouter_avenant(
                 or avis.objet != ObjetAvis.AVENANT
                 or AvisNonObjection.objects.get(pk=avis.pk).statut != StatutAvis.OBTENU
             ):
-                _refuser("passation.avenant_sans_avis", reference=verrouille.reference)
+                refuser("passation.avenant_sans_avis", reference=verrouille.reference)
             if AvenantContrat.objects.filter(avis=avis).exists():
-                _refuser("passation.avenant_avis_deja_utilise")
+                refuser("passation.avenant_avis_deja_utilise")
         elif avis is not None:
-            _refuser("passation.avenant_avis_inutile", reference=verrouille.reference)
+            refuser("passation.avenant_avis_inutile", reference=verrouille.reference)
+        certifie = Decompte.objects.filter(contrat=verrouille, statut="certifie").aggregate(
+            t=Sum("montant_brut")
+        )["t"] or Decimal("0")
+        if montant < certifie:
+            refuser("passation.avenant_sous_le_certifie", montant=montant, certifie=certifie)
         precedent = verrouille.avenants.order_by("-numero").first()
         numero = (precedent.numero if precedent else 0) + 1
         plancher = precedent.date_effet if precedent else verrouille.date_signature
         if date_effet < plancher:
-            _refuser("passation.avenant_date_anterieure", date=plancher.isoformat())
+            refuser("passation.avenant_date_anterieure", date=plancher.isoformat())
         if date_fin < verrouille.date_debut:
-            _refuser("passation.contrat_periode")
+            refuser("passation.contrat_periode")
         avenant = AvenantContrat.objects.create(
             org_id=verrouille.org_id,
             contrat=verrouille,
@@ -223,14 +227,14 @@ def enregistrer_garantie(
     date_emission: datetime.date,
     date_echeance: datetime.date,
 ) -> Garantie:
-    _habilite(utilisateur, "saisir", contrat.project_id)
+    habilite(utilisateur, "saisir", contrat.project_id)
     if type_garantie not in TypeGarantie.values:
-        _refuser("passation.garantie_type_inconnu", type=type_garantie)
+        refuser("passation.garantie_type_inconnu", type=type_garantie)
     if not (emetteur or "").strip() or not (reference or "").strip():
-        _refuser("passation.code_obligatoire")
-    montant = _montant(montant, "montant")
+        refuser("passation.code_obligatoire")
+    montant = nombre_decimal(montant, "montant")
     if date_echeance < date_emission:
-        _refuser("passation.garantie_periode")
+        refuser("passation.garantie_periode")
     try:
         with transaction.atomic():
             garantie = Garantie.objects.create(
@@ -260,8 +264,16 @@ def enregistrer_garantie(
                     "echeance": date_echeance.isoformat(),
                 },
             )
-    except IntegrityError:
-        _refuser("passation.garantie_existe", reference=reference.strip())
+    except IntegrityError as erreur:
+        raise traduire_integrite(
+            erreur,
+            {
+                "uq_garantie_reference": (
+                    "passation.garantie_existe",
+                    {"reference": reference.strip()},
+                )
+            },
+        ) from erreur
     return garantie
 
 
@@ -269,11 +281,11 @@ def cloturer_garantie(
     *, utilisateur, garantie: Garantie, statut: str, date_cloture: datetime.date, note: str = ""
 ) -> Garantie:
     """Libère la garantie (mainlevée) ou la déclare appelée (motivé). Définitif."""
-    _habilite(utilisateur, "saisir", garantie.project_id)
+    habilite(utilisateur, "saisir", garantie.project_id)
     if statut not in (StatutGarantie.LIBEREE, StatutGarantie.APPELEE):
-        _refuser("passation.garantie_statut_invalide", statut=statut)
+        refuser("passation.garantie_statut_invalide", statut=statut)
     if statut == StatutGarantie.APPELEE and not (note or "").strip():
-        _refuser("passation.garantie_appel_motive")
+        refuser("passation.garantie_appel_motive")
     with transaction.atomic():
         courante = Garantie.objects.select_for_update().get(pk=garantie.pk)
         if courante.statut != StatutGarantie.ACTIVE:
@@ -282,7 +294,7 @@ def cloturer_garantie(
                 msg("passation.garantie_definitive", statut=courante.statut),
             )
         if date_cloture < courante.date_emission:
-            _refuser(
+            refuser(
                 "passation.garantie_cloture_anterieure", date=courante.date_emission.isoformat()
             )
         courante.statut = statut
@@ -326,21 +338,43 @@ def alertes_echeances(
     """Garanties actives et contrats arrivant à échéance dans `horizon_jours`, ou déjà dépassés.
 
     Le plus urgent d'abord. L'horizon est choisi par l'appelant : aucun délai n'est supposé. Un
-    contrat s'évalue à sa date de fin COURANTE (celle du dernier avenant).
+    contrat s'évalue à sa date de fin COURANTE (celle du dernier avenant). Un contrat SOLDÉ
+    (décomptes certifiés égaux à son montant courant et entièrement payés) n'alerte plus : il n'y
+    a plus rien à échoir. Tout se lit en quelques requêtes, jamais une par contrat.
     """
-    _habilite(utilisateur, "consulter", project_id)
+    habilite(utilisateur, "consulter", project_id)
     if not isinstance(horizon_jours, int) or horizon_jours < 0:
-        _refuser("passation.horizon_invalide")
+        refuser("passation.horizon_invalide")
     limite = jour + datetime.timedelta(days=horizon_jours)
     alertes = []
     for g in Garantie.objects.filter(
         project_id=project_id, statut=StatutGarantie.ACTIVE, date_echeance__lte=limite
-    ).select_related("contrat"):
+    ):
         alertes.append(_alerte("garantie", g, g.reference, g.date_echeance, jour))
-    for c in Contrat.objects.filter(project_id=project_id):
-        fin = date_fin_courante(c)
-        if fin <= limite:
-            alertes.append(_alerte("contrat", c, c.reference, fin, jour))
+    dernier = AvenantContrat.objects.filter(contrat=OuterRef("pk")).order_by("-numero")
+    certifies = Decompte.objects.filter(contrat=OuterRef("pk"), statut="certifie").values("contrat")
+    zero = Value(ZERO, output_field=DecimalField(max_digits=20, decimal_places=4))
+    contrats = Contrat.objects.filter(project_id=project_id).annotate(
+        fin_courante=Coalesce(Subquery(dernier.values("date_fin")[:1]), F("date_fin_initiale")),
+        montant_actuel=Coalesce(Subquery(dernier.values("montant")[:1]), F("montant_initial")),
+        certifie=Coalesce(Subquery(certifies.annotate(t=Sum("montant_brut")).values("t")), zero),
+        retenu=Coalesce(Subquery(certifies.annotate(t=Sum("retenue")).values("t")), zero),
+        paye=Coalesce(
+            Subquery(
+                Paiement.objects.filter(
+                    decompte__contrat=OuterRef("pk"), decompte__statut="certifie"
+                )
+                .values("decompte__contrat")
+                .annotate(t=Sum("montant"))
+                .values("t")
+            ),
+            zero,
+        ),
+    )
+    for c in contrats:
+        solde = c.certifie == c.montant_actuel and c.paye == c.certifie - c.retenu
+        if c.fin_courante <= limite and not solde:
+            alertes.append(_alerte("contrat", c, c.reference, c.fin_courante, jour))
     return sorted(alertes, key=lambda a: (a.echeance, a.nature, a.reference))
 
 

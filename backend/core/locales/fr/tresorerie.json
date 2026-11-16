@@ -5,8 +5,6 @@
   "tresorerie.cible_inconnue": "Cible d'écart inconnue : {cible}",
   "tresorerie.compte_non_designe": "Le compte {code} n'est pas un compte désigné : pas d'état de reconstitution",
   "tresorerie.explication_obligatoire": "Une justification d'écart exige une explication",
-  "tresorerie.habilitation_requise": "L'habilitation « {operation} » est requise sur ce projet",
-  "tresorerie.montant_invalide": "Montant invalide pour {champ}",
   "tresorerie.mouvement_deja_apparie": "Le mouvement {reference} est déjà apparié à une demande",
   "tresorerie.periode_invalide": "Période invalide",
   "tresorerie.revision_motivee": "Réviser une prévision exige un motif",

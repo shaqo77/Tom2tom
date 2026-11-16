@@ -7,22 +7,23 @@ devise. Le numéro d'un compte n'apparaît nulle part ici : seul `numero_masque`
 
 import datetime
 from dataclasses import dataclass, field
-from decimal import Decimal, InvalidOperation
+from decimal import Decimal
 
 from django.db import IntegrityError, connection, transaction
-from django.db.models import Sum
+from django.db.models import ExpressionWrapper, F, IntegerField, Sum, Value
+from django.db.models.functions import Coalesce
 from django.utils import timezone
-from rest_framework.exceptions import PermissionDenied
 
 from core.audit import journaliser
 from core.erreurs import CodeErreur, ErreurMetier
 from core.i18n import msg
+from core.metier import decimal as nombre_decimal
+from core.metier import habilite, refuser, traduire_integrite
 from niveau1_socle.comptabilite.models import LigneEcriture
 from niveau1_socle.decaissements.models import DemandeRetrait
 from niveau1_socle.financements.models import CompteBancaire, TypeCompte
-from niveau1_socle.habilitations.permissions import est_habilite
 from niveau1_socle.rapprochement.models import MouvementReleve
-from niveau1_socle.rapprochement.services import _contexte, _montant_devise, etat_de_rapprochement
+from niveau1_socle.rapprochement.services import _contexte, etat_de_rapprochement
 from niveau1_socle.referentiels.models import ValeurDimension
 
 from .models import (
@@ -37,28 +38,6 @@ ZERO = Decimal("0")
 STATUTS_PAYES = ("acceptee", "remboursee")
 
 
-def _habilite(utilisateur, operation: str, project_id) -> None:
-    if not est_habilite(utilisateur, operation, project_id):
-        raise PermissionDenied(msg("tresorerie.habilitation_requise", operation=operation))
-
-
-def _refuser(cle: str, **params):
-    raise ErreurMetier(CodeErreur.REGLE_INVALIDE, msg(cle, **params))
-
-
-def _decimal(valeur, champ: str, *, signe: str = "positif") -> Decimal:
-    """`positif` : > 0 ; `positif_ou_nul` : ≥ 0 ; `libre` : tout nombre fini. Jamais un float."""
-    try:
-        nombre = Decimal(str(valeur))
-    except InvalidOperation:
-        _refuser("tresorerie.montant_invalide", champ=champ)
-    if not nombre.is_finite() or isinstance(valeur, float):
-        _refuser("tresorerie.montant_invalide", champ=champ)
-    if (signe == "positif" and nombre <= 0) or (signe == "positif_ou_nul" and nombre < 0):
-        _refuser("tresorerie.montant_invalide", champ=champ)
-    return nombre
-
-
 # --- le solde du relevé ------------------------------------------------------------------------
 
 
@@ -66,8 +45,8 @@ def enregistrer_solde_releve(
     *, utilisateur, compte: CompteBancaire, date_solde: datetime.date, solde, reference: str = ""
 ) -> SoldeReleve:
     """Enregistre le solde de clôture d'un jour, tel que le relevé le donne. Ajout seul."""
-    _habilite(utilisateur, "saisir", compte.project_id)
-    solde = _decimal(solde, "solde", signe="libre")
+    habilite(utilisateur, "saisir", compte.project_id)
+    solde = nombre_decimal(solde, "solde", signe="libre")
     try:
         with transaction.atomic():
             releve = SoldeReleve.objects.create(
@@ -89,8 +68,11 @@ def enregistrer_solde_releve(
                 project_id=compte.project_id,
                 after={"date": date_solde.isoformat(), "solde": str(solde), "reference": reference},
             )
-    except IntegrityError:
-        _refuser("tresorerie.solde_existe", date=date_solde.isoformat())
+    except IntegrityError as erreur:
+        raise traduire_integrite(
+            erreur,
+            {"uq_soldereleve_jour": ("tresorerie.solde_existe", {"date": date_solde.isoformat()})},
+        ) from erreur
     return releve
 
 
@@ -122,7 +104,7 @@ def apparier_demande(
     *, utilisateur, mouvement: MouvementReleve, demande: DemandeRetrait
 ) -> AppariementDemande:
     """Apparie un encaissement du relevé à une demande, UNE SEULE FOIS (index unique en base)."""
-    _habilite(utilisateur, "saisir", mouvement.project_id)
+    habilite(utilisateur, "saisir", mouvement.project_id)
     try:
         with transaction.atomic():
             # Le verrou de la demande sérialise les appariements concurrents (plafond du total).
@@ -166,9 +148,9 @@ def _traduire_appariement(erreur, mouvement, demande) -> ErreurMetier:
 
 def annuler_appariement(*, utilisateur, appariement: AppariementDemande, motif: str):
     """Annule l'appariement (motivé) : le mouvement peut alors s'apparier ailleurs."""
-    _habilite(utilisateur, "saisir", appariement.project_id)
+    habilite(utilisateur, "saisir", appariement.project_id)
     if not (motif or "").strip():
-        _refuser("tresorerie.annulation_motivee")
+        refuser("tresorerie.annulation_motivee")
     with transaction.atomic():
         courant = AppariementDemande.objects.select_for_update().get(pk=appariement.pk)
         if courant.annule_at is not None:
@@ -212,11 +194,11 @@ def etablir_prevision(
     Chaque révision est CONSERVÉE ; la courante est la plus récente. À partir de la deuxième, le
     motif est obligatoire.
     """
-    _habilite(utilisateur, "saisir", project_id)
+    habilite(utilisateur, "saisir", project_id)
     if not 1 <= mois <= 12 or annee < 2000:
-        _refuser("tresorerie.periode_invalide")
-    entrees = _decimal(encaissements, "encaissements", signe="positif_ou_nul")
-    sorties = _decimal(decaissements, "decaissements", signe="positif_ou_nul")
+        refuser("tresorerie.periode_invalide")
+    entrees = nombre_decimal(encaissements, "encaissements", signe="positif_ou_nul")
+    sorties = nombre_decimal(decaissements, "decaissements", signe="positif_ou_nul")
     with transaction.atomic():
         # Verrou consultatif sur la clé de la prévision : numérotation sans trou des révisions.
         cle = f"prevision:{project_id}:{devise}:{annee}:{mois}:{axe.id if axe else '-'}"
@@ -228,7 +210,7 @@ def etablir_prevision(
         derniere = precedentes.order_by("-revision").first()
         revision = (derniere.revision if derniere else 0) + 1
         if revision > 1 and not (motif or "").strip():
-            _refuser("tresorerie.revision_motivee")
+            refuser("tresorerie.revision_motivee")
         prevision = PrevisionTresorerie.objects.create(
             org_id=utilisateur.org_id,
             project_id=project_id,
@@ -281,33 +263,53 @@ def previsions(
 ) -> list[LignePrevision]:
     """Les prévisions COURANTES des `nombre_mois` mois à partir de `annee`/`mois`, par devise.
 
-    `par_axe` faux : les axes d'un même mois et d'une même devise sont additionnés (jamais les
-    devises). Les prévisions « tous axes » et celles par axe se lisent séparément : leur somme
-    ferait un double compte si l'on a prévu les deux.
+    La fenêtre est filtrée en base. `par_axe` vrai : une ligne par axe, et la prévision « tous
+    axes » (axe nul) à part. `par_axe` faux : UNE ligne par mois et par devise, sans jamais
+    additionner « tous axes » et axes (double compte) : la prévision « tous axes » l'emporte
+    quand elle existe, sinon on additionne les axes. Jamais deux devises ensemble.
     """
-    _habilite(utilisateur, "consulter", project_id)
+    habilite(utilisateur, "consulter", project_id)
     if nombre_mois < 1:
-        _refuser("tresorerie.periode_invalide")
+        refuser("tresorerie.periode_invalide")
     debut = annee * 12 + (mois - 1)
     fin = debut + nombre_mois - 1
+    rang = ExpressionWrapper(F("annee") * 12 + F("mois") - 1, output_field=IntegerField())
     courantes: dict = {}
-    for p in PrevisionTresorerie.objects.filter(project_id=project_id).select_related("axe"):
-        rang = p.annee * 12 + (p.mois - 1)
-        if not debut <= rang <= fin:
-            continue
+    fenetre = (
+        PrevisionTresorerie.objects.filter(project_id=project_id)
+        .annotate(rang=rang)
+        .filter(rang__gte=debut, rang__lte=fin)
+        .select_related("axe")
+    )
+    for p in fenetre:
         cle = (p.annee, p.mois, p.devise, p.axe_id)
         if cle not in courantes or p.revision > courantes[cle].revision:
             courantes[cle] = p
-    cumul: dict = {}
-    for p in courantes.values():
-        axe = (p.axe.code if p.axe else None) if par_axe else None
-        cle = (p.annee, p.mois, p.devise, axe)
-        entree, sortie = cumul.get(cle, (ZERO, ZERO))
-        cumul[cle] = (entree + p.encaissements, sortie + p.decaissements)
+    if par_axe:
+        lignes = {
+            (p.annee, p.mois, p.devise, p.axe.code if p.axe else None): (
+                p.encaissements,
+                p.decaissements,
+            )
+            for p in courantes.values()
+        }
+    else:
+        lignes = {}
+        for p in courantes.values():
+            if p.axe_id is None:  # « tous axes » : il prime, sans rien y ajouter
+                lignes[(p.annee, p.mois, p.devise, None)] = (p.encaissements, p.decaissements)
+        for p in courantes.values():
+            cle = (p.annee, p.mois, p.devise, None)
+            if p.axe_id is not None and not any(
+                q.axe_id is None and (q.annee, q.mois, q.devise) == cle[:3]
+                for q in courantes.values()
+            ):
+                entree, sortie = lignes.get(cle, (ZERO, ZERO))
+                lignes[cle] = (entree + p.encaissements, sortie + p.decaissements)
     return [
         LignePrevision(a, m, d, x, e, s)
         for (a, m, d, x), (e, s) in sorted(
-            cumul.items(), key=lambda kv: (kv[0][0], kv[0][1], kv[0][2], kv[0][3] or "")
+            lignes.items(), key=lambda kv: (kv[0][0], kv[0][1], kv[0][2], kv[0][3] or "")
         )
     ]
 
@@ -344,18 +346,19 @@ class Disponibilites:
 
 
 def solde_comptable_a(compte: CompteBancaire, jour: datetime.date) -> Decimal:
+    """Solde du grand livre du compte à `jour`, dans la devise du compte, agrégé en base."""
     _, _, etrangere = _contexte(compte)
-    lignes = LigneEcriture.objects.filter(
+    sens = (F("debit_cur") - F("credit_cur")) if etrangere else (F("debit") - F("credit"))
+    return LigneEcriture.objects.filter(
         bank_account_id=compte.pk,
         entry__status__in=("posted", "locked"),
         entry__accounting_date__lte=jour,
-    )
-    return sum((_montant_devise(li, etrangere) for li in lignes), ZERO)
+    ).aggregate(solde=Coalesce(Sum(sens), Value(ZERO)))["solde"]
 
 
 def disponibilites(*, utilisateur, project_id, jour: datetime.date) -> Disponibilites:
     """Soldes des comptes actifs du projet à `jour` (comptable et relevé), par compte et devise."""
-    _habilite(utilisateur, "consulter", project_id)
+    habilite(utilisateur, "consulter", project_id)
     resultat = Disponibilites(jour=jour)
     for compte in CompteBancaire.objects.filter(project_id=project_id, actif=True).order_by("code"):
         releve, date_releve = solde_releve_a(compte, jour)
@@ -392,16 +395,16 @@ def justifier_ecart(
     explication: str,
 ) -> JustificationEcart:
     """Explique une partie de l'écart d'un état (signé, non nul). Ajout seul."""
-    _habilite(utilisateur, "valider", compte.project_id)
+    habilite(utilisateur, "valider", compte.project_id)
     if cible not in CibleEcart.values:
-        _refuser("tresorerie.cible_inconnue", cible=cible)
-    montant = _decimal(montant, "montant", signe="libre")
+        refuser("tresorerie.cible_inconnue", cible=cible)
+    montant = nombre_decimal(montant, "montant", signe="libre")
     if montant == 0:
-        _refuser("tresorerie.montant_invalide", champ="montant")
+        refuser("metier.montant_invalide", champ="montant")
     if not (explication or "").strip():
-        _refuser("tresorerie.explication_obligatoire")
+        refuser("tresorerie.explication_obligatoire")
     if date_fin < date_debut:
-        _refuser("tresorerie.periode_invalide")
+        refuser("tresorerie.periode_invalide")
     with transaction.atomic():
         justification = JustificationEcart.objects.create(
             org_id=compte.org_id,
@@ -488,11 +491,11 @@ def etat_reconstitution(
     solde du relevé à `date_fin`, puis au grand livre par les éléments en suspens du rapprochement.
     Chaque écart doit être justifié explicitement (`justifier_ecart`), au centime.
     """
-    _habilite(utilisateur, "consulter", compte.project_id)
+    habilite(utilisateur, "consulter", compte.project_id)
     if compte.type != TypeCompte.DESIGNE:
-        _refuser("tresorerie.compte_non_designe", code=compte.code)
+        refuser("tresorerie.compte_non_designe", code=compte.code)
     if date_fin < date_debut:
-        _refuser("tresorerie.periode_invalide")
+        refuser("tresorerie.periode_invalide")
     etat = EtatReconstitution(
         compte_code=compte.code,
         compte_masque=compte.numero_masque,

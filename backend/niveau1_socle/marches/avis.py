@@ -9,12 +9,11 @@ attente ou refusée — a été suivie d'un avis OBTENU sur le même objet.
 import datetime
 
 from django.db import IntegrityError, transaction
-from rest_framework.exceptions import PermissionDenied
 
 from core.audit import journaliser
 from core.erreurs import CodeErreur, ErreurMetier
 from core.i18n import msg
-from niveau1_socle.habilitations.permissions import est_habilite
+from core.metier import habilite, refuser, traduire_integrite
 from niveau3_config import stockage
 
 from .models import (
@@ -34,25 +33,16 @@ class PieceAvisAlteree(ValueError):
     """La pièce stockée ne correspond plus à l'empreinte enregistrée."""
 
 
-def _habilite(utilisateur, operation: str, project_id) -> None:
-    if not est_habilite(utilisateur, operation, project_id):
-        raise PermissionDenied(msg("passation.habilitation_requise", operation=operation))
-
-
-def _refuser(cle: str, **params):
-    raise ErreurMetier(CodeErreur.REGLE_INVALIDE, msg(cle, **params))
-
-
 def demander_avis(
     *, utilisateur, ligne: LignePassation, objet: str, date_demande: datetime.date
 ) -> AvisNonObjection:
     """Enregistre une demande d'avis pour une ligne soumise à non-objection."""
-    _habilite(utilisateur, "saisir", ligne.project_id)
+    habilite(utilisateur, "saisir", ligne.project_id)
     if objet not in ObjetAvis.values:
-        _refuser("passation.avis_objet_inconnu", objet=objet)
+        refuser("passation.avis_objet_inconnu", objet=objet)
     courante = LignePassation.objects.get(pk=ligne.pk)
     if not courante.non_objection_requise:
-        _refuser("passation.avis_ligne_non_soumise", reference=courante.reference)
+        refuser("passation.avis_ligne_non_soumise", reference=courante.reference)
     # Un marché signé ne reçoit plus que des demandes d'avis sur ses avenants.
     if courante.statut == StatutLigne.ANNULE or (
         courante.statut == StatutLigne.SIGNE and objet != ObjetAvis.AVENANT
@@ -87,13 +77,13 @@ def joindre_piece(
     *, utilisateur, avis: AvisNonObjection, nature: str, nom: str, contenu: bytes
 ) -> PieceAvis:
     """Joint un fichier à l'avis (demande envoyée ou réponse reçue). Idempotent par contenu."""
-    _habilite(utilisateur, "saisir", avis.project_id)
+    habilite(utilisateur, "saisir", avis.project_id)
     if nature not in NaturePieceAvis.values:
-        _refuser("passation.avis_nature_inconnue", nature=nature)
+        refuser("passation.avis_nature_inconnue", nature=nature)
     if not (nom or "").strip():
-        _refuser("passation.avis_nom_obligatoire")
+        refuser("passation.avis_nom_obligatoire")
     if not isinstance(contenu, bytes | bytearray) or not 0 < len(contenu) <= TAILLE_MAX:
-        _refuser("passation.avis_fichier_invalide")
+        refuser("passation.avis_fichier_invalide")
     contenu = bytes(contenu)
     digest = stockage.empreinte(contenu)
     existante = PieceAvis.objects.filter(avis=avis, sha256=digest).first()
@@ -122,7 +112,9 @@ def joindre_piece(
                 project_id=avis.project_id,
                 after={"nom": piece.nom, "nature": nature, "sha256": digest.hex()},
             )
-    except IntegrityError:
+    except IntegrityError as erreur:
+        if "uq_pieceavis_par_avis" not in str(erreur):
+            raise traduire_integrite(erreur) from erreur
         return PieceAvis.objects.get(avis=avis, sha256=digest)
     return piece
 
@@ -144,11 +136,11 @@ def enregistrer_decision(
     motif: str = "",
 ) -> AvisNonObjection:
     """Enregistre la réponse du bailleur : obtenu (dès réception) ou refusé (motivé)."""
-    _habilite(utilisateur, "saisir", avis.project_id)
+    habilite(utilisateur, "saisir", avis.project_id)
     if statut not in (StatutAvis.OBTENU, StatutAvis.REFUSE):
-        _refuser("passation.avis_statut_invalide", statut=statut)
+        refuser("passation.avis_statut_invalide", statut=statut)
     if statut == StatutAvis.REFUSE and not (motif or "").strip():
-        _refuser("passation.avis_refus_motive")
+        refuser("passation.avis_refus_motive")
     with transaction.atomic():
         courant = AvisNonObjection.objects.select_for_update().get(pk=avis.pk)
         if courant.statut != StatutAvis.DEMANDE:
@@ -157,7 +149,7 @@ def enregistrer_decision(
                 msg("passation.avis_deja_decide", statut=courant.statut),
             )
         if date_decision < courant.date_demande:
-            _refuser("passation.avis_date_anterieure", date=courant.date_demande.isoformat())
+            refuser("passation.avis_date_anterieure", date=courant.date_demande.isoformat())
         courant.statut = statut
         courant.date_decision = date_decision
         courant.reference_bailleur = (reference_bailleur or "").strip()
@@ -222,7 +214,7 @@ def avis_en_attente(
     *, utilisateur, project_id, jour: datetime.date
 ) -> list[tuple[AvisNonObjection, int]]:
     """Les demandes sans réponse, les plus anciennes d'abord, avec leur ancienneté en jours."""
-    _habilite(utilisateur, "consulter", project_id)
+    habilite(utilisateur, "consulter", project_id)
     return [
         (a, (jour - a.date_demande).days)
         for a in AvisNonObjection.objects.filter(project_id=project_id, statut=StatutAvis.DEMANDE)

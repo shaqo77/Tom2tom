@@ -1,0 +1,5 @@
+{
+  "metier.habilitation_requise": "L'habilitation « {operation} » est requise sur ce projet",
+  "metier.integrite_refusee": "Opération refusée par la base : {detail}",
+  "metier.montant_invalide": "Montant invalide pour {champ}"
+}

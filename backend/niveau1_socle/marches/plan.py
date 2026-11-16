@@ -8,20 +8,20 @@ s'annule avant la signature, et chaque étape laisse sa date et son auteur.
 
 import datetime
 from dataclasses import dataclass
-from decimal import Decimal, InvalidOperation
 
 from django.db import IntegrityError, transaction
 from django.db.models import Q, Sum
 from django.utils import timezone
-from rest_framework.exceptions import PermissionDenied
 
 from core.audit import journaliser
 from core.erreurs import CodeErreur, ErreurMetier
 from core.i18n import LANGUES, msg, normaliser_textes
-from niveau1_socle.habilitations.permissions import est_habilite
+from core.metier import decimal as nombre_decimal
+from core.metier import habilite, refuser, traduire_integrite
 from niveau1_socle.referentiels.models import Devise
 
 from .models import (
+    Contrat,
     EtapeAvancement,
     LignePassation,
     MethodePassation,
@@ -41,25 +41,6 @@ DATE_PREVUE = {
 }
 
 
-def _habilite(utilisateur, operation: str, project_id) -> None:
-    if not est_habilite(utilisateur, operation, project_id):
-        raise PermissionDenied(msg("passation.habilitation_requise", operation=operation))
-
-
-def _refuser(cle: str, **params):
-    raise ErreurMetier(CodeErreur.REGLE_INVALIDE, msg(cle, **params))
-
-
-def _montant(valeur, champ: str) -> Decimal:
-    try:
-        nombre = Decimal(str(valeur))
-    except InvalidOperation:
-        _refuser("passation.montant_invalide", champ=champ)
-    if not nombre.is_finite() or isinstance(valeur, float):
-        _refuser("passation.montant_invalide", champ=champ)
-    return nombre
-
-
 # --- les méthodes et leurs seuils --------------------------------------------------------------
 
 
@@ -76,18 +57,18 @@ def definir_methode(
     valid_from: datetime.date,
 ) -> MethodePassation:
     """Pose une NOUVELLE version de la méthode ; la précédente se ferme à `valid_from`."""
-    _habilite(utilisateur, "parametrer", project_id)
+    habilite(utilisateur, "parametrer", project_id)
     if not (code or "").strip():
-        _refuser("passation.code_obligatoire")
+        refuser("passation.code_obligatoire")
     textes = normaliser_textes(label, obligatoire=True)
     if set(LANGUES) - set(textes):
-        _refuser("passation.libelle_toutes_langues")
+        refuser("passation.libelle_toutes_langues")
     if not Devise.objects.filter(code=devise).exists():
-        _refuser("passation.devise_inconnue", devise=devise)
-    minimum = _montant(seuil_min, "seuil_min")
-    maximum = None if seuil_max is None else _montant(seuil_max, "seuil_max")
+        refuser("passation.devise_inconnue", devise=devise)
+    minimum = nombre_decimal(seuil_min, "seuil_min", signe="libre")
+    maximum = None if seuil_max is None else nombre_decimal(seuil_max, "seuil_max", signe="libre")
     if minimum < 0 or (maximum is not None and maximum <= minimum):
-        _refuser("passation.plage_invalide")
+        refuser("passation.plage_invalide")
     with transaction.atomic():
         precedente = (
             MethodePassation.objects.select_for_update()
@@ -97,7 +78,7 @@ def definir_methode(
         )
         if precedente is not None:
             if precedente.valid_from >= valid_from:
-                _refuser("passation.version_posterieure")
+                refuser("passation.version_posterieure")
             if precedente.valid_to is None:
                 MethodePassation.objects.filter(pk=precedente.pk).update(valid_to=valid_from)
         methode = MethodePassation.objects.create(
@@ -144,7 +125,7 @@ def methodes_applicables(
     project_id, montant, devise: str, date: datetime.date
 ) -> list[MethodePassation]:
     """Les méthodes en vigueur à `date` dont la plage contient `montant`, dans cette devise."""
-    montant = _montant(montant, "montant")
+    montant = nombre_decimal(montant, "montant", signe="libre")
     return [
         m
         for m in MethodePassation.objects.filter(project_id=project_id, devise=devise)
@@ -167,11 +148,11 @@ def creer_plan(
     date_debut: datetime.date,
     date_fin: datetime.date,
 ) -> PlanPassation:
-    _habilite(utilisateur, "saisir", project_id)
+    habilite(utilisateur, "saisir", project_id)
     if not (code or "").strip() or not (nom or "").strip():
-        _refuser("passation.code_obligatoire")
+        refuser("passation.code_obligatoire")
     if date_debut > date_fin:
-        _refuser("passation.periode_vide")
+        refuser("passation.periode_vide")
     try:
         with transaction.atomic():
             plan = PlanPassation.objects.create(
@@ -193,29 +174,31 @@ def creer_plan(
                 project_id=project_id,
                 after={"code": plan.code},
             )
-    except IntegrityError:
-        _refuser("passation.plan_existe", code=code.strip())
+    except IntegrityError as erreur:
+        raise traduire_integrite(
+            erreur, {"uq_planpassation_code": ("passation.plan_existe", {"code": code.strip()})}
+        ) from erreur
     return plan
 
 
 def _verifier_ligne(plan, montant, devise, methode, dates):
     lancement, attribution, signature = dates
     if not lancement <= attribution <= signature:
-        _refuser("passation.calendrier_desordonne")
+        refuser("passation.calendrier_desordonne")
     if not all(plan.date_debut <= d <= plan.date_fin for d in dates):
-        _refuser(
+        refuser(
             "passation.hors_du_plan",
             debut=plan.date_debut.isoformat(),
             fin=plan.date_fin.isoformat(),
         )
     if montant <= 0:
-        _refuser("passation.montant_invalide", champ="montant_prevu")
+        refuser("metier.montant_invalide", champ="montant_prevu")
     if methode.devise != devise:
-        _refuser("passation.devise_differente", methode=methode.devise, ligne=devise)
+        refuser("passation.devise_differente", methode=methode.devise, ligne=devise)
     if montant < methode.seuil_min or (
         methode.seuil_max is not None and montant >= methode.seuil_max
     ):
-        _refuser(
+        refuser(
             "passation.methode_non_applicable",
             code=methode.code,
             plage=f"[{methode.seuil_min}, {methode.seuil_max or '∞'}[",
@@ -239,13 +222,13 @@ def ajouter_ligne(
     categorie_id=None,
 ) -> LignePassation:
     """Prévoit un marché : la méthode doit s'appliquer à son montant, à la date de lancement."""
-    _habilite(utilisateur, "saisir", plan.project_id)
+    habilite(utilisateur, "saisir", plan.project_id)
     if not (reference or "").strip() or not (libelle or "").strip():
-        _refuser("passation.code_obligatoire")
-    montant = _montant(montant_prevu, "montant_prevu")
+        refuser("passation.code_obligatoire")
+    montant = nombre_decimal(montant_prevu, "montant_prevu", signe="libre")
     methode = methode_en_vigueur(plan.project_id, methode_code, date_lancement_prevue)
     if methode is None:
-        _refuser(
+        refuser(
             "passation.methode_inconnue", code=methode_code, date=date_lancement_prevue.isoformat()
         )
     dates = (date_lancement_prevue, date_attribution_prevue, date_signature_prevue)
@@ -291,8 +274,16 @@ def ajouter_ligne(
                     "non_objection_requise": ligne.non_objection_requise,
                 },
             )
-    except IntegrityError:
-        _refuser("passation.reference_existe", reference=reference.strip())
+    except IntegrityError as erreur:
+        raise traduire_integrite(
+            erreur,
+            {
+                "uq_lignepassation_reference": (
+                    "passation.reference_existe",
+                    {"reference": reference.strip()},
+                )
+            },
+        ) from erreur
     return ligne
 
 
@@ -306,9 +297,9 @@ def replanifier(
     motif: str,
 ) -> LignePassation:
     """Déplace le calendrier prévu d'une ligne encore en cours, avec un motif tracé au journal."""
-    _habilite(utilisateur, "saisir", ligne.project_id)
+    habilite(utilisateur, "saisir", ligne.project_id)
     if not (motif or "").strip():
-        _refuser("passation.motif_obligatoire")
+        refuser("passation.motif_obligatoire")
     dates = (date_lancement_prevue, date_attribution_prevue, date_signature_prevue)
     with transaction.atomic():
         courante = LignePassation.objects.select_for_update().get(pk=ligne.pk)
@@ -359,8 +350,8 @@ def modifier_ligne_prevue(
     *, utilisateur, ligne: LignePassation, montant_prevu, methode_code: str | None = None
 ) -> LignePassation:
     """Change le montant (et, au besoin, la méthode) d'une ligne ENCORE « prévue » seulement."""
-    _habilite(utilisateur, "saisir", ligne.project_id)
-    montant = _montant(montant_prevu, "montant_prevu")
+    habilite(utilisateur, "saisir", ligne.project_id)
+    montant = nombre_decimal(montant_prevu, "montant_prevu", signe="libre")
     with transaction.atomic():
         courante = LignePassation.objects.select_for_update().get(pk=ligne.pk)
         if courante.statut != StatutLigne.PREVU:
@@ -374,7 +365,7 @@ def modifier_ligne_prevue(
                 courante.project_id, methode_code, courante.date_lancement_prevue
             )
             if methode is None:
-                _refuser(
+                refuser(
                     "passation.methode_inconnue",
                     code=methode_code,
                     date=courante.date_lancement_prevue.isoformat(),
@@ -406,6 +397,26 @@ def modifier_ligne_prevue(
     return ligne
 
 
+def _verifier_annulable(ligne: LignePassation) -> None:
+    """Une ligne sous contrat, ou dont un engagement est encore ouvert, ne s'annule pas.
+
+    Sinon le contrat resterait actif (garanties, alertes) et l'engagement, qui ne s'apure que par
+    décompte, garderait le budget réservé. Même règle tenue par `marches_ligne_garde`.
+    """
+    from niveau1_socle.budget.models import Engagement
+
+    if Contrat.objects.filter(ligne=ligne).exists():
+        raise ErreurMetier(
+            CodeErreur.TRANSITION_INTERDITE,
+            msg("passation.annulation_ligne_sous_contrat", reference=ligne.reference),
+        )
+    if Engagement.objects.filter(ligne_passation=ligne, status="ouvert").exists():
+        raise ErreurMetier(
+            CodeErreur.TRANSITION_INTERDITE,
+            msg("passation.annulation_ligne_engagee", reference=ligne.reference),
+        )
+
+
 def avancer_ligne(
     *, utilisateur, ligne: LignePassation, statut: str, date_effet: datetime.date, note: str = ""
 ) -> LignePassation:
@@ -414,7 +425,7 @@ def avancer_ligne(
     Une étape ne se saute pas ; sa date ne précède pas celle de l'étape d'avant ; une annulation
     est motivée. Chaque étape laisse sa trace (date, auteur, note) en ajout seul.
     """
-    _habilite(utilisateur, "saisir", ligne.project_id)
+    habilite(utilisateur, "saisir", ligne.project_id)
     with transaction.atomic():
         courante = LignePassation.objects.select_for_update().get(pk=ligne.pk)
         if courante.statut in (StatutLigne.SIGNE, StatutLigne.ANNULE):
@@ -424,7 +435,8 @@ def avancer_ligne(
             )
         if statut == StatutLigne.ANNULE:
             if not (note or "").strip():
-                _refuser("passation.annulation_motivee")
+                refuser("passation.annulation_motivee")
+            _verifier_annulable(courante)
         elif SUITE.get(courante.statut) != statut:
             raise ErreurMetier(
                 CodeErreur.TRANSITION_INTERDITE,
@@ -437,7 +449,7 @@ def avancer_ligne(
             .first()
         )
         if derniere is not None and date_effet < derniere.date_effet:
-            _refuser("passation.date_anterieure", date=derniere.date_effet.isoformat())
+            refuser("passation.date_anterieure", date=derniere.date_effet.isoformat())
         EtapeAvancement.objects.create(
             org_id=courante.org_id,
             ligne=courante,
@@ -447,6 +459,7 @@ def avancer_ligne(
             par=utilisateur.id,
             created_by=utilisateur.id,
         )
+        ancien_statut = courante.statut
         courante.statut = statut
         courante.save(update_fields=["statut", "updated_at"])
         journaliser(
@@ -456,7 +469,7 @@ def avancer_ligne(
             object_type="ligne_passation",
             object_id=courante.id,
             project_id=courante.project_id,
-            before={"statut": courante.statut},
+            before={"statut": ancien_statut},
             after={
                 "statut": statut,
                 "date_effet": date_effet.isoformat(),
@@ -480,7 +493,7 @@ class Retard:
 
 def lignes_en_retard(*, utilisateur, project_id, jour: datetime.date) -> list[Retard]:
     """Lignes dont l'étape suivante devait être franchie avant `jour`, plus en retard d'abord."""
-    _habilite(utilisateur, "consulter", project_id)
+    habilite(utilisateur, "consulter", project_id)
     retards = []
     for ligne in LignePassation.objects.filter(
         project_id=project_id, statut__in=list(DATE_PREVUE)
@@ -493,7 +506,7 @@ def lignes_en_retard(*, utilisateur, project_id, jour: datetime.date) -> list[Re
 
 def synthese(*, utilisateur, plan: PlanPassation) -> dict:
     """Le plan en chiffres : montants par statut et par méthode, sans mélanger les devises."""
-    _habilite(utilisateur, "consulter", plan.project_id)
+    habilite(utilisateur, "consulter", plan.project_id)
     lignes = LignePassation.objects.filter(plan=plan)
     par_statut = {
         (r["statut"], r["devise"]): r["total"]

@@ -9,18 +9,18 @@ coïncident, sinon donné explicitement par le certificateur : aucun taux n'est 
 
 import datetime
 from dataclasses import dataclass
-from decimal import Decimal, InvalidOperation
+from decimal import Decimal
 
 from django.db import IntegrityError, transaction
-from django.db.models import Sum
-from rest_framework.exceptions import PermissionDenied
+from django.db.models import Max, Sum
 
 from core.audit import journaliser
 from core.erreurs import CodeErreur, ErreurMetier
 from core.i18n import msg
+from core.metier import decimal as nombre_decimal
+from core.metier import habilite, refuser, traduire_integrite
 from niveau1_socle.budget.engagements import apurer_verrouille
 from niveau1_socle.budget.models import Engagement
-from niveau1_socle.habilitations.permissions import est_habilite
 from niveau1_socle.organisations.models import Projet
 
 from .contrats import montant_courant
@@ -28,30 +28,6 @@ from .models import Contrat, Decompte, Paiement, StatutDecompte
 
 ZERO = Decimal("0")
 CENT = Decimal("100")
-
-
-def _habilite(utilisateur, operation: str, project_id) -> None:
-    if not est_habilite(utilisateur, operation, project_id):
-        raise PermissionDenied(msg("passation.habilitation_requise", operation=operation))
-
-
-def _refuser(cle: str, **params):
-    raise ErreurMetier(CodeErreur.REGLE_INVALIDE, msg(cle, **params))
-
-
-def _nombre(valeur, champ: str, *, strict: bool = True) -> Decimal:
-    try:
-        nombre = Decimal(str(valeur))
-    except InvalidOperation:
-        _refuser("passation.montant_invalide", champ=champ)
-    if (
-        not nombre.is_finite()
-        or isinstance(valeur, float)
-        or nombre < 0
-        or (strict and nombre == 0)
-    ):
-        _refuser("passation.montant_invalide", champ=champ)
-    return nombre
 
 
 # --- soumission, certification, rejet ----------------------------------------------------------
@@ -69,16 +45,16 @@ def soumettre_decompte(
     facture_date: datetime.date | None = None,
 ) -> Decompte:
     """Soumet le décompte suivant du contrat (numéroté sans trou). Rien n'est encore apuré."""
-    _habilite(utilisateur, "saisir", contrat.project_id)
-    brut = _nombre(montant_brut, "montant_brut")
-    retenue = _nombre(retenue, "retenue", strict=False)
-    avancement = _nombre(avancement_physique, "avancement_physique", strict=False)
+    habilite(utilisateur, "saisir", contrat.project_id)
+    brut = nombre_decimal(montant_brut, "montant_brut")
+    retenue = nombre_decimal(retenue, "retenue", signe="positif_ou_nul")
+    avancement = nombre_decimal(avancement_physique, "avancement_physique", signe="positif_ou_nul")
     if retenue > brut:
-        _refuser("passation.decompte_retenue")
+        refuser("passation.decompte_retenue")
     if avancement > CENT:
-        _refuser("passation.decompte_avancement")
+        refuser("passation.decompte_avancement")
     if date_decompte < contrat.date_debut:
-        _refuser("passation.decompte_avant_contrat", date=contrat.date_debut.isoformat())
+        refuser("passation.decompte_avant_contrat", date=contrat.date_debut.isoformat())
     with transaction.atomic():
         # Le verrou sur le contrat sérialise les soumissions simultanées : numérotation sans trou.
         verrouille = Contrat.objects.select_for_update().get(pk=contrat.pk)
@@ -129,7 +105,7 @@ def certifier_decompte(
     courant du contrat ; avancement physique qui recule ; apurement supérieur au reste de
     l'engagement. Tout échec défait tout : ni certification ni apurement partiel.
     """
-    _habilite(utilisateur, "valider", decompte.project_id)
+    habilite(utilisateur, "valider", decompte.project_id)
     with transaction.atomic():
         verrouille_contrat = Contrat.objects.select_for_update().get(pk=decompte.contrat_id)
         courant = Decompte.objects.select_for_update().get(pk=decompte.pk)
@@ -139,25 +115,25 @@ def certifier_decompte(
                 msg("passation.decompte_definitif", statut=courant.statut),
             )
         if courant.soumis_par == utilisateur.id:
-            _refuser("passation.decompte_meme_personne")
+            refuser("passation.decompte_meme_personne")
         if date_certification < courant.date_decompte:
-            _refuser("passation.decompte_date_anterieure", date=courant.date_decompte.isoformat())
+            refuser("passation.decompte_date_anterieure", date=courant.date_decompte.isoformat())
         engagement_v = Engagement.objects.select_for_update().get(pk=engagement.pk)
         if engagement_v.ligne_passation_id != verrouille_contrat.ligne_id:
-            _refuser("passation.decompte_autre_engagement", reference=engagement_v.reference)
+            refuser("passation.decompte_autre_engagement", reference=engagement_v.reference)
         projet = Projet.objects.get(pk=courant.project_id)
         if montant_apure is None:
             if projet.base_currency != verrouille_contrat.devise:
-                _refuser(
+                refuser(
                     "passation.decompte_devise_differente",
                     contrat=verrouille_contrat.devise,
                     projet=projet.base_currency,
                 )
             apure = courant.montant_brut
         else:
-            apure = _nombre(montant_apure, "montant_apure")
+            apure = nombre_decimal(montant_apure, "montant_apure")
             if projet.base_currency == verrouille_contrat.devise and apure != courant.montant_brut:
-                _refuser("passation.decompte_apurement_different")
+                refuser("passation.decompte_apurement_different")
         certifie_avant = (
             Decompte.objects.filter(contrat=verrouille_contrat, statut=StatutDecompte.CERTIFIE)
             .exclude(pk=courant.pk)
@@ -166,7 +142,7 @@ def certifier_decompte(
         )
         plafond = montant_courant(verrouille_contrat)
         if certifie_avant + courant.montant_brut > plafond:
-            _refuser(
+            refuser(
                 "passation.decompte_depasse_contrat",
                 total=certifie_avant + courant.montant_brut,
                 plafond=plafond,
@@ -179,7 +155,7 @@ def certifier_decompte(
             .first()
         )
         if recul is not None and courant.avancement_physique < recul:
-            _refuser(
+            refuser(
                 "passation.decompte_avancement_recule",
                 avancement=courant.avancement_physique,
                 precedent=recul,
@@ -223,9 +199,9 @@ def certifier_decompte(
 def rejeter_decompte(
     *, utilisateur, decompte: Decompte, date_decision: datetime.date, motif: str
 ) -> Decompte:
-    _habilite(utilisateur, "valider", decompte.project_id)
+    habilite(utilisateur, "valider", decompte.project_id)
     if not (motif or "").strip():
-        _refuser("passation.decompte_rejet_motive")
+        refuser("passation.decompte_rejet_motive")
     with transaction.atomic():
         courant = Decompte.objects.select_for_update().get(pk=decompte.pk)
         if courant.statut != StatutDecompte.SOUMIS:
@@ -234,7 +210,7 @@ def rejeter_decompte(
                 msg("passation.decompte_definitif", statut=courant.statut),
             )
         if date_decision < courant.date_decompte:
-            _refuser("passation.decompte_date_anterieure", date=courant.date_decompte.isoformat())
+            refuser("passation.decompte_date_anterieure", date=courant.date_decompte.isoformat())
         courant.statut = StatutDecompte.REJETE
         courant.decide_par = utilisateur.id
         courant.date_decision = date_decision
@@ -263,23 +239,23 @@ def enregistrer_paiement(
     *, utilisateur, decompte: Decompte, reference: str, date_paiement: datetime.date, montant
 ) -> Paiement:
     """Enregistre un paiement sur un décompte certifié, sans dépasser son net (brut − retenue)."""
-    _habilite(utilisateur, "saisir", decompte.project_id)
+    habilite(utilisateur, "saisir", decompte.project_id)
     if not (reference or "").strip():
-        _refuser("passation.code_obligatoire")
-    montant = _nombre(montant, "montant")
+        refuser("passation.code_obligatoire")
+    montant = nombre_decimal(montant, "montant")
     try:
         with transaction.atomic():
             courant = Decompte.objects.select_for_update().get(pk=decompte.pk)
             if courant.statut != StatutDecompte.CERTIFIE:
-                _refuser("passation.paiement_decompte_non_certifie", numero=courant.numero)
+                refuser("passation.paiement_decompte_non_certifie", numero=courant.numero)
             deja = (
                 Paiement.objects.filter(decompte=courant).aggregate(t=Sum("montant"))["t"] or ZERO
             )
             net = courant.montant_brut - courant.retenue
             if deja + montant > net:
-                _refuser("passation.paiement_depasse_net", reste=net - deja, montant=montant)
+                refuser("passation.paiement_depasse_net", reste=net - deja, montant=montant)
             if date_paiement < courant.date_decision:
-                _refuser(
+                refuser(
                     "passation.paiement_date_anterieure", date=courant.date_decision.isoformat()
                 )
             paiement = Paiement.objects.create(
@@ -301,8 +277,16 @@ def enregistrer_paiement(
                 project_id=courant.project_id,
                 after={"reference": paiement.reference, "montant": str(montant)},
             )
-    except IntegrityError:
-        _refuser("passation.paiement_existe", reference=reference.strip())
+    except IntegrityError as erreur:
+        raise traduire_integrite(
+            erreur,
+            {
+                "uq_paiement_reference": (
+                    "passation.paiement_existe",
+                    {"reference": reference.strip()},
+                )
+            },
+        ) from erreur
     return paiement
 
 
@@ -318,19 +302,19 @@ class SituationContrat:
     paye: Decimal
     reste_a_payer: Decimal  # net certifié − payé
     taux_financier: Decimal  # certifié / montant courant, en %
-    taux_physique: Decimal  # avancement du dernier décompte certifié, en %
+    taux_physique: Decimal  # avancement cumulé le plus élevé des décomptes certifiés, en %
 
 
 def situation_contrat(*, utilisateur, contrat: Contrat) -> SituationContrat:
     """Les soldes du contrat, calculés depuis les décomptes certifiés et les paiements."""
-    _habilite(utilisateur, "consulter", contrat.project_id)
+    habilite(utilisateur, "consulter", contrat.project_id)
     certifies = Decompte.objects.filter(contrat=contrat, statut=StatutDecompte.CERTIFIE)
     totaux = certifies.aggregate(brut=Sum("montant_brut"), retenue=Sum("retenue"))
     certifie = totaux["brut"] or ZERO
     net = certifie - (totaux["retenue"] or ZERO)
     paye = Paiement.objects.filter(decompte__in=certifies).aggregate(t=Sum("montant"))["t"] or ZERO
     courant = montant_courant(contrat)
-    dernier = certifies.order_by("-numero").first()
+    avancement_max = certifies.aggregate(m=Max("avancement_physique"))["m"]
     return SituationContrat(
         montant_courant=courant,
         certifie=certifie,
@@ -339,5 +323,5 @@ def situation_contrat(*, utilisateur, contrat: Contrat) -> SituationContrat:
         paye=paye,
         reste_a_payer=net - paye,
         taux_financier=(certifie * CENT / courant).quantize(Decimal("0.01")),
-        taux_physique=dernier.avancement_physique if dernier else ZERO,
+        taux_physique=avancement_max if avancement_max is not None else ZERO,
     )

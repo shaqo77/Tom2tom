@@ -739,6 +739,19 @@ Généré depuis les modèles : table, colonne, type, description, relations. **
 > - **Ce que le scénario ne prouve pas** (couvert par les tests propres de chaque tâche, mutations vérifiées) : le refus d'un engagement sans avis ou sur un marché annulé en base, le refus d'un avenant sans avis, le dépassement du montant du contrat, l'écart non justifié, l'appariement double d'un mouvement. Vérifié à la main : supprimer le blocage de l'engagement ou l'apurement du décompte fait échouer le scénario ; deux mutations (avis « avenant » d'un mauvais objet, solde du relevé injecté dans le rapprochement) ne le font pas échouer : ce sont des refus, que seuls les tests unitaires exercent.
 > - **Restent hors de ce contrôle** : l'écriture comptable du paiement d'un décompte (le paiement n'écrit rien au grand livre) ; l'import de relevés au format bancaire ; un modèle de rapport « rapprochement du compte désigné » branché sur le moteur d'états ; les API HTTP du plan de passation, des contrats et de la trésorerie ; la revue de code du lot.
 
+> **Corrections de la revue de code de L9** (`backend/tests/test_revue_corrections_l9_bd.py`, 19 tests, tous écrits pour échouer avant la correction ; migration `marches 0010`, `core/metier.py`). Neuf constats traités :
+> 1. **Journal d'audit** : `avancer_ligne` enregistrait le NOUVEAU statut comme ancien (`before` = `after`) ; l'ancien statut est désormais relevé avant la transition.
+> 2. **Avenant sous le certifié** : un avenant ne peut plus fixer un montant inférieur aux décomptes déjà certifiés, par le service et par `marches_avenant_naissance`.
+> 3. **Annulation d'une ligne engagée ou sous contrat** : refusée par le service et par `marches_ligne_garde` (un contrat, ou un engagement ouvert, bloque l'annulation ; elle redevient possible une fois l'engagement annulé).
+> 4. **Prévisions agrégées** : avec `par_axe=False`, la prévision « tous axes » l'emporte quand elle existe, sinon on additionne les axes : plus de double compte.
+> 5. **Taux physique** : maximum des avancements certifiés (la règle d'avancement compare déjà au maximum), non le décompte au plus grand numéro.
+> 6. **Violations d'intégrité** : traduites **par contrainte** (`traduire_integrite`) ; une contrainte inconnue garde le message de la base. Un second contrat sur un même marché n'est plus présenté comme « référence déjà existante ».
+> 7. **Agrégation en base** : la fenêtre des prévisions est filtrée dans la requête, et le solde comptable d'un compte est un `SUM` (plus de lignes de grand livre chargées en Python).
+> 8. **Alertes d'échéance** : quelques requêtes au lieu d'une par contrat (dernier avenant et sommes en sous-requêtes) ; un contrat **soldé** (certifié = montant courant, entièrement payé) n'alerte plus.
+> 9. **Helpers partagés** : `habilite`, `refuser`, `decimal`, `traduire_integrite` dans `core/metier.py`, utilisés par les cinq modules (un test interdit les copies).
+> - **Mutations vérifiées** (16, toutes détectées). Une avait d'abord survécu (garde SQL sur l'engagement ouvert) : test ajouté.
+> - **Limites assumées** : un contrat ne peut toujours pas être clos explicitement (il sort des alertes parce qu'il est soldé, pas parce qu'on l'a clos) ; l'annulation d'une ligne sous contrat reste impossible (aucune résiliation de contrat n'est modélisée).
+
 ---
 
 ### L9-T01 — Plan de passation
