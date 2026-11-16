@@ -113,6 +113,22 @@ def _sources_du_mapping(rapport: RapportPublie, code_mapping: str) -> list[Sourc
     ]
 
 
+def regle_de_la_rubrique(rapport: RapportPublie, code: str) -> str:
+    """La règle appliquée à une rubrique, décrite lisiblement, SANS interroger la base."""
+    ligne = next((r for r in rapport.modele["rows"] if r["code"] == code), None)
+    if ligne is None:
+        return ""
+    if ligne["type"] == "computed":
+        return f"formule {ligne['formula']}"
+    selection = ligne.get("select") or {}
+    mapping = selection.get("mapping")
+    if mapping:
+        reference = rapport.mapping_versions.get(mapping)
+        version = f"{mapping} v{reference['version']}" if reference else mapping
+        return f"mapping {version} → {selection.get('target', '')}"
+    return f"comptes {selection.get('accounts') or selection}"
+
+
 def construire_dossier(rapport: RapportPublie) -> Dossier:
     """Les lignes du dossier, une par rubrique portant une valeur, dans l'ordre du modèle."""
     rubriques = [ligne for ligne in rapport.modele["rows"] if ligne.get("type") != "heading"]

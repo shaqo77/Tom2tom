@@ -716,6 +716,19 @@ Généré depuis les modèles : table, colonne, type, description, relations. **
 > - **Ce que le scénario ne prouve pas** (couvert par les tests propres de chaque tâche, mutations vérifiées) : le refus d'un écart non nul, le conflit d'une pièce modifiée, l'archive altérée, le lien expiré.
 > - **Restent hors de ce contrôle** : le jeu de 50 000 écritures « issu d'un export réel » (le dépôt n'en a pas ; le test généré tourne avec `RUN_LENT=1`, 154 s mesurées) ; la restauration dans une **seconde base fraîchement migrée** plutôt que dans la même base débarrassée de l'organisation ; l'assistant de correspondance sauvegardable ; la production de l'export en flux pour de très grosses organisations.
 
+> **Corrections de la revue de code de L7 et L8** (`backend/tests/test_revue_corrections_l7_l8_bd.py`, 14 tests, tous écrits pour échouer avant la correction). Dix constats traités :
+> 1. **Séquences après restauration** : la restauration remet à niveau toute séquence de clé série (`core_auditlog.id`) ; sans cela, la première écriture après restauration reprenait un identifiant pris. Le test remet la séquence à 1 comme sur une instance neuve, restaure, puis journalise.
+> 2. **Une archive n'est pas crue sur parole** : le manifeste est dans l'archive, il ne l'authentifie pas. `restaurer_archive(…, sha256_attendu=…)` compare l'empreinte enregistrée à l'export (transmise hors de l'archive) ; les tables visées doivent être celles du manifeste ET des tables exportables ; chaque table doit n'avoir gagné QUE les lignes de l'organisation annoncée (comptage avant et après, et par `org_id`) ; une archive qui apporte un compte administrateur est refusée. Une archive forgée avec un manifeste recalculé ne passe pas.
+> 3. **Axe 1** : les valeurs se résolvent sur le plan de gestion du rang 1, plus sur n'importe quel plan portant le même code (balance d'origine, validation et écriture).
+> 4. **Périmètre de l'archive** : `construire_archive` refuse si le périmètre posé n'est pas celui de l'organisation demandée (archive vide ou d'une autre organisation).
+> 5. **Téléchargement** : l'archive stockée est re-hachée avant d'être servie (409 sinon).
+> 6. **Exports interrompus** : `recuperer_exports_bloques` (appelée par `produire_exports`) passe en échec ceux restés `en_cours` au-delà d'un délai ; la demande d'export n'entre plus dans l'archive.
+> 7. **Erreurs de reprise** : elles nomment la pièce par SA source (`OD/P003 (2026-04-05)`), plus par un morceau de hash.
+> 8. **Signature** : ni l'ouvreur, ni celui qui a chargé la balance ou l'historique, ni celui qui a produit le rapport ne peut le signer.
+> 9. **Descente** : la règle d'une cellule se décrit sans reconstruire le dossier ; les lignes sont paginées (`limite` ≤ 5 000, `decalage`), la somme portant sur TOUTES les lignes. La mémoire reste proportionnelle au nombre de lignes de la cellule : la pagination borne la réponse, pas le calcul.
+> 10. **Réponses HTTP** : « fichier altéré », « scan altéré », « lien invalide » passent par le catalogue et suivent `Accept-Language`.
+> - **Limites restantes** : l'authenticité de l'archive repose sur l'empreinte transmise hors de l'archive (l'opérateur doit la fournir) ; sans elle, la restauration protège de la corruption et de l'injection entre organisations, pas d'une archive forgée de bout en bout pour la MÊME organisation.
+
 ---
 
 # LOT L9 — MARCHÉS, NON-OBJECTIONS ET TRÉSORERIE

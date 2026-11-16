@@ -22,7 +22,7 @@ from niveau4_reporting.moteur.compilateur import compiler
 from niveau4_reporting.moteur.formules import evaluer, references
 from niveau4_reporting.moteur.tracabilite import tracer
 
-from .dossier import construire_dossier
+from .dossier import regle_de_la_rubrique
 from .models import RapportPublie
 from .rapports import SEP, _tables_par_code
 
@@ -84,9 +84,7 @@ def descendre_cellule(rapport: RapportPublie, rubrique: str, colonne: str) -> De
     ligne_modele = next((r for r in rapport.modele["rows"] if r["code"] == rubrique), None)
     if ligne_modele is None or ligne_modele.get("type") not in ("aggregate", "computed"):
         raise CelluleInconnue(f"{rubrique}/{colonne}")  # un intitulé n'a pas de cellule à tracer
-    regle = next(
-        (ligne.regle for ligne in construire_dossier(rapport).lignes if ligne.code == rubrique), ""
-    )
+    regle = regle_de_la_rubrique(rapport, rubrique)
     if ligne_modele["type"] == "computed":
         codes = [r["code"] for r in rapport.modele["rows"]]
         dependances = sorted(references(ligne_modele["formula"], codes))

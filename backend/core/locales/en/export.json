@@ -1,6 +1,8 @@
 {
+  "export.archive_alteree": "The stored archive no longer matches its recorded fingerprint: it has been tampered with",
   "export.duree_limitee": "An export link lasts from 1 minute to 24 hours",
   "export.habilitation_requise": "The full export requires the “exporter” permission on every project of the organisation",
   "export.lien_invalide": "Invalid or expired export link",
-  "export.pas_pret": "This export is not ready"
+  "export.pas_pret": "This export is not ready",
+  "export.perimetre_incoherent": "The organisation scope is not set for this export: the archive would be empty or another organisation's"
 }

@@ -31,6 +31,6 @@
   "reprise.piece_desequilibree": "document {piece} unbalanced by {ecart}",
   "reprise.piece_ou_date_invalide": "missing document number or unreadable date",
   "reprise.rapport_depasse": "A more recent check exists: sign the latest report",
-  "reprise.signataire_distinct": "Whoever opened the migration does not sign it: another authorised person is required",
+  "reprise.signataire_distinct": "Whoever opened, loaded or checked the migration does not sign it: another authorised person is required",
   "reprise.tiers_inconnu": "unknown third party “{tiers}”"
 }

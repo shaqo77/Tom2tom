@@ -1,5 +1,9 @@
 {
+  "restauration.compte_privilegie": "L'archive contient un compte privilégié (administrateur) : refusé",
+  "restauration.empreinte_attendue": "L'empreinte de l'archive ne correspond pas à celle enregistrée à l'export : ce n'est pas l'archive exportée",
   "restauration.fichier_altere": "Le fichier « {nom} » de l'archive ne correspond pas à son empreinte du manifeste",
   "restauration.instance_non_vierge": "L'organisation {organisation} existe déjà dans cette instance : la restauration exige une instance vierge pour elle",
-  "restauration.lignes_differentes": "Table {table} : {obtenu} ligne(s) restaurée(s), {attendu} attendue(s)"
+  "restauration.lignes_differentes": "Table {table} : {obtenu} ligne(s) restaurée(s), {attendu} attendue(s)",
+  "restauration.lignes_etrangeres": "Table {table} : l'archive a ajouté des lignes qui ne sont pas celles de l'organisation annoncée",
+  "restauration.table_inattendue": "L'archive vise la table « {table} », qui n'est pas une table exportée"
 }

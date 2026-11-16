@@ -31,6 +31,6 @@
   "reprise.piece_desequilibree": "pièce {piece} déséquilibrée de {ecart}",
   "reprise.piece_ou_date_invalide": "numéro de pièce absent ou date illisible",
   "reprise.rapport_depasse": "Un contrôle plus récent existe : signez le dernier rapport",
-  "reprise.signataire_distinct": "Celui qui a ouvert la reprise ne la signe pas : une autre personne habilitée est requise",
+  "reprise.signataire_distinct": "Celui qui a ouvert, chargé ou contrôlé la reprise ne la signe pas : une autre personne habilitée est requise",
   "reprise.tiers_inconnu": "tiers « {tiers} » inconnu"
 }

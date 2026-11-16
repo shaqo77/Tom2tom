@@ -1,12 +1,15 @@
 {
   "auditeur.duree_limitee": "An auditor access lasts from 1 to {maximum} days",
+  "auditeur.fichier_altere": "The stored file no longer matches its fingerprint: it has been tampered with",
   "auditeur.habilitation_requise": "You are not authorised to manage this project's auditor accesses",
   "auditeur.jeton_expire": "This auditor token has expired",
   "auditeur.jeton_invalide": "Invalid auditor token",
   "auditeur.jeton_revoque": "This auditor token has been revoked",
   "auditeur.nom_obligatoire": "The auditor has a name",
+  "auditeur.pagination_invalide": "Invalid pagination: “limite” and “decalage” are non-negative integers",
   "auditeur.plage_vide": "The period range is empty: the end must follow the start",
   "auditeur.projet_hors_perimetre": "This project is outside your access scope",
   "auditeur.projet_introuvable": "One of the named projects does not exist in your organisation",
-  "auditeur.projets_obligatoires": "An auditor access names at least one project"
+  "auditeur.projets_obligatoires": "An auditor access names at least one project",
+  "auditeur.scan_altere": "The stored scan no longer matches its fingerprint: it has been tampered with"
 }

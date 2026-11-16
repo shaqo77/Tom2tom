@@ -5,6 +5,7 @@ mis à disposition par un lien signé à durée limitée. Le lien porte l'organi
 expiration, signés par la clé secrète : il ne se devine ni ne se prolonge.
 """
 
+import datetime
 import hashlib
 import time
 
@@ -86,6 +87,20 @@ def produire_export(export: ExportOrganisation) -> ExportOrganisation:
         raise
     export.refresh_from_db()
     return export
+
+
+def recuperer_exports_bloques(*, delai_minutes: int = 60) -> int:
+    """Passe en échec les exports restés « en cours » au-delà du délai (processus tué, panne).
+
+    Sans cela, un export interrompu resterait `en_cours` pour toujours : plus personne ne le
+    produit et son demandeur n'a ni lien ni erreur. Rend le nombre d'exports récupérés.
+    """
+    limite = timezone.now() - datetime.timedelta(minutes=delai_minutes)
+    return ExportOrganisation.objects.filter(
+        statut=StatutExport.EN_COURS, updated_at__lt=limite
+    ).update(
+        statut=StatutExport.ECHEC, erreur="interrompu : le processus de production s'est arrêté"
+    )
 
 
 def lien_signe(*, utilisateur, export: ExportOrganisation, duree_secondes: int = 3600) -> str:

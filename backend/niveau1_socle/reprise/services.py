@@ -66,6 +66,12 @@ HISTORIQUE = (
 )
 
 
+def _axe_un():
+    """Les valeurs de l'axe 1 : celles du plan de gestion de rang 1, pas d'un autre plan qui
+    porterait le même code (l'unicité est par plan)."""
+    return ValeurDimension.objects.filter(plan__kind="gestion", plan__slot=1)
+
+
 def _habilite(utilisateur, operation: str, project_id) -> None:
     if not est_habilite(utilisateur, operation, project_id):
         raise PermissionDenied(msg("reprise.habilitation_requise", operation=operation))
@@ -204,7 +210,7 @@ def importer_balance_origine(
     accords = set(
         Accord.objects.filter(project_id=reprise.project_id).values_list("numero", flat=True)
     )
-    axes = set(ValeurDimension.objects.values_list("code", flat=True))
+    axes = set(_axe_un().values_list("code", flat=True))
     erreurs, agregat = Erreurs(), defaultdict(lambda: [ZERO, ZERO])
     for i, r in enumerate(rangees, start=2):
         compte = r.get(colonnes["compte"], "").strip()
@@ -265,9 +271,15 @@ def importer_balance_origine(
 class _PieceSource:
     cle: str
     journal: str
+    numero: str
     date: datetime.date
     libelle: str
     lignes: list  # (compte, debit, credit, tiers, accord, axe1, libelle)
+
+    @property
+    def source(self) -> str:
+        """Comment l'utilisateur la nomme dans SON fichier : journal, numéro et date."""
+        return f"{self.journal}/{self.numero} ({self.date.isoformat()})"
 
 
 def _empreinte_piece(p: _PieceSource) -> bytes:
@@ -313,7 +325,7 @@ def _ecrire_pieces(utilisateur, reprise: Reprise, pieces: list[_PieceSource]) ->
     journaux = {j.code: j for j in Journal.objects.all()}
     comptes = {c.code: c for c in Compte.objects.all()}
     tiers = {t.code: t for t in Tiers.objects.all()}
-    axes = {v.code: v for v in ValeurDimension.objects.all()}
+    axes = {v.code: v for v in _axe_un()}
     accords = {a.numero: a.id for a in Accord.objects.filter(project_id=reprise.project_id)}
     periodes = list(Periode.objects.select_related("exercice").filter(
         exercice__project_id=reprise.project_id))  # fmt: skip
@@ -392,7 +404,7 @@ def _verifier_references(reprise: Reprise, pieces: list[_PieceSource]) -> None:
     comptes = {c.code: c for c in Compte.objects.all()}
     journaux = set(Journal.objects.values_list("code", flat=True))
     tiers = set(Tiers.objects.values_list("code", flat=True))
-    axes = set(ValeurDimension.objects.values_list("code", flat=True))
+    axes = set(_axe_un().values_list("code", flat=True))
     accords = set(
         Accord.objects.filter(project_id=reprise.project_id).values_list("numero", flat=True)
     )
@@ -404,7 +416,7 @@ def _verifier_references(reprise: Reprise, pieces: list[_PieceSource]) -> None:
                 p.lignes[0][-1] and 0 or 0, "reprise.journal_inconnu", journal=p.journal
             )
         if p.date > reprise.date_bascule:
-            erreurs.ajouter(0, "reprise.apres_la_bascule", piece=p.cle[:8], date=p.date.isoformat())
+            erreurs.ajouter(0, "reprise.apres_la_bascule", piece=p.source, date=p.date.isoformat())
         periode = next((x for x in periodes if x.date_debut <= p.date <= x.date_fin), None)
         if periode is None:
             erreurs.ajouter(0, "reprise.aucune_periode", date=p.date.isoformat())
@@ -416,7 +428,7 @@ def _verifier_references(reprise: Reprise, pieces: list[_PieceSource]) -> None:
             erreurs.ajouter(
                 0,
                 "reprise.piece_desequilibree",
-                piece=f"{p.journal}/{p.libelle}",
+                piece=p.source,
                 ecart=debit - credit,
             )
         for compte, d, c, t, a, x, _ in p.lignes:
@@ -474,6 +486,7 @@ def importer_historique(
         _PieceSource(
             cle=hashlib.sha256(f"{j}|{n}|{d.isoformat()}".encode()).hexdigest(),
             journal=j,
+            numero=n,
             date=d,
             libelle=lignes[0][-1] or f"{j} {n}",
             lignes=lignes,
@@ -502,7 +515,7 @@ def _importer_pieces(utilisateur, reprise, pieces, mode, action) -> ResultatImpo
                 msg(
                     "reprise.conflit_de_piece",
                     n=len(conflits),
-                    v1=[p.cle[:8] for p in conflits[:10]],
+                    v1=[p.source for p in conflits[:10]],
                 ),
             )
         Journal.objects.get_or_create(
@@ -545,7 +558,7 @@ def generer_soldes_ouverture(*, utilisateur, reprise: Reprise, journal: str = JO
         _refuser("reprise.balance_absente")
     piece = _PieceSource(
         cle=hashlib.sha256(f"ouverture|{reprise.id}".encode()).hexdigest(), journal=journal,
-        date=reprise.date_bascule, libelle="Soldes d'ouverture", lignes=lignes,
+        numero="ouverture", date=reprise.date_bascule, libelle="Soldes d'ouverture", lignes=lignes,
     )  # fmt: skip
     return _importer_pieces(
         utilisateur, reprise, [piece], ModeReprise.OUVERTURE, "migration_opening_loaded"
@@ -656,7 +669,12 @@ def signer_rapport(*, utilisateur, rapport: RapportReprise) -> RapportReprise:
     _habilite(utilisateur, "valider", reprise.project_id)
     with transaction.atomic():
         courant = RapportReprise.objects.select_for_update().get(pk=rapport.pk)
-        if utilisateur.id == reprise.cree_par:
+        # Ni celui qui a ouvert la reprise, ni celui qui a chargé la balance ou l'historique, ni
+        # celui qui a produit ce rapport : le signataire est un regard extérieur à la chaîne.
+        acteurs = {reprise.cree_par, courant.created_by}
+        acteurs |= set(reprise.balance.values_list("created_by", flat=True))
+        acteurs |= set(reprise.pieces.values_list("created_by", flat=True).distinct())
+        if utilisateur.id in acteurs:
             raise ErreurMetier(CodeErreur.APPROBATION_REQUISE, msg("reprise.signataire_distinct"))
         if not courant.accepte:
             raise ErreurMetier(CodeErreur.REGLE_INVALIDE, msg("reprise.ecart_non_nul"))

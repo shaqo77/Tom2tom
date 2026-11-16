@@ -7,9 +7,11 @@ dans la plage de périodes (404), puis journalise la consultation.
 import hashlib
 
 from django.http import Http404, HttpResponse
+from rest_framework.exceptions import ValidationError
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
+from core.i18n import msg
 from niveau1_socle.comptabilite import pieces as pieces_service
 from niveau1_socle.comptabilite.models import PieceJustificative
 from niveau4_reporting.publication.dossier import construire_dossier
@@ -125,7 +127,7 @@ class FichierExporte(VueAuditeur):
             raise Http404
         contenu = bytes(fichier.contenu)
         if hashlib.sha256(contenu).hexdigest() != fichier.sha256:
-            return Response({"detail": "fichier altéré"}, status=409)
+            return Response({"detail": str(msg("auditeur.fichier_altere"))}, status=409)
         journaliser_consultation(
             request, acces, project_id, "export",
             {"rapport": str(rapport.id), "fichier": str(fichier.id), "sha256": fichier.sha256},
@@ -148,6 +150,21 @@ def _ligne(ligne) -> dict:
     }
 
 
+LIMITE_PAR_DEFAUT, LIMITE_MAX = 1000, 5000
+
+
+def _pagination(request) -> tuple[int, int]:
+    """`(limite, décalage)` : bornés, jamais « tout » d'un coup."""
+    try:
+        limite = int(request.query_params.get("limite", LIMITE_PAR_DEFAUT))
+        decalage = int(request.query_params.get("decalage", 0))
+    except ValueError:
+        raise ValidationError(str(msg("auditeur.pagination_invalide"))) from None
+    if limite < 1 or decalage < 0:
+        raise ValidationError(str(msg("auditeur.pagination_invalide")))
+    return min(limite, LIMITE_MAX), decalage
+
+
 class CelluleDescente(VueAuditeur):
     """Une cellule d'un rapport publié : sa règle, ses lignes, et la preuve que la somme est la
     valeur publiée."""
@@ -159,6 +176,7 @@ class CelluleDescente(VueAuditeur):
             descente = descendre_cellule(rapport, rubrique, colonne)
         except CelluleInconnue:
             raise Http404 from None
+        limite, decalage = _pagination(request)
         detail = {"rapport": str(rapport.id), "cellule": f"{rubrique}/{colonne}"}
         journaliser_consultation(request, acces, project_id, "cellule", detail)
         return Response(
@@ -171,7 +189,13 @@ class CelluleDescente(VueAuditeur):
                 "somme": str(descente.somme),
                 "ecart": str(descente.ecart),
                 "coherente": descente.coherente,
-                "lignes": [_ligne(ligne) for ligne in descente.lignes],
+                # La somme porte sur TOUTES les lignes ; seule la page est renvoyée.
+                "nombre_de_lignes": len(descente.lignes),
+                "limite": limite,
+                "decalage": decalage,
+                "lignes": [
+                    _ligne(ligne) for ligne in descente.lignes[decalage : decalage + limite]
+                ],
                 "lignes_posterieures_a_la_publication": descente.posterieures,
                 "composantes": [
                     {"rubrique": code, "valeur_publiee": str(valeur)}
@@ -230,7 +254,7 @@ class PieceScan(VueAuditeur):
         try:
             contenu = pieces_service.lire_piece(piece)
         except pieces_service.PieceAlteree:
-            return Response({"detail": "scan altéré"}, status=409)
+            return Response({"detail": str(msg("auditeur.scan_altere"))}, status=409)
         detail = {
             "ecriture": str(ecriture_id),
             "piece": str(piece.id),

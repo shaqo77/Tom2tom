@@ -28,6 +28,8 @@ from decimal import Decimal
 from django.db import connection
 
 from core.dictionnaire import dictionnaire
+from core.erreurs import CodeErreur, ErreurMetier
+from core.i18n import msg
 from niveau1_socle.comptabilite.models import Journal, PieceJustificative, SchemaEcriture
 from niveau1_socle.organisations.models import Projet
 from niveau1_socle.referentiels.models import Compte, PlanDimension, ValeurDimension
@@ -39,7 +41,9 @@ from niveau4_reporting.publication.models import FichierRapport, RapportPublie
 
 VERSION_ARCHIVE = 1
 DATE_FIXE_ZIP = (2020, 1, 1, 0, 0, 0)
-TABLES_EXCLUES = frozenset({"publication_accesauditeur"})
+# Les jetons d'accès auditeur ne sortent pas ; une demande d'export n'est pas une donnée à restaurer
+# (son fichier et son lien n'ont de sens que dans l'instance qui les a produits).
+TABLES_EXCLUES = frozenset({"publication_accesauditeur", "reversibilite_exportorganisation"})
 TABLE_SANS_RLS = "organisations_utilisateur"  # login : lue avant de connaître l'organisation
 MARQUEUR_MOT_DE_PASSE = "!"  # un hash Django inutilisable : le compte doit être réinitialisé
 
@@ -154,6 +158,13 @@ def construire_archive(org_id, *, utilisateur_nom: str = "") -> tuple[bytes, dic
         "SET session_replication_role = replica;",
     ]
     with connection.cursor() as cur:
+        cur.execute("SELECT current_setting('app.org_id', true)")
+        if cur.fetchone()[0] != str(org_id):
+            # Sans cela, la RLS rendrait des tables vides (ou celles d'une autre organisation) sous
+            # un manifeste qui annonce `org_id` : une sauvegarde vide présentée comme complète.
+            raise ErreurMetier(
+                CodeErreur.ACCES_ORGANISATION_REFUSE, msg("export.perimetre_incoherent")
+            )
         tables = tables_exportees(cur)
         for table in tables:
             colonnes = _colonnes(cur, table)
