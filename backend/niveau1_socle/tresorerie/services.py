@@ -41,12 +41,16 @@ STATUTS_PAYES = ("acceptee", "remboursee")
 # --- le solde du relevé ------------------------------------------------------------------------
 
 
-def enregistrer_solde_releve(
-    *, utilisateur, compte: CompteBancaire, date_solde: datetime.date, solde, reference: str = ""
-) -> SoldeReleve:
-    """Enregistre le solde de clôture d'un jour, tel que le relevé le donne. Ajout seul."""
-    habilite(utilisateur, "saisir", compte.project_id)
-    solde = nombre_decimal(solde, "solde", signe="libre")
+def poser_solde_releve(
+    compte: CompteBancaire, date_solde: datetime.date, solde, reference: str, utilisateur
+) -> int:
+    """Pose le solde d'un jour. Retourne 1 s'il est posé, 0 s'il existait déjà IDENTIQUE ; un solde
+    déjà posé avec une AUTRE valeur est un conflit (refus). Habilitation : celle de l'appelant."""
+    existant = SoldeReleve.objects.filter(compte=compte, date_solde=date_solde).first()
+    if existant is not None:
+        if existant.solde != solde:
+            refuser("tresorerie.solde_existe", date=date_solde.isoformat())
+        return 0
     try:
         with transaction.atomic():
             releve = SoldeReleve.objects.create(
@@ -73,7 +77,19 @@ def enregistrer_solde_releve(
             erreur,
             {"uq_soldereleve_jour": ("tresorerie.solde_existe", {"date": date_solde.isoformat()})},
         ) from erreur
-    return releve
+    return 1
+
+
+def enregistrer_solde_releve(
+    *, utilisateur, compte: CompteBancaire, date_solde: datetime.date, solde, reference: str = ""
+) -> SoldeReleve:
+    """Enregistre le solde de clôture d'un jour, tel que le relevé le donne. Ajout seul."""
+    habilite(utilisateur, "saisir", compte.project_id)
+    solde = nombre_decimal(solde, "solde", signe="libre")
+    if SoldeReleve.objects.filter(compte=compte, date_solde=date_solde).exists():
+        refuser("tresorerie.solde_existe", date=date_solde.isoformat())
+    poser_solde_releve(compte, date_solde, solde, reference, utilisateur)
+    return SoldeReleve.objects.get(compte=compte, date_solde=date_solde)
 
 
 def solde_releve_a(compte: CompteBancaire, jour: datetime.date):

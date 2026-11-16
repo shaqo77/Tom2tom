@@ -1,0 +1,17 @@
+{
+  "releve.aucun_releve": "Le fichier ne contient aucun relevé",
+  "releve.autre_compte": "Ce relevé n'est pas celui du compte {compte}",
+  "releve.autre_devise": "Le relevé est en {releve}, le compte en {compte}",
+  "releve.champ_manquant": "Le relevé ne contient pas le champ obligatoire « {champ} »",
+  "releve.date_invalide": "Date illisible dans le relevé : {valeur}",
+  "releve.devises_differentes": "Le solde d'ouverture et le solde de clôture ne sont pas dans la même devise",
+  "releve.fichier_invalide": "Fichier vide ou trop volumineux (10 Mio au plus)",
+  "releve.format_inconnu": "Format de relevé inconnu : {format} (mt940 ou camt053)",
+  "releve.incoherent": "Relevé {reference} incohérent : ouverture {ouverture} + mouvements {mouvements} ≠ clôture {cloture}",
+  "releve.montant_invalide": "Montant illisible dans le relevé : {valeur}",
+  "releve.mouvement_illisible": "Mouvement illisible dans le relevé : {valeur}",
+  "releve.solde_illisible": "Solde illisible dans le relevé : {valeur}",
+  "releve.taux_obligatoire": "Le compte est en {devise}, devise de tenue différente : le taux de conversion est obligatoire",
+  "releve.xml_dangereux": "Fichier XML refusé : il contient une DTD ou une entité",
+  "releve.xml_illisible": "Fichier XML illisible"
+}
