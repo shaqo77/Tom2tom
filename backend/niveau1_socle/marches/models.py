@@ -123,3 +123,88 @@ class EtapeAvancement(ModeleOrganisation):
                 condition=~Q(statut="annule") | ~Q(note=""), name="etape_annulation_motivee"
             ),
         ]
+
+
+class ObjetAvis(models.TextChoices):
+    """Ce sur quoi le bailleur est consulté (liste fermée ; « autre » pour le reste)."""
+
+    DOSSIER = "dossier", "Dossier de consultation"
+    EVALUATION = "evaluation", "Rapport d'évaluation"
+    CONTRAT = "contrat", "Projet de contrat"
+    AVENANT = "avenant", "Avenant"
+    AUTRE = "autre", "Autre"
+
+
+class StatutAvis(models.TextChoices):
+    DEMANDE = "demande", "Demandé"
+    OBTENU = "obtenu", "Obtenu"
+    REFUSE = "refuse", "Refusé"
+
+
+class NaturePieceAvis(models.TextChoices):
+    DEMANDE = "demande", "Pièce de la demande"
+    REPONSE = "reponse", "Réponse du bailleur"
+
+
+class AvisNonObjection(ModeleOrganisation):
+    """Une demande d'avis de non-objection sur une ligne du plan, et sa réponse. Voir L9-T02.
+
+    Une fois décidé (obtenu ou refusé) l'avis est figé : après un refus on DEMANDE À NOUVEAU
+    (nouvel avis du même objet), le refus reste dans l'historique.
+    """
+
+    ligne = models.ForeignKey(LignePassation, on_delete=models.PROTECT, related_name="avis")
+    project_id = models.UUIDField(db_index=True)
+    objet = models.CharField(max_length=12, choices=ObjetAvis.choices)
+    statut = models.CharField(max_length=8, choices=StatutAvis.choices, default=StatutAvis.DEMANDE)
+    date_demande = models.DateField()
+    date_decision = models.DateField(null=True, blank=True)
+    reference_bailleur = models.CharField(max_length=120, blank=True, default="")
+    motif = models.TextField(blank=True, default="")
+    demande_par = models.UUIDField()
+    decide_par = models.UUIDField(null=True, blank=True)
+
+    class Meta:
+        constraints = [
+            models.CheckConstraint(
+                condition=Q(objet__in=ObjetAvis.values), name="avis_objet_ferme"
+            ),
+            models.CheckConstraint(
+                condition=Q(statut__in=StatutAvis.values), name="avis_statut_ferme"
+            ),
+            # Décidé ⇔ une date et un auteur de décision ; jamais avant la demande.
+            models.CheckConstraint(
+                condition=(
+                    Q(statut="demande", date_decision__isnull=True, decide_par__isnull=True)
+                    | (
+                        ~Q(statut="demande")
+                        & Q(date_decision__isnull=False, decide_par__isnull=False)
+                        & Q(date_decision__gte=models.F("date_demande"))
+                    )
+                ),
+                name="avis_decision_coherente",
+            ),
+            models.CheckConstraint(
+                condition=~Q(statut="refuse") | ~Q(motif=""), name="avis_refus_motive"
+            ),
+        ]
+
+
+class PieceAvis(ModeleOrganisation):
+    """Un fichier joint à un avis (demande envoyée, réponse reçue), en ajout seul."""
+
+    avis = models.ForeignKey(AvisNonObjection, on_delete=models.PROTECT, related_name="pieces")
+    nature = models.CharField(max_length=8, choices=NaturePieceAvis.choices)
+    nom = models.CharField(max_length=255)
+    file_ref = models.CharField(max_length=512)
+    sha256 = models.BinaryField()
+    taille = models.PositiveIntegerField()
+    ajoutee_par = models.UUIDField()
+
+    class Meta:
+        constraints = [
+            models.CheckConstraint(
+                condition=Q(nature__in=NaturePieceAvis.values), name="pieceavis_nature_fermee"
+            ),
+            models.UniqueConstraint(fields=["avis", "sha256"], name="uq_pieceavis_par_avis"),
+        ]

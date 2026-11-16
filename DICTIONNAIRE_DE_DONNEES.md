@@ -3,7 +3,7 @@
 Généré depuis les modèles (`python manage.py generer_dictionnaire`). Ne le modifiez pas
 à la main : un test échoue si ce fichier n'est plus celui que les modèles produisent.
 
-88 tables. « Isolée » : la table porte `org_id` et sa politique de
+90 tables. « Isolée » : la table porte `org_id` et sa politique de
 sécurité par ligne (RLS). Les contraintes nommées sont contrôlées par la base.
 
 ## Index
@@ -58,9 +58,11 @@ sécurité par ligne (RLS). Les contraintes nommées sont contrôlées par la ba
 - [`habilitations_role`](#habilitations_role) — habilitations.Role
 - [`mapping_rule`](#mapping_rule) — mapping.RegleMapping
 - [`mapping_table`](#mapping_table) — mapping.TableMapping
+- [`marches_avisnonobjection`](#marches_avisnonobjection) — marches.AvisNonObjection
 - [`marches_etapeavancement`](#marches_etapeavancement) — marches.EtapeAvancement
 - [`marches_lignepassation`](#marches_lignepassation) — marches.LignePassation
 - [`marches_methodepassation`](#marches_methodepassation) — marches.MethodePassation
+- [`marches_pieceavis`](#marches_pieceavis) — marches.PieceAvis
 - [`marches_planpassation`](#marches_planpassation) — marches.PlanPassation
 - [`niveau2_profils_elementprofil`](#niveau2_profils_elementprofil) — niveau2_profils.ElementProfil
 - [`niveau2_profils_profilbailleur`](#niveau2_profils_profilbailleur) — niveau2_profils.ProfilBailleur
@@ -238,6 +240,7 @@ Une réservation de budget : une dépense décidée, pas encore comptabilisée. 
 | `agreement_id` | uuid | oui |  |  | — |
 | `category_id` | uuid | oui |  |  | — |
 | `site_id` | uuid | oui |  |  | — |
+| `ligne_passation_id` | uuid | oui |  | `marches_lignepassation.id` | — |
 | `montant` | numeric(20, 4) | non |  |  | — |
 | `apure` | numeric(20, 4) | non |  |  | — |
 | `status` | varchar(6) | non |  |  | Statut du cycle de vie de la ligne (ensemble fermé, contrôlé par la base). |
@@ -1278,6 +1281,33 @@ Une version d'une nomenclature bailleur pour un projet.
 
 Contraintes : `mapping_dates_coherentes` (verification), `mapping_validation_obligatoire` (verification), `uq_mapping_version` (unicite)
 
+## marches_avisnonobjection
+
+Modèle `marches.AvisNonObjection` — isolée par organisation.
+
+Une demande d'avis de non-objection sur une ligne du plan, et sa réponse. Voir L9-T02.
+
+| Colonne | Type | Null | Clé | Relation | Description |
+|---|---|---|---|---|---|
+| `id` | uuid | non | PK |  | Identifiant unique (UUID) de la ligne. |
+| `created_at` | timestamp with time zone | non |  |  | Date et heure de création de la ligne. |
+| `created_by` | uuid | oui |  |  | Identifiant de l'utilisateur qui a créé la ligne. |
+| `updated_at` | timestamp with time zone | non |  |  | Date et heure de la dernière modification. |
+| `updated_by` | uuid | oui |  |  | Identifiant de l'utilisateur qui l'a modifiée en dernier. |
+| `org_id` | uuid | non |  |  | Organisation propriétaire : l'isolation des données repose dessus (RLS). |
+| `ligne_id` | uuid | non |  | `marches_lignepassation.id` | — |
+| `project_id` | uuid | non |  |  | Projet auquel la ligne se rattache (cloisonné par habilitation). |
+| `objet` | varchar(12) | non |  |  | — |
+| `statut` | varchar(8) | non |  |  | — |
+| `date_demande` | date | non |  |  | — |
+| `date_decision` | date | oui |  |  | — |
+| `reference_bailleur` | varchar(120) | non |  |  | — |
+| `motif` | text | non |  |  | — |
+| `demande_par` | uuid | non |  |  | — |
+| `decide_par` | uuid | oui |  |  | — |
+
+Contraintes : `avis_decision_coherente` (verification), `avis_objet_ferme` (verification), `avis_refus_motive` (verification), `avis_statut_ferme` (verification)
+
 ## marches_etapeavancement
 
 Modèle `marches.EtapeAvancement` — isolée par organisation.
@@ -1354,6 +1384,30 @@ Une méthode de passation, pour une plage de montants `[seuil_min, seuil_max[`, 
 | `valid_to` | date | oui |  |  | Fin de validité, EXCLUE ; vide si la ligne est ouverte. |
 
 Contraintes : `methode_plage_non_vide` (verification), `methode_seuil_min_positif` (verification), `methode_validite_coherente` (verification), `uq_methodepassation_version` (unicite)
+
+## marches_pieceavis
+
+Modèle `marches.PieceAvis` — isolée par organisation.
+
+Un fichier joint à un avis (demande envoyée, réponse reçue), en ajout seul.
+
+| Colonne | Type | Null | Clé | Relation | Description |
+|---|---|---|---|---|---|
+| `id` | uuid | non | PK |  | Identifiant unique (UUID) de la ligne. |
+| `created_at` | timestamp with time zone | non |  |  | Date et heure de création de la ligne. |
+| `created_by` | uuid | oui |  |  | Identifiant de l'utilisateur qui a créé la ligne. |
+| `updated_at` | timestamp with time zone | non |  |  | Date et heure de la dernière modification. |
+| `updated_by` | uuid | oui |  |  | Identifiant de l'utilisateur qui l'a modifiée en dernier. |
+| `org_id` | uuid | non |  |  | Organisation propriétaire : l'isolation des données repose dessus (RLS). |
+| `avis_id` | uuid | non |  | `marches_avisnonobjection.id` | — |
+| `nature` | varchar(8) | non |  |  | — |
+| `nom` | varchar(255) | non |  |  | — |
+| `file_ref` | varchar(512) | non |  |  | — |
+| `sha256` | bytea | non |  |  | Empreinte SHA-256 du contenu : preuve d'intégrité. |
+| `taille` | integer | non |  |  | — |
+| `ajoutee_par` | uuid | non |  |  | — |
+
+Contraintes : `pieceavis_nature_fermee` (verification), `uq_pieceavis_par_avis` (unicite)
 
 ## marches_planpassation
 

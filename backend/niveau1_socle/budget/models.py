@@ -173,8 +173,8 @@ class StatutEngagement(models.TextChoices):
 class Engagement(ModeleOrganisation):
     """Une réservation de budget : une dépense décidée, pas encore comptabilisée. Voir L4-T02.
 
-    Version minimale : le rattachement à un marché, l'avis de non-objection et l'apurement par les
-    décomptes arrivent avec le lot L9. Montants en monnaie de tenue du projet. Le montant non
+    Le rattachement à un marché soumis à avis de non-objection est posé en L9-T02 ; l'apurement
+    par les décomptes arrive avec L9-T04. Montants en monnaie de tenue du projet. Le montant non
     apuré (`montant - apure`, tant que l'engagement est ouvert) réduit le disponible budgétaire.
     """
 
@@ -198,6 +198,14 @@ class Engagement(ModeleOrganisation):
     agreement_id = models.UUIDField(null=True, blank=True)
     category_id = models.UUIDField(null=True, blank=True)
     site_id = models.UUIDField(null=True, blank=True)
+    # Le marché prévu au plan que cet engagement réserve (L9-T02) ; nul = engagement sans marché.
+    ligne_passation = models.ForeignKey(
+        "marches.LignePassation",
+        null=True,
+        blank=True,
+        on_delete=models.PROTECT,
+        related_name="engagements",
+    )
     montant = MontantField()
     apure = MontantField(default=0)
     status = models.CharField(

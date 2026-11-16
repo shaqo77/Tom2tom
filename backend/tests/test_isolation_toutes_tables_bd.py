@@ -36,9 +36,11 @@ from niveau1_socle.financements.services import (
     creer_compte_bancaire,
 )
 from niveau1_socle.marches.models import (
+    AvisNonObjection,
     EtapeAvancement,
     LignePassation,
     MethodePassation,
+    PieceAvis,
     PlanPassation,
 )
 from niveau1_socle.rapprochement.services import importer_mouvements, rapprocher
@@ -472,6 +474,24 @@ def _peupler(organisation, projet, profils, accord, categories):
         statut="prevu",
         date_effet=datetime.date(2026, 1, 2),
         par=dora.id,
+    )
+    avis = AvisNonObjection.objects.create(  # un avis de non-objection et sa pièce (L9-T02)
+        org_id=organisation.id,
+        ligne=ligne_passation,
+        project_id=projet.id,
+        objet="dossier",
+        date_demande=datetime.date(2026, 2, 1),
+        demande_par=dora.id,
+    )
+    PieceAvis.objects.create(
+        org_id=organisation.id,
+        avis=avis,
+        nature="demande",
+        nom="lettre.pdf",
+        file_ref="x",
+        sha256=b"\x07" * 32,
+        taille=1,
+        ajoutee_par=dora.id,
     )
     # Justification, dérogation et circuit de validation (L6-T02).
     justifier(utilisateur=amina, evaluation=evaluation, texte="Pièces attendues du fournisseur")

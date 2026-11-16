@@ -757,6 +757,14 @@ Demande, pièces, statut, date de réception. **Blocage de l'engagement tant que
 
 **Contrôle.** Un marché soumis à non-objection refuse l'engagement sans avis, et l'accepte dès réception.
 
+> **Réalisation de L9-T02** (`backend/niveau1_socle/marches/avis.py`, tables `AvisNonObjection` et `PieceAvis`, migrations `marches 0003/0004` et `budget 0007/0008`, `tests/test_avis_non_objection_bd.py`, 15 tests). Un avis a un objet (dossier, évaluation, contrat, avenant, autre), une date de demande, des pièces (demande envoyée, réponse reçue ; ajout seul, empreinte relue), puis une décision : obtenu ou refusé (motivé), datée, avec la référence du bailleur. Décidé, un avis est figé : après un refus on demande à nouveau, le refus reste dans l'historique.
+> - **Blocage de l'engagement** : `creer_engagement(..., ligne_passation=...)` refuse l'engagement d'un marché dont la méthode exige l'avis tant que l'avis n'est pas suffisant, et l'accepte dès la décision « obtenu » enregistrée. **Avis suffisant** : au moins un avis demandé, et chaque demande non obtenue (en attente ou refusée) suivie d'un avis obtenu du même objet.
+> - **Tenu aussi en base** : un déclencheur sur `budget_engagement` refuse la naissance d'un engagement sans avis suffisant, sur un marché annulé ou d'un autre projet, même créé hors du service ; le rattachement ne change plus ensuite (garde existante de l'engagement). Clé composite `(org_id, ligne_passation_id)`.
+> - **Engagement sans marché** : reste possible (dépense hors passation) ; seul un engagement rattaché à un marché soumis à avis est bloqué.
+> - **Suivi** : `avis_en_attente` liste les demandes sans réponse, les plus anciennes d'abord, avec leur ancienneté en jours.
+> - **Mutations vérifiées** (10, toutes détectées) : blocage du service, ordre des avis (service et SQL), refus non repris, marché non soumis, date de décision, motif de refus, déclencheur d'avis, marché annulé, avis figé. Trois ont d'abord survécu (marché annulé et ordre des avis en SQL, refus non repris) : tests écrits qui contournent le service pour interroger la base.
+> - **Limites assumées** : la règle ne couvre que la **naissance** de l'engagement (un avis refusé après coup ne révoque pas un engagement existant) ; l'avis de la signature du contrat n'est pas encore exigé (L9-T03) ; la décision se saisit avec l'habilitation « saisir » (pas de séparation des tâches) ; pas d'API HTTP ni de rappel automatique des avis en retard.
+
 ### L9-T03 — Contrats, avenants, garanties
 
 Contrats, avenants versionnés, garanties et assurances avec échéances et alertes.

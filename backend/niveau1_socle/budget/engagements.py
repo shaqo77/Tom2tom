@@ -35,9 +35,15 @@ def creer_engagement(
     periode: int | None = None,
     libelle: str = "",
     axes: dict | None = None,
+    ligne_passation=None,
     **identifiants,
 ) -> Engagement:
-    """Ouvre un engagement. Le montant est en monnaie de tenue du projet."""
+    """Ouvre un engagement. Le montant est en monnaie de tenue du projet.
+
+    `ligne_passation` rattache l'engagement à un marché du plan (L9-T02) : si la méthode du
+    marché exige l'avis de non-objection, l'engagement est REFUSÉ tant que l'avis n'est pas
+    obtenu. Sans marché, l'engagement reste possible (dépense hors passation).
+    """
     _habilite(utilisateur, "saisir", project_id)
     montant = Decimal(str(montant))
     if montant <= 0:
@@ -49,6 +55,8 @@ def creer_engagement(
     inconnus = set(identifiants) - set(IDENTIFIANTS_LIBRES)
     if inconnus:
         raise BudgetInvalide(msg("engagements.identifiant_inconnu", v1=sorted(inconnus)))
+    if ligne_passation is not None:
+        _verifier_marche(ligne_passation, project_id)
     with transaction.atomic():
         axes_resolus = _axes(axes)
         # Contrôle budgétaire (L4-T03), avec verrou sur les soldes : deux engagements simultanés
@@ -81,6 +89,7 @@ def creer_engagement(
             annee=annee,
             periode=periode,
             montant=montant,
+            ligne_passation=ligne_passation,
             created_by=utilisateur.id,
             **axes_resolus,
             **{cle: valeur for cle, valeur in identifiants.items() if valeur},
@@ -92,10 +101,37 @@ def creer_engagement(
             object_type="engagement",
             object_id=engagement.id,
             project_id=project_id,
-            after={"reference": engagement.reference, "montant": str(montant)},
+            after={
+                "reference": engagement.reference,
+                "montant": str(montant),
+                "marche": ligne_passation.reference if ligne_passation else None,
+            },
         )
     engagement.avertissements_budgetaires = avertissements
     return engagement
+
+
+def _verifier_marche(ligne, project_id) -> None:
+    """Le marché est du même projet, vivant, et son avis de non-objection est suffisant."""
+    from niveau1_socle.marches.avis import avis_manquants
+    from niveau1_socle.marches.models import LignePassation, StatutLigne
+
+    courante = LignePassation.objects.get(pk=ligne.pk)
+    if courante.project_id != project_id:
+        raise BudgetInvalide(msg("passation.engagement_autre_projet", reference=courante.reference))
+    if courante.statut == StatutLigne.ANNULE:
+        raise BudgetInvalide(
+            msg("passation.engagement_marche_annule", reference=courante.reference)
+        )
+    manquants = avis_manquants(courante)
+    if manquants:
+        raise BudgetInvalide(
+            msg(
+                "passation.engagement_sans_avis",
+                reference=courante.reference,
+                objets=", ".join(m for m in manquants if m) or "—",
+            )
+        )
 
 
 def apurer_engagement(engagement: Engagement, *, utilisateur, montant) -> Engagement:
