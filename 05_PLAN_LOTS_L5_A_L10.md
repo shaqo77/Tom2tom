@@ -712,6 +712,10 @@ Généré depuis les modèles : table, colonne, type, description, relations. **
 > - **Limite assumée** : les descriptions de colonnes viennent de `help_text` et du vocabulaire des colonnes techniques communes ; la plupart des colonnes métier n'ont pas encore de description (« — »). Les descriptions de table viennent des docstrings des modèles. C'est un travail de rédaction à poursuivre, que le test de fraîcheur rendra visible dans le diff à chaque ajout.
 > - **Publié ouvertement** : le fichier est à la racine du dépôt, à côté de la spécification, et le README le dit.
 
+> **Contrôle de sortie de L8** (`backend/tests/test_sortie_l8_bd.py`, 2 tests). Le premier vérifie que chaque contrôle du plan de L8 (T01 à T04) renvoie à un test qui existe. Le second déroule le scénario de bout en bout : balance d'origine chargée, historique importé **trois fois**, contrôle à écart nul, signature par une autre personne que celle qui a ouvert la reprise ; un rapport publié et scellé sur les données reprises (R110 du trimestre = 1325,75, la balance d'origine) ; export complet ; suppression de l'organisation ; restauration ; la reprise reste acceptée et signée, le scellé du rapport est identique octet pour octet et `regenerer` rend « identique ».
+> - **Ce que le scénario ne prouve pas** (couvert par les tests propres de chaque tâche, mutations vérifiées) : le refus d'un écart non nul, le conflit d'une pièce modifiée, l'archive altérée, le lien expiré.
+> - **Restent hors de ce contrôle** : le jeu de 50 000 écritures « issu d'un export réel » (le dépôt n'en a pas ; le test généré tourne avec `RUN_LENT=1`, 154 s mesurées) ; la restauration dans une **seconde base fraîchement migrée** plutôt que dans la même base débarrassée de l'organisation ; l'assistant de correspondance sauvegardable ; la production de l'export en flux pour de très grosses organisations.
+
 ---
 
 # LOT L9 — MARCHÉS, NON-OBJECTIONS ET TRÉSORERIE
