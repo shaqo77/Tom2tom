@@ -1,0 +1,12 @@
+{
+  "auditeur.duree_limitee": "An auditor access lasts from 1 to {maximum} days",
+  "auditeur.habilitation_requise": "You are not authorised to manage this project's auditor accesses",
+  "auditeur.jeton_expire": "This auditor token has expired",
+  "auditeur.jeton_invalide": "Invalid auditor token",
+  "auditeur.jeton_revoque": "This auditor token has been revoked",
+  "auditeur.nom_obligatoire": "The auditor has a name",
+  "auditeur.plage_vide": "The period range is empty: the end must follow the start",
+  "auditeur.projet_hors_perimetre": "This project is outside your access scope",
+  "auditeur.projet_introuvable": "One of the named projects does not exist in your organisation",
+  "auditeur.projets_obligatoires": "An auditor access names at least one project"
+}

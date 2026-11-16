@@ -600,6 +600,13 @@ Jeton à portée et durée limitées : projets nommés, plage de périodes, lect
 
 **Chaque consultation et chaque export sont journalisés** et consultables par l'organisation.
 
+> **Réalisation de L7-T02** (`backend/niveau4_reporting/publication/{auditeur,vues_auditeur,urls}.py`, modèle `AccesAuditeur`, migrations `publication/0008-0009`, `config/urls.py`, `tests/test_acces_auditeur_bd.py`, 30 tests, 8 mutations vérifiées). Premier point d'accès HTTP du dépôt.
+> - **Jeton** `<organisation>.<secret>` : jamais stocké (seul le SHA-256 du secret l'est). L'organisation en clair sert à poser le périmètre pour la transaction : la recherche se fait SOUS la RLS, **sans nouvelle exception à l'isolation** ; un secret faux ou une organisation devinée ne trouvent rien (401). Test d'isolation : le jeton d'une autre organisation donne 403, son secret derrière la mauvaise organisation 401.
+> - **401** : jeton absent, mal formé, inconnu, révoqué ou expiré, **sur toutes les routes** (avant même le 403). **403** : projet hors des projets nommés ; toute méthode autre que lecture. **404** : un rapport hors de la plage de périodes n'existe pas pour lui.
+> - **Durée** : 1 à 90 jours ; `expire_le` est posé à la création et la base REFUSE toute modification de l'expiration, du périmètre ou du jeton, pour tout rôle, et toute suppression : « pas de prolongation par lui-même » vaut aussi pour l'administrateur (il crée un nouvel accès). Seule la révocation se pose, une fois.
+> - **Lecture** : liste et détail des rapports publiés (valeurs, scellé, versions de mappings), dossier de conformité (citations), téléchargement des fichiers déjà produits avec leur empreinte (`X-Empreinte-SHA256`, refus 409 si le contenu ne correspond plus). **Chaque consultation et chaque export** écrit au journal d'audit de l'organisation (acteur = l'accès, adresse IP, ressource, SHA-256) ; `journal_des_acces` les rend à qui peut `parametrer` le projet, octroi et révocation compris.
+> - **Limites assumées** : l'auditeur ne peut pas FAIRE produire un export, seulement télécharger ceux qui existent (produire est une écriture de l'organisation) ; la plage porte sur la fin de période du rapport ; pas de limitation de débit ni de verrouillage après essais de jetons faux (à poser en amont, au serveur web) ; la descente jusqu'à l'écriture et à la pièce est L7-T03.
+
 **Contrôle.** Un jeton auditeur sur le projet A reçoit `403` sur le projet B ; après expiration, `401` partout ; les accès figurent au journal d'audit de l'organisation.
 
 ---

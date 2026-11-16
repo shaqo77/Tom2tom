@@ -166,3 +166,38 @@ class SoumissionBailleur(ModeleOrganisation):
                 name="soumission_issue_coherente",
             ),
         ]
+
+
+class AccesAuditeur(ModeleOrganisation):
+    """L'accès d'un auditeur externe : projets nommés, plage de périodes, lecture seule. L7-T02.
+
+    Le jeton n'est JAMAIS stocké : seul son SHA-256 l'est. Il expire tout seul (`expire_le`, posé
+    à la création et jamais prolongé : on en crée un autre) et se révoque. L'auditeur n'a aucune
+    opération d'écriture ni de prolongation : il n'a que des lectures.
+    """
+
+    nom = models.CharField(max_length=200)  # l'auditeur, tel que l'organisation le nomme
+    project_ids = models.JSONField()  # liste d'UUID en texte : les seuls projets accessibles
+    period_from = (
+        models.DateField()
+    )  # un rapport est visible si sa fin de période est dans la plage
+    period_to = models.DateField()
+    jeton_hash = models.BinaryField()
+    expire_le = models.DateTimeField()
+    cree_par = models.UUIDField()
+    revoque_le = models.DateTimeField(null=True, blank=True)
+    revoque_par = models.UUIDField(null=True, blank=True)
+
+    class Meta:
+        constraints = [
+            models.UniqueConstraint(fields=["jeton_hash"], name="uq_acces_auditeur_jeton"),
+            models.CheckConstraint(
+                condition=Q(period_from__lte=models.F("period_to")),
+                name="acces_auditeur_plage_coherente",
+            ),
+            models.CheckConstraint(
+                condition=(Q(revoque_le__isnull=True) & Q(revoque_par__isnull=True))
+                | (Q(revoque_le__isnull=False) & Q(revoque_par__isnull=False)),
+                name="acces_auditeur_revocation_tracee",
+            ),
+        ]

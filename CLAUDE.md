@@ -68,6 +68,9 @@ Les libellés sont du JSONB, jamais `label_fr`/`label_en`. Un test de convention
   les droits du propriétaire (`BYPASSRLS`) et ouvre toutes les organisations. Dans la base de test le rôle
   applicatif possède la vue et subit la RLS forcée : seul un test sur `reloptions` détecte le défaut.
   Accord, catégorie et site s'y exposent en texte d'UUID jusqu'à L4.
+- **L'accès auditeur n'ajoute aucune exception.** Son jeton est `<organisation>.<secret>` : l'organisation
+  en clair pose `app.org_id` pour la transaction (`set_config(..., true)`), puis on cherche le SHA-256 du
+  secret sous la RLS. Ne cherchez jamais un jeton sans périmètre.
 - Le projet (`project_id`) n'est **pas** isolé par RLS : le tableau de bord multi-projets et la
   consolidation l'interdisent. Il sera cloisonné par habilitation applicative (lot L1).
 - `OrganisationScopeMiddleware` ouvre **lui-même** une transaction avant `SET LOCAL app.org_id`.

@@ -52,6 +52,7 @@ from niveau4_reporting.controles.services import (
     valider_controle,
 )
 from niveau4_reporting.publication.models import (
+    AccesAuditeur,
     FichierRapport,
     MotifRejet,
     RapportPublie,
@@ -364,6 +365,16 @@ def _peupler(organisation, projet, profils, accord, categories):
         simulation=simulation,
         envoyee_le=datetime.date(2026, 5, 10),
         saisie_par=dora.id,
+    )
+    AccesAuditeur.objects.create(  # un accès auditeur (L7-T02)
+        org_id=organisation.id,
+        nom="Cabinet externe",
+        project_ids=[str(projet.id)],
+        period_from=datetime.date(2026, 1, 1),
+        period_to=datetime.date(2026, 12, 31),
+        jeton_hash=b"\x03" * 32,
+        expire_le=datetime.datetime(2099, 1, 1, tzinfo=datetime.UTC),
+        cree_par=dora.id,
     )
     # Justification, dérogation et circuit de validation (L6-T02).
     justifier(utilisateur=amina, evaluation=evaluation, texte="Pièces attendues du fournisseur")
