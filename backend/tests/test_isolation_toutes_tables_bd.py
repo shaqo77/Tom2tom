@@ -28,6 +28,7 @@ from niveau1_socle.avances.services import justifier_avance, parametrer_delai, v
 from niveau1_socle.budget.controle import parametrer_controle
 from niveau1_socle.budget.engagements import creer_engagement
 from niveau1_socle.budget.services import ajouter_ligne, approuver_version, creer_version
+from niveau1_socle.comptabilite.models import Ecriture, PieceJustificative
 from niveau1_socle.decaissements.services import preparer_demande, soumettre_demande
 from niveau1_socle.financements.cles import creer_cle, creer_version_cle
 from niveau1_socle.financements.services import (
@@ -375,6 +376,17 @@ def _peupler(organisation, projet, profils, accord, categories):
         jeton_hash=b"\x03" * 32,
         expire_le=datetime.datetime(2099, 1, 1, tzinfo=datetime.UTC),
         cree_par=dora.id,
+    )
+    PieceJustificative.objects.create(  # une pièce justificative (L7-T03)
+        org_id=organisation.id,
+        project_id=projet.id,
+        ecriture=Ecriture.objects.filter(project_id=projet.id).first(),
+        type_piece="facture",
+        nom="facture.pdf",
+        file_ref="fs://x/" + "0" * 64,
+        sha256=b"\x04" * 32,
+        taille=1,
+        ajoutee_par=dora.id,
     )
     # Justification, dérogation et circuit de validation (L6-T02).
     justifier(utilisateur=amina, evaluation=evaluation, texte="Pièces attendues du fournisseur")

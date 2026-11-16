@@ -419,3 +419,38 @@ class ANouveau(ModeleOrganisation):
 
     def __str__(self) -> str:
         return f"À-nouveaux {self.exercice_source} v{self.version}"
+
+
+class TypePiece(models.TextChoices):
+    FACTURE = "facture", "Facture"
+    BON_DE_COMMANDE = "bon_de_commande", "Bon de commande"
+    CONTRAT = "contrat", "Contrat"
+    PREUVE_DE_PAIEMENT = "preuve_de_paiement", "Preuve de paiement"
+    AUTRE = "autre", "Autre"
+
+
+class PieceJustificative(ModeleOrganisation):
+    """Un fichier scanné qui justifie une écriture. Voir L7-T03.
+
+    Le fichier vit dans le stockage adressé par le contenu (`niveau3_config.stockage`) ; ici
+    n'est gardée que sa référence et son empreinte SHA-256, relue à chaque lecture. Une pièce
+    s'AJOUTE : elle ne se modifie ni ne se supprime. Elle n'est pas une écriture du grand livre :
+    on peut joindre un scan à une écriture comptabilisée, sans la toucher.
+    """
+
+    project_id = models.UUIDField(db_index=True)
+    ecriture = models.ForeignKey(Ecriture, on_delete=models.PROTECT, related_name="pieces")
+    type_piece = models.CharField(max_length=24, choices=TypePiece.choices)
+    nom = models.CharField(max_length=255)
+    file_ref = models.CharField(max_length=512)
+    sha256 = models.BinaryField()
+    taille = models.PositiveIntegerField()
+    ajoutee_par = models.UUIDField()
+
+    class Meta:
+        constraints = [
+            models.CheckConstraint(
+                condition=Q(type_piece__in=TypePiece.values), name="piece_type_ferme"
+            ),
+            models.UniqueConstraint(fields=["ecriture", "sha256"], name="uq_piece_par_ecriture"),
+        ]

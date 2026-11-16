@@ -565,6 +565,8 @@ Enregistrer le résultat des soumissions réelles pour alimenter l'**indicateur 
 
 # LOT L7 — DOSSIER DE CONFORMITÉ ET ACCÈS AUDITEUR
 
+> **État** : L7-T01 à T03 livrées ; le contrôle de sortie du lot (descente de bout en bout en accès auditeur) est exécuté par `test_descente_de_bout_en_bout_en_acces_auditeur`.
+
 **Objectif.** Un auditeur externe descend d'une cellule du TER jusqu'à la pièce scannée, sans assistance.
 
 ---
@@ -614,6 +616,13 @@ Jeton à portée et durée limitées : projets nommés, plage de périodes, lect
 ### L7-T03 — La descente complète
 
 Depuis une cellule : rubrique → prédicat de sélection → lignes d'écriture → écriture → pièces justificatives → fichier scanné.
+
+> **Réalisation de L7-T03** (`backend/niveau4_reporting/publication/descente.py`, `niveau1_socle/comptabilite/pieces.py`, modèle `PieceJustificative`, migrations `comptabilite/0015-0016`, trois routes de plus dans `urls.py`, `tests/test_descente_complete_bd.py`, 9 tests, 8 mutations vérifiées). *Le contrôle de bout en bout du plan est un test : `test_descente_de_bout_en_bout_en_acces_auditeur`.*
+> - **Cellule** (`/cellules/<rubrique>/<colonne>/`) : rejouée avec le modèle, les mappings et les paramètres que le rapport a gardés ; rend la règle (mapping et version, comptes ou formule), les lignes (écriture, numéro, journal, date, compte, montant), la **somme**, la valeur publiée et l'**écart** (`coherente`). Une cellule calculée rend les cellules dont elle dépend et le recalcul de sa formule. Les lignes comptabilisées APRÈS la publication sont laissées de côté et comptées à part : la descente d'un rapport publié reste celle du rapport, pas celle d'aujourd'hui.
+> - **Écriture** (`/ecritures/<id>/`) : ses lignes et ses pièces ; **pièce** (`/pieces/<id>/`) : les octets du scan, après recalcul de leur SHA-256 (409 si le fichier stocké a été remplacé), empreinte en en-tête.
+> - **Pièces justificatives** : nouvelle table en ajout seul (pour tout rôle), clé composite vers l'écriture, scan dans le stockage adressé par le contenu de L5-T01 ; idempotent (mêmes octets, une seule pièce), habilitation `saisir`. Un scan se joint même à une écriture comptabilisée : c'est une annexe, pas une écriture du grand livre.
+> - **Périmètre auditeur** : projet nommé (403), écriture d'un autre projet de la même organisation introuvable (404), écriture postérieure à la plage introuvable ; chaque consultation (cellule, écriture, pièce) est journalisée.
+> - **Limites assumées** : (1) une écriture comptabilisée entre le début de la génération et son achèvement est dans le rapport mais postérieure à `published_at` : la descente la compterait « postérieure » et l'écart (`coherente: false`) le dirait au lieu de le cacher (fenêtre étroite, voir la correction de revue n°5) ; (2) aucune pièce n'existait dans le dépôt : la table et le service sont créés ici, sans écran de téléversement ; (3) l'aperçu du scan dans un navigateur (« le scan s'affiche ») est du front-end, l'API rend les octets ; (4) la descente ne passe pas encore par un identifiant de ligne stable entre rapports successifs (les lignes sont celles du grand livre).
 
 **Contrôle de bout en bout, à démontrer devant l'équipe :**
 
