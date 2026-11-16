@@ -24,6 +24,12 @@ Dossier de conception et plan de développement d'une application web de gestion
 | **[04_PLAN_LOTS_L0_A_L4.md](04_PLAN_LOTS_L0_A_L4.md)** | **Fondations.** Prototype du moteur, socle d'organisation, référentiels, grand livre, budget et financements. 40 tâches, avec code et contrôle de vérification. |
 | **[05_PLAN_LOTS_L5_A_L10.md](05_PLAN_LOTS_L5_A_L10.md)** | **Métier et différenciation.** Registre des exigences, production et scellement, dossier de conformité, accès auditeur, reprise, marchés, multi-bailleurs. Plus les annexes front-end, hors ligne, mise en production. |
 
+### Vos données vous appartiennent
+
+| Fichier | Contenu |
+|---|---|
+| **[DICTIONNAIRE_DE_DONNEES.md](DICTIONNAIRE_DE_DONNEES.md)** | **Le schéma, publié ouvertement** : chaque table, chaque colonne, son type, ses relations et ses contraintes, généré depuis le code (un test échoue s'il vieillit). Ce n'est pas un document réservé aux clients : c'est la moitié de la réversibilité. |
+
 ### Matériau de base
 
 | Fichier | Contenu |

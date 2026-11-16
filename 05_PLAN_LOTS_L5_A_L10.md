@@ -701,6 +701,10 @@ Généré depuis les modèles : table, colonne, type, description, relations. **
 
 > C'est l'inverse exact du modèle économique des concurrents. Dites-le.
 
+> **Réalisation de L8-T04** (`backend/core/dictionnaire.py`, commande `generer_dictionnaire`, `DICTIONNAIRE_DE_DONNEES.md` à la racine, `tests/test_dictionnaire.py`, 6 tests). Généré depuis les modèles : 83 tables, chaque colonne avec son type PostgreSQL, sa nullité, sa clé primaire, sa relation (`table.colonne`), les contraintes nommées de chaque table et un indicateur « isolée par organisation » ; trié, donc déterministe. **Un test échoue si le fichier publié n'est plus celui que les modèles produisent** (vérifié en l'altérant), un autre qu'aucune colonne n'est un flottant (règle 1), un autre que chaque table des modèles figure au dictionnaire avec une clé primaire.
+> - **Limite assumée** : les descriptions de colonnes viennent de `help_text` et du vocabulaire des colonnes techniques communes ; la plupart des colonnes métier n'ont pas encore de description (« — »). Les descriptions de table viennent des docstrings des modèles. C'est un travail de rédaction à poursuivre, que le test de fraîcheur rendra visible dans le diff à chaque ajout.
+> - **Publié ouvertement** : le fichier est à la racine du dépôt, à côté de la spécification, et le README le dit.
+
 ---
 
 # LOT L9 — MARCHÉS, NON-OBJECTIONS ET TRÉSORERIE
