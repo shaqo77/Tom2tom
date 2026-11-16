@@ -451,7 +451,7 @@ def _condition(c: ConditionPreparee, valeur) -> bool:
 
 def _presenter(valeur):
     if isinstance(valeur, (list, tuple)) and valeur and isinstance(valeur[0], dict):
-        return f"{len(valeur)} élément(s)"
+        return f"#{len(valeur)}"  # un nombre d'éléments, sans mot de langue
     return valeur
 
 
@@ -463,7 +463,7 @@ def evaluer(expression: ExpressionPreparee, contexte: dict) -> list[Constat]:
         valeur = _verifier_type(contexte.get(c.champ), schema[c.champ].type, c.champ)
         attendu = c.valeur
         if c.operateur is Operateur.SOMME_LTE:
-            attendu = f"somme de {c.somme_de} <= {c.valeur}"
+            attendu = f"sum({c.somme_de}) <= {c.valeur}"
         constats.append(
             Constat(c.champ, c.operateur.value, _presenter(valeur), attendu, _condition(c, valeur))
         )

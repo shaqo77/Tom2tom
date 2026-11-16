@@ -37,7 +37,8 @@ def _valider_condition(condition) -> dict | None:
     invalide = not isinstance(condition, dict) or not condition or set(condition) - CLES_CONDITION
     if not invalide and "montant_min" in condition:
         try:
-            Decimal(str(condition["montant_min"]))
+            seuil = Decimal(str(condition["montant_min"]))
+            invalide = not seuil.is_finite() or seuil < 0
         except InvalidOperation:
             invalide = True
     for cle in ("categories", "bailleurs"):
@@ -141,6 +142,36 @@ def _etapes_applicables(circuit: Circuit, contexte: dict) -> list[EtapeCircuit]:
     return [e for e in circuit.etapes.order_by("rang") if _applicable(e, contexte)]
 
 
+CHAMPS_DU_CONTEXTE = {"montant_min": "montant", "categories": "categorie", "bailleurs": "bailleur"}
+
+
+def _valider_contexte(circuit: Circuit, contexte) -> dict:
+    """Le contexte qui décide des étapes applicables : complet pour ce circuit, et bien formé.
+
+    Un contexte incomplet ne fait JAMAIS sauter une étape en silence : il est refusé.
+    """
+    contexte = {k: str(v) for k, v in (contexte or {}).items() if v is not None}
+    requis = {
+        CHAMPS_DU_CONTEXTE[cle] for etape in circuit.etapes.all() for cle in (etape.condition or {})
+    }
+    manquants = sorted(c for c in requis if not contexte.get(c))
+    if manquants:
+        raise ErreurMetier(
+            CodeErreur.REGLE_INVALIDE, msg("circuit.contexte_incomplet", v1=manquants)
+        )
+    if "montant" in contexte:
+        try:
+            montant = Decimal(contexte["montant"])
+        except InvalidOperation:
+            montant = None
+        if montant is None or not montant.is_finite() or montant < 0:
+            raise ErreurMetier(
+                CodeErreur.REGLE_INVALIDE,
+                msg("circuit.montant_invalide", montant=contexte["montant"]),
+            )
+    return contexte
+
+
 def ouvrir_demande(
     *, utilisateur, project_id, objet_type: str, objet_id, date_effet: datetime.date, contexte=None
 ) -> DemandeValidation:
@@ -153,7 +184,7 @@ def ouvrir_demande(
             CodeErreur.AUCUNE_CONFIGURATION_A_LA_DATE,
             msg("circuit.aucun_circuit", objet_type=objet_type, date=date_effet.isoformat()),
         )
-    contexte = {k: str(v) for k, v in (contexte or {}).items()}
+    contexte = _valider_contexte(circuit, contexte)
     applicables = _etapes_applicables(circuit, contexte)
     if not applicables:
         raise ErreurMetier(CodeErreur.REGLE_INVALIDE, msg("circuit.aucune_etape_applicable"))
@@ -209,6 +240,10 @@ def decider_etape(
             raise PermissionDenied(msg("circuit.habilitation_requise", operation=etape.operation))
         if utilisateur.id == courante.demandeur_id:
             raise ErreurMetier(CodeErreur.APPROBATION_REQUISE, msg("circuit.signataire_distinct"))
+        if DecisionEtape.objects.filter(demande=courante, decided_by=utilisateur.id).exists():
+            raise ErreurMetier(
+                CodeErreur.APPROBATION_REQUISE, msg("circuit.une_etape_par_personne")
+            )
         if approuver and etape.exige_controles_tranches:
             exiger_controles_tranches(
                 courante.project_id, courante.objet_type, courante.objet_id, courante.date_effet

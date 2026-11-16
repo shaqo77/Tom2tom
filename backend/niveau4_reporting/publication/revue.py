@@ -8,8 +8,9 @@ motif de rejet connu sont marqués comme tels. L'avis est :
 - `go` : rien à signaler.
 Chaque constat porte son message dans chaque langue et l'action corrective du contrôle.
 
-La simulation écrit au journal d'évaluation (déclencheur : le service `simulation_revue`) : ce
-qu'elle a vu reste traçable, comme n'importe quelle évaluation.
+La simulation est « à blanc » : elle calcule les évaluations sans les écrire au journal réel (une
+évaluation journalisée est définitive et ferait bloquer l'étape de validation de l'objet). Ce
+qu'elle a vu reste traçable dans la `SimulationRevue`, qui garde ses constats.
 """
 
 import datetime
@@ -112,6 +113,7 @@ def _constats_des_avances(utilisateur, project_id, date) -> list[_Constat]:
             objet_type="avance",
             objet_id=situation.avance.pk,
             service=SERVICE,
+            ecrire=False,  # « à blanc » : le journal réel n'en garde rien et rien ne bloque
         )
         precis = msg(
             "revue.avance_en_retard",
@@ -139,7 +141,7 @@ def _constats_des_avances(utilisateur, project_id, date) -> list[_Constat]:
 def _constats_de_l_objet(project_id, objet_type, objet_id, date) -> list[_Constat]:
     constats, vus = [], set()
     for evaluation, raison in controles_en_attente(project_id, objet_type, objet_id, date):
-        vus.add(evaluation.controle_id)
+        vus.add(evaluation.controle.code)
         constats.append(
             _Constat(
                 code=evaluation.controle.code,
@@ -154,12 +156,16 @@ def _constats_de_l_objet(project_id, objet_type, objet_id, date) -> list[_Consta
             )
         )
     dernieres: dict = {}
-    for e in EvaluationControle.objects.filter(
-        project_id=project_id, objet_type=objet_type, objet_id=objet_id
-    ).order_by("created_at", "id"):
-        dernieres[e.controle_id] = e
+    for e in (
+        EvaluationControle.objects.filter(
+            project_id=project_id, objet_type=objet_type, objet_id=objet_id
+        )
+        .select_related("controle")
+        .order_by("created_at", "id")
+    ):
+        dernieres[e.controle.code] = e
     for e in dernieres.values():
-        if e.resultat == Resultat.AVERTISSEMENT and e.controle_id not in vus:
+        if e.resultat == Resultat.AVERTISSEMENT and e.controle.code not in vus:
             constats.append(
                 _Constat(
                     code=e.controle.code,

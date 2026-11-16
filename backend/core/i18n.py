@@ -294,13 +294,13 @@ def formater_date(date, langue: str | None = None) -> str:
     return date.strftime("%d/%m/%Y") if langue == "fr" else f"{date.day} {date:%B %Y}"
 
 
-def formater_montant(valeur, langue: str | None = None) -> str:
-    """1 234 567,89 en français ; 1,234,567.89 en anglais. Deux décimales."""
+def formater_montant(valeur, langue: str | None = None, decimales: int = 2) -> str:
+    """1 234 567,89 en français ; 1,234,567.89 en anglais. `decimales` : celles de la devise."""
     langue = normaliser_langue(langue) if langue else langue_courante()
-    entier, _, decimales = f"{valeur:,.2f}".partition(".")
+    entier, _, fraction = f"{valeur:,.{decimales}f}".partition(".")
     if langue == "fr":
-        return f"{entier.replace(',', ' ')},{decimales}"
-    return f"{entier}.{decimales}"
+        return f"{entier.replace(',', ' ')}" + (f",{fraction}" if decimales else "")
+    return f"{entier}" + (f".{fraction}" if decimales else "")
 
 
 def formater_pourcentage(taux, langue: str | None = None) -> str:

@@ -5,6 +5,7 @@
   "assertions.assertions_violees": "Coherence assertions violated: {details}",
   "assertions.attend_exactement_prefixe_compte": "{NOM_BALANCE} expects exactly one account prefix",
   "assertions.comparaison_chainee_assertion_compare_deux": "chained comparison: an assertion compares two expressions",
+  "assertions.comparateur_interdit": "Forbidden comparator: {nom}",
   "assertions.constante_non_numerique": "non-numeric constant: {value!r}",
   "assertions.prefixe_compte_invalide": "invalid account prefix: {prefixe!r}",
   "assertions.prefixe_doit_etre_chaine_litterale": "the prefix of {NOM_BALANCE} must be a string literal, never a line item or an expression",

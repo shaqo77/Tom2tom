@@ -77,7 +77,7 @@ def valider(formule: str, codes_connus: list[str]) -> ast.Expression:
 
     for noeud in ast.walk(arbre):
         if not isinstance(noeud, NOEUDS_AUTORISES):
-            raise FormuleInvalide(f"construction interdite : {type(noeud).__name__}")
+            raise FormuleInvalide(msg("formules.construction_interdite", nom=type(noeud).__name__))
         if isinstance(noeud, ast.Call):
             if not isinstance(noeud.func, ast.Name) or noeud.func.id not in FONCTIONS_AUTORISEES:
                 raise FormuleInvalide(msg("formules.fonction_non_autorisee_2"))

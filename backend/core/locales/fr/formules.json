@@ -1,5 +1,6 @@
 {
   "formules.constante_non_numerique": "constante non numérique",
+  "formules.construction_interdite": "Construction interdite : {nom}",
   "formules.division_zero": "division par zéro",
   "formules.fonction_non_autorisee": "fonction non autorisée : {nom}",
   "formules.fonction_non_autorisee_2": "fonction non autorisée",

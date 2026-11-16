@@ -253,7 +253,11 @@ def _risque(nom: str, champ: str, seuil, **params) -> DefinitionControle:
 
 def risque_categorie_consommee(seuil_pct: str | None = None) -> DefinitionControle:
     """Catégorie consommée au-delà d'un seuil paramétré (en %) : un avertissement."""
-    seuil = seuil_pct or _catalogue()[1]["risque_categorie_consommee"]["defaut"]["seuil_pct"]
+    seuil = (
+        seuil_pct
+        if seuil_pct is not None
+        else _catalogue()[1]["risque_categorie_consommee"]["defaut"]["seuil_pct"]
+    )
     return _risque(
         "risque_categorie_consommee", "taux_consommation_categorie", seuil, seuil_pct=seuil
     )
@@ -261,13 +265,21 @@ def risque_categorie_consommee(seuil_pct: str | None = None) -> DefinitionContro
 
 def risque_avance_non_apuree(delai_jours: int | None = None) -> DefinitionControle:
     """Avance non apurée depuis plus d'un délai paramétré : une information."""
-    delai = delai_jours or _catalogue()[1]["risque_avance_non_apuree"]["defaut"]["delai_jours"]
+    delai = (
+        delai_jours
+        if delai_jours is not None
+        else _catalogue()[1]["risque_avance_non_apuree"]["defaut"]["delai_jours"]
+    )
     return _risque("risque_avance_non_apuree", "jours_avance_non_apuree", delai, delai_jours=delai)
 
 
 def risque_rejets_repetes(maximum: int | None = None) -> DefinitionControle:
     """Rejets répétés sur une même catégorie : une information."""
-    seuil = maximum or _catalogue()[1]["risque_rejets_repetes"]["defaut"]["maximum"]
+    seuil = (
+        maximum
+        if maximum is not None
+        else _catalogue()[1]["risque_rejets_repetes"]["defaut"]["maximum"]
+    )
     return _risque("risque_rejets_repetes", "rejets_categorie", seuil, maximum=seuil)
 
 

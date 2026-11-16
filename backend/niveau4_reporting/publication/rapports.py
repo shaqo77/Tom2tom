@@ -20,6 +20,7 @@ from django.utils import timezone
 from rest_framework.exceptions import PermissionDenied
 
 from core.audit import journaliser
+from core.erreurs import CodeErreur, ErreurMetier
 from core.i18n import msg
 from niveau1_socle.habilitations.permissions import est_habilite
 from niveau4_reporting.mapping.models import TableMapping
@@ -33,6 +34,7 @@ from .scellement import (
 )
 
 SEP = "/"  # « rubrique/colonne »
+TENTATIVES = 3
 
 
 @dataclass
@@ -104,9 +106,35 @@ def generer_rapport(
     config_version: dict | None = None,
 ) -> RapportGenere:
     """Produit le rapport (sans le publier). Une assertion fausse ou un mapping incomplet lève."""
+    where, source_params, annee, courante = _parametres_source(params)
+    if not (
+        period_from <= period_to
+        and period_to.year == annee
+        and period_to.month == courante
+        and period_from.year == annee
+    ):
+        raise ErreurMetier(
+            CodeErreur.REGLE_INVALIDE,
+            msg(
+                "rapports.periode_incoherente",
+                du=period_from.isoformat(),
+                au=period_to.isoformat(),
+                annee=annee,
+                periode=courante,
+            ),
+        )
     regles = {code: list(table.regles.all()) for code, table in tables.items()}
-    produit = generer(modele, regles, params)
-    where, source_params, _, _ = _parametres_source(params)
+    # Les valeurs et l'empreinte du jeu de données doivent décrire le MÊME état du grand livre :
+    # on lit l'empreinte avant et après la génération, et on recommence si une écriture est
+    # arrivée entre les deux (la base ne permet pas ici un instantané unique, voir la note du plan).
+    for _tentative in range(TENTATIVES):
+        avant = empreinte_jeu_de_donnees(where, source_params)
+        produit = generer(modele, regles, params)
+        apres = empreinte_jeu_de_donnees(where, source_params)
+        if avant == apres:
+            break
+    else:
+        raise ErreurMetier(CodeErreur.REGLE_INVALIDE, msg("rapports.jeu_en_mouvement"))
     return RapportGenere(
         template=SimpleNamespace(code=modele["code"]),
         template_version=modele.get("version"),
@@ -116,7 +144,7 @@ def generer_rapport(
         params=params,
         config_version=config_version or {},
         mapping_versions=versions_des_mappings(tables),
-        dataset_hash=empreinte_jeu_de_donnees(where, source_params),
+        dataset_hash=apres,
         values={
             f"{rubrique}{SEP}{colonne}": montant
             for rubrique, colonnes in produit.valeurs.items()
@@ -129,9 +157,12 @@ def publier_rapport(*, utilisateur, project_id, **champs) -> RapportPublie:
     """Génère, scelle et ENREGISTRE le rapport. Le rapport publié ne change plus."""
     if not est_habilite(utilisateur, "publier", project_id):
         raise PermissionDenied(msg("rapports.habilitation_publier"))
-    rapport = generer_rapport(
-        params={**champs.pop("params"), "project_id": str(project_id)}, **champs
-    )
+    params = {**champs.pop("params"), "project_id": str(project_id)}
+    # La date de publication est prise AVANT la génération : toute écriture comptabilisée après
+    # cet instant est « arrivée depuis la publication » pour le différentiel, et celles arrivées
+    # pendant la génération sont reprises par la relecture de l'empreinte.
+    publie_le = timezone.now()
+    rapport = generer_rapport(params=params, **champs)
     with transaction.atomic():
         publie = RapportPublie.objects.create(
             org_id=utilisateur.org_id,
@@ -148,7 +179,7 @@ def publier_rapport(*, utilisateur, project_id, **champs) -> RapportPublie:
             values={k: montant_canonique(v) for k, v in rapport.values.items()},
             seal=sceller(rapport),
             published_by=utilisateur.id,
-            published_at=timezone.now(),
+            published_at=publie_le,
             created_by=utilisateur.id,
         )
         journaliser(

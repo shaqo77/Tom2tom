@@ -154,13 +154,13 @@ def test_un_motif_inactif_ne_compte_plus(revue):
     assert _simuler(revue).avis == AvisRevue.GO_RESERVES
 
 
-def test_la_simulation_est_gardee_et_laisse_sa_trace_au_journal(revue):
+def test_la_simulation_est_gardee_telle_quelle_sans_toucher_au_journal_reel(revue):
     organisation, projet, profils, agents = revue
     _verser(projet, profils, agents, montant="1000", date=D(2026, 2, 1))
     simulation = _simuler(revue)
     assert SimulationRevue.objects.filter(pk=simulation.pk).exists()
-    evaluations = EvaluationControle.objects.filter(declencheur_nom="simulation_revue")
-    assert {e.controle.code for e in evaluations} == {"AVA-DELAI", "AVA-NON-JUSTIFIEE"}
+    assert {c["controle"] for c in simulation.constats} == {"AVA-DELAI", "AVA-NON-JUSTIFIEE"}
+    assert not EvaluationControle.objects.exists()  # « à blanc » : rien dans le journal réel
     with pytest.raises(IntegrityError), transaction.atomic():
         SimulationRevue.objects.filter(pk=simulation.pk).update(avis="go")
     with pytest.raises(IntegrityError), transaction.atomic():

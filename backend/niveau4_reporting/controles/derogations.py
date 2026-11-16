@@ -35,7 +35,7 @@ def _habilite(utilisateur, operation: str, project_id) -> None:
 def _est_la_derniere(evaluation: EvaluationControle) -> bool:
     derniere = (
         EvaluationControle.objects.filter(
-            controle_id=evaluation.controle_id,
+            controle__code=evaluation.controle.code,  # toutes versions du contrôle
             project_id=evaluation.project_id,
             objet_type=evaluation.objet_type,
             objet_id=evaluation.objet_id,

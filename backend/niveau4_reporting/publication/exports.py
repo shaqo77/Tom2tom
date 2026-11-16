@@ -18,13 +18,13 @@ import zipfile
 from decimal import Decimal
 
 import openpyxl
-from django.db import transaction
+from django.db import IntegrityError, transaction
 from openpyxl.styles import Alignment, Font
 from rest_framework.exceptions import PermissionDenied
 
 from core.audit import journaliser
 from core.erreurs import CodeErreur, ErreurMetier
-from core.i18n import LANGUES, msg
+from core.i18n import LANGUES, formater_date, formater_montant, msg
 from niveau1_socle.habilitations.permissions import est_habilite
 from niveau1_socle.referentiels.models import Devise
 from niveau3_config.services.pdf_minimal import DocumentPDF
@@ -102,7 +102,8 @@ def rendre_excel(rapport: RapportPublie, langue: str) -> bytes:
     valeurs, colonnes = _valeurs(rapport), _colonnes(rapport)
     classeur = openpyxl.Workbook()
     feuille = classeur.active
-    feuille.title = rapport.template_code[:31]
+    # Un titre de feuille Excel : 31 caractères, sans / \\ ? * [ ] : (sinon openpyxl refuse).
+    feuille.title = re.sub(r"[/\\?*\[\]:]", "-", rapport.template_code)[:31] or "Rapport"
     feuille.sheet_view.rightToLeft = langue in LANGUES_DROITE_A_GAUCHE
     feuille.append(["", *colonnes])
     for cellule in feuille[1]:
@@ -136,7 +137,11 @@ def rendre_pdf(rapport: RapportPublie, langue: str) -> bytes:
     valeurs, colonnes = _valeurs(rapport), _colonnes(rapport)
     doc = DocumentPDF(titre_court=rapport.template_code)
     doc.ajouter(rapport.template_code, "titre")
-    doc.ajouter(f"{rapport.period_from.isoformat()} — {rapport.period_to.isoformat()}", "normal")
+    doc.ajouter(
+        f"{formater_date(rapport.period_from, langue)} — "
+        f"{formater_date(rapport.period_to, langue)}",
+        "normal",
+    )
     doc.ajouter("SHA-256 " + bytes(rapport.seal).hex(), "petit")
     for ligne in rapport.modele["rows"]:
         code, titre = ligne["code"], _libelle(ligne, langue)
@@ -145,7 +150,10 @@ def rendre_pdf(rapport: RapportPublie, langue: str) -> bytes:
             continue
         doc.ajouter(f"{code} {titre}", "sous_titre")
         doc.ajouter(
-            "   ".join(f"{col}: {valeurs[code][col]:,.{decimales}f}" for col in colonnes),
+            "   ".join(
+                f"{col}: {formater_montant(valeurs[code][col], langue, decimales)}"
+                for col in colonnes
+            ),
             "retrait",
         )
     return doc.octets()
@@ -167,28 +175,37 @@ def exporter_rapport(*, utilisateur, rapport: RapportPublie, format: str, langue
     if existant is not None:
         return existant
     contenu = RENDUS[format](rapport, langue)
-    with transaction.atomic():
-        fichier = FichierRapport.objects.create(
-            org_id=rapport.org_id,
-            rapport=rapport,
-            format=format,
-            langue=langue,
-            nom=f"{rapport.template_code}_{rapport.period_to.isoformat()}_{langue}.{format}",
-            contenu=contenu,
-            sha256=hashlib.sha256(contenu).hexdigest(),
-            taille=len(contenu),
-            produit_par=utilisateur.id,
-            created_by=utilisateur.id,
-        )
-        journaliser(
-            org_id=rapport.org_id,
-            actor_id=utilisateur.id,
-            action="report_file_produced",
-            object_type="rapport_publie",
-            object_id=rapport.id,
-            project_id=rapport.project_id,
-            after={"format": format, "langue": langue, "sha256": fichier.sha256},
-        )
+    try:
+        with transaction.atomic():
+            fichier = FichierRapport.objects.create(
+                org_id=rapport.org_id,
+                rapport=rapport,
+                format=format,
+                langue=langue,
+                nom=f"{rapport.template_code}_{rapport.period_to.isoformat()}_{langue}.{format}",
+                contenu=contenu,
+                sha256=hashlib.sha256(contenu).hexdigest(),
+                taille=len(contenu),
+                produit_par=utilisateur.id,
+                created_by=utilisateur.id,
+            )
+            journaliser(
+                org_id=rapport.org_id,
+                actor_id=utilisateur.id,
+                action="report_file_produced",
+                object_type="rapport_publie",
+                object_id=rapport.id,
+                project_id=rapport.project_id,
+                after={"format": format, "langue": langue, "sha256": fichier.sha256},
+            )
+    except IntegrityError:
+        # Un export simultané du même fichier l'a créé entre-temps : on rend celui-là.
+        concurrent = FichierRapport.objects.filter(
+            rapport=rapport, format=format, langue=langue
+        ).first()
+        if concurrent is None:
+            raise
+        return concurrent
     return fichier
 
 

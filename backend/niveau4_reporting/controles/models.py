@@ -372,4 +372,9 @@ class DecisionEtape(ModeleOrganisation):
         constraints = [
             models.CheckConstraint(condition=Q(approuvee=True) | ~Q(motif=""), name="rejet_motive"),
             models.UniqueConstraint(fields=["demande", "rang"], name="uq_decision_par_etape"),
+            # Une personne ne signe qu'UNE étape d'une demande : le circuit impose des personnes
+            # distinctes, vérifié par la base et pas seulement par le service.
+            models.UniqueConstraint(
+                fields=["demande", "decided_by"], name="uq_decision_par_personne"
+            ),
         ]

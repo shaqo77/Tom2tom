@@ -162,7 +162,9 @@ def analyser_assertion(expression: str, codes_connus: list[str]) -> AssertionPre
         raise AssertionInvalide(msg("assertions.comparaison_chainee_assertion_compare_deux"))
     comparateur = COMPARATEURS.get(type(comparaison.ops[0]))
     if comparateur is None:
-        raise AssertionInvalide(f"comparateur interdit : {type(comparaison.ops[0]).__name__}")
+        raise AssertionInvalide(
+            msg("assertions.comparateur_interdit", nom=type(comparaison.ops[0]).__name__)
+        )
 
     substitution = _SubstitutionBalance()
     gauche = substitution.visit(comparaison.left)

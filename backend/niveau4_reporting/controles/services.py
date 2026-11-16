@@ -248,8 +248,12 @@ def evaluer_controle(
     utilisateur=None,
     service: str | None = None,
     accord=None,
+    ecrire: bool = True,
 ) -> EvaluationControle:
     """Évalue `controle` sur `contexte`, ÉCRIT le journal et le retourne.
+
+    Avec `ecrire=False` (simulation « à blanc »), l'évaluation est calculée et rendue sans rien
+    écrire : le journal réel ne change pas, donc aucun blocage n'en découle.
 
     Un déclencheur est exigé : un utilisateur OU un service nommé. Le contrôle doit être actif à
     `date_operation`. `accord` (facultatif) sert à noter la version du profil de décaissement
@@ -279,37 +283,40 @@ def evaluer_controle(
     resultat, message, premier_echec = decision.resultat, decision.message, decision.premier_echec
     profil = profil_en_vigueur(accord, date_operation) if accord is not None else None
     exigence_id, exigence_code, clause = _source(controle, date_operation)
-    with transaction.atomic():
-        return EvaluationControle.objects.create(
-            org_id=controle.org_id,
-            controle=controle,
-            controle_version=controle.version,
-            project_id=controle.project_id,
-            objet_type=objet_type,
-            objet_id=objet_id,
-            resultat=resultat,
-            severity=controle.severity,
-            valeur_constatee=_chaine(premier_echec.constate) if premier_echec else "",
-            valeur_attendue=(
-                f"{premier_echec.operateur} {_chaine(premier_echec.attendu)}".strip()
-                if premier_echec
-                else ""
-            ),
-            message=message.toutes(),
-            action_corrective=(
-                controle.action_corrective if resultat not in (Resultat.REUSSI,) else {}
-            ),
-            profile_version_id=profil.id if profil else None,
-            exigence_id=exigence_id,
-            exigence_code=exigence_code,
-            exigence_clause=clause,
-            evaluee_le=date_operation,
-            declencheur_type=(
-                TypeDeclencheur.UTILISATEUR if utilisateur is not None else TypeDeclencheur.SERVICE
-            ),
-            declencheur_id=utilisateur.id if utilisateur is not None else None,
-            declencheur_nom=service or "",
-        )
+    evaluation = EvaluationControle(
+        org_id=controle.org_id,
+        controle=controle,
+        controle_version=controle.version,
+        project_id=controle.project_id,
+        objet_type=objet_type,
+        objet_id=objet_id,
+        resultat=resultat,
+        severity=controle.severity,
+        valeur_constatee=_chaine(premier_echec.constate) if premier_echec else "",
+        valeur_attendue=(
+            f"{premier_echec.operateur} {_chaine(premier_echec.attendu)}".strip()
+            if premier_echec
+            else ""
+        ),
+        message=message.toutes(),
+        action_corrective=(
+            controle.action_corrective if resultat not in (Resultat.REUSSI,) else {}
+        ),
+        profile_version_id=profil.id if profil else None,
+        exigence_id=exigence_id,
+        exigence_code=exigence_code,
+        exigence_clause=clause,
+        evaluee_le=date_operation,
+        declencheur_type=(
+            TypeDeclencheur.UTILISATEUR if utilisateur is not None else TypeDeclencheur.SERVICE
+        ),
+        declencheur_id=utilisateur.id if utilisateur is not None else None,
+        declencheur_nom=service or "",
+    )
+    if ecrire:
+        with transaction.atomic():
+            evaluation.save(force_insert=True)
+    return evaluation
 
 
 def evaluer_tous(
@@ -323,6 +330,7 @@ def evaluer_tous(
     utilisateur=None,
     service: str | None = None,
     accord=None,
+    ecrire: bool = True,
 ) -> list[EvaluationControle]:
     """Évalue tous les contrôles ACTIFS de ce type : le point d'entrée des autres modules."""
     controles = (
@@ -345,6 +353,7 @@ def evaluer_tous(
             utilisateur=utilisateur,
             service=service,
             accord=accord,
+            ecrire=ecrire,
         )
         for c in controles
     ]
@@ -399,12 +408,19 @@ def controles_en_attente(
     ne bloque plus ; son résultat reste lisible dans le journal (L6-T02).
     """
     date = date or datetime.date.today()
-    evaluations = EvaluationControle.objects.filter(
-        project_id=project_id, objet_type=objet_type, objet_id=objet_id
-    ).order_by("created_at", "id")
+    evaluations = (
+        EvaluationControle.objects.filter(
+            project_id=project_id, objet_type=objet_type, objet_id=objet_id
+        )
+        .select_related("controle")
+        .order_by("created_at", "id")
+    )
+    # La dernière évaluation de chaque contrôle, TOUTES versions confondues : une version qui
+    # réussit remplace le résultat d'une version précédente, sinon un blocage de l'ancienne
+    # version ne se lèverait jamais (le journal est en ajout seul).
     dernieres: dict = {}
     for evaluation in evaluations:
-        dernieres[evaluation.controle_id] = evaluation
+        dernieres[evaluation.controle.code] = evaluation
     en_attente = []
     for evaluation in dernieres.values():
         if evaluation.resultat == Resultat.BLOQUANT:

@@ -1,3 +1,5 @@
 {
-  "rapports.habilitation_publier": "Vous n'êtes pas habilité à publier un rapport sur ce projet"
+  "rapports.habilitation_publier": "Vous n'êtes pas habilité à publier un rapport sur ce projet",
+  "rapports.jeu_en_mouvement": "Le grand livre a changé pendant la génération à plusieurs reprises : réessayez",
+  "rapports.periode_incoherente": "La période du rapport ({du} au {au}) ne correspond pas aux paramètres : exercice {annee}, période {periode}"
 }

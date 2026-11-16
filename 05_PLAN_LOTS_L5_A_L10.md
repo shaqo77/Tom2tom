@@ -549,6 +549,18 @@ Enregistrer le résultat des soumissions réelles pour alimenter l'**indicateur 
 > - **Ce que le scénario ne prouve pas** (couvert par les tests propres de chaque tâche, mutations vérifiées) : le blocage de l'étape de validation par un contrôle bloquant, l'altération d'un fichier exporté, les concurrences.
 > - **Restent hors de ce contrôle** (annexe D) : « dossier de conformité : 100 % des rubriques couvertes » (lot L7), « export → instance vierge → rapport régénéré identique » (lot L8), « aucun objet de configuration actif sans exigence source » pour les contrôles (signalé par `detecter_configuration_orpheline`, testé en L6-T01, non bloquant à l'activation), et les contrôles de performance (TER sur 200 000 lignes) qui relèvent de la campagne de charge.
 
+> **Corrections de la revue de code de L6** (`backend/tests/test_revue_corrections_bd.py`, 23 tests, tous écrits pour échouer avant la correction ; migrations `controles/0010-0011`). Dix constats traités :
+> 1. **Une nouvelle version d'un contrôle remplace l'ancienne dans le blocage** : `controles_en_attente` retient la dernière évaluation par CODE de contrôle (toutes versions), pas par version ; même règle pour « la dernière évaluation » d'une dérogation et pour la revue. Sans cela, un blocage de la v1 ne se levait jamais (journal en ajout seul).
+> 2. **La simulation de revue est « à blanc »** : `evaluer_controle(..., ecrire=False)` calcule sans rien écrire. Elle ne peut plus faire bloquer l'étape de validation d'un objet ; ses constats restent dans la `SimulationRevue`. *Remplace la phrase de T07 qui disait qu'elle écrit au journal.*
+> 3. **Le contexte d'une demande est validé** : tout champ dont dépend une étape à condition doit être fourni, un montant doit être un nombre fini positif ou nul, un seuil `NaN`/infini/négatif est refusé à la création du circuit. Un contexte incomplet ne fait plus sauter une étape en silence.
+> 4. **Une personne ne signe qu'une étape par demande** (service ET contrainte unique `uq_decision_par_personne`). *Remplace la limite de T02b « un même signataire peut signer plusieurs étapes ».*
+> 5. **La publication lit un état cohérent** : l'empreinte du jeu de données est lue avant et après la génération (jusqu'à 3 tentatives, sinon refus), la date de publication est prise avant la génération, la période du rapport doit correspondre à l'exercice et à la période des paramètres. **Limite** : sans instantané unique de la base (la transaction de la requête a déjà lu), une écriture arrivée pendant la génération peut être nommée « arrivée depuis la publication » alors qu'elle est dans le rapport ; ce défaut est du côté sûr (une cause en trop, jamais un écart « inexpliqué » à tort).
+> 6. **La contrainte de base des étapes suit `OPERATIONS`** (`voir_numero_compte` y manquait) ; un test compare les deux listes.
+> 7. **Un seuil de risque à 0 est un seuil** (`is None` au lieu de `or`).
+> 8. **Plus de français figé dans le journal ni dans les refus** : `valeur_attendue` en symboles (`sum(montant) <= 5`, `#2`), refus de formule et d'assertion par le catalogue. Le test de catalogue ne couvre pas les `f"…"` de `core/`, `conditions.py` : la garde reste un test dédié.
+> 9. **Le PDF formate comme la langue** (`1 234 567,50` en français, dates localisées) avec les décimales de la devise : `formater_montant(valeur, langue, decimales)`.
+> 10. **Export** : un code de modèle avec `/ \ ? * [ ] :` donne un titre de feuille valide ; deux exports simultanés du même fichier rendent le même fichier.
+
 ---
 
 # LOT L7 — DOSSIER DE CONFORMITÉ ET ACCÈS AUDITEUR
