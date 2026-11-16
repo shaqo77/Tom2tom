@@ -31,6 +31,10 @@ IDENTIQUES_ADMIS = {
     "guide.paragraphe",
     "guide.plafond_fixe",
     "guide.plafond_variable",
+    "dossier.document_version",
+    "dossier.ligne_sans_source",
+    "dossier.page",
+    "dossier.paragraphe",
     "enum.publication.avis_revue.go",
     "enum.publication.avis_revue.no_go",
     # Mots identiques en français et en anglais (et non des traductions oubliées) :
