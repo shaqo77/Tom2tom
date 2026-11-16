@@ -208,3 +208,129 @@ class PieceAvis(ModeleOrganisation):
             ),
             models.UniqueConstraint(fields=["avis", "sha256"], name="uq_pieceavis_par_avis"),
         ]
+
+
+class Contrat(ModeleOrganisation):
+    """Le contrat conclu pour une ligne du plan. Voir L9-T03.
+
+    Il porte sa valeur INITIALE ; les avenants portent les valeurs suivantes, sans jamais modifier
+    le contrat en place (la valeur courante est celle du dernier avenant). Un contrat par ligne.
+    """
+
+    ligne = models.OneToOneField(LignePassation, on_delete=models.PROTECT, related_name="contrat")
+    project_id = models.UUIDField(db_index=True)
+    reference = models.CharField(max_length=60)
+    tiers = models.ForeignKey("referentiels.Tiers", on_delete=models.PROTECT, related_name="+")
+    objet = models.CharField(max_length=255)
+    montant_initial = MontantField()
+    devise = models.CharField(max_length=3)
+    date_signature = models.DateField()
+    date_debut = models.DateField()
+    date_fin_initiale = models.DateField()
+
+    class Meta:
+        constraints = [
+            models.UniqueConstraint(
+                fields=["org_id", "project_id", "reference"], name="uq_contrat_reference"
+            ),
+            models.CheckConstraint(
+                condition=Q(montant_initial__gt=0), name="contrat_montant_positif"
+            ),
+            models.CheckConstraint(
+                condition=Q(date_fin_initiale__gte=models.F("date_debut")),
+                name="contrat_periode_coherente",
+            ),
+        ]
+
+
+class AvenantContrat(ModeleOrganisation):
+    """Un avenant : il PORTE la nouvelle valeur (montant total, date de fin), en ajout seul.
+
+    Numéroté sans trou par contrat. Sur un marché soumis à non-objection, il s'appuie sur un avis
+    OBTENU d'objet « avenant » que nul autre avenant n'a utilisé.
+    """
+
+    contrat = models.ForeignKey(Contrat, on_delete=models.PROTECT, related_name="avenants")
+    project_id = models.UUIDField(db_index=True)
+    numero = models.PositiveSmallIntegerField()
+    date_effet = models.DateField()
+    montant = MontantField()  # le NOUVEAU montant total du contrat
+    date_fin = models.DateField()  # la NOUVELLE date de fin
+    motif = models.TextField()
+    avis = models.OneToOneField(
+        AvisNonObjection, null=True, blank=True, on_delete=models.PROTECT, related_name="avenant"
+    )
+    cree_par = models.UUIDField()
+
+    class Meta:
+        constraints = [
+            models.UniqueConstraint(fields=["contrat", "numero"], name="uq_avenant_numero"),
+            models.CheckConstraint(condition=Q(numero__gte=1), name="avenant_numero_positif"),
+            models.CheckConstraint(
+                condition=Q(montant__gt=0), name="avenantcontrat_montant_positif"
+            ),
+            models.CheckConstraint(condition=~Q(motif=""), name="avenantcontrat_motive"),
+        ]
+
+
+class TypeGarantie(models.TextChoices):
+    BONNE_EXECUTION = "bonne_execution", "Garantie de bonne exécution"
+    AVANCE = "avance", "Garantie de restitution d'avance"
+    RETENUE = "retenue", "Garantie de retenue"
+    ASSURANCE = "assurance", "Assurance"
+
+
+class StatutGarantie(models.TextChoices):
+    ACTIVE = "active", "Active"
+    LIBEREE = "liberee", "Libérée"
+    APPELEE = "appelee", "Appelée"
+
+
+class Garantie(ModeleOrganisation):
+    """Une garantie ou assurance attachée à un contrat, avec son échéance. Voir L9-T03.
+
+    Son contenu est figé ; seul le statut avance : active → libérée (mainlevée) ou appelée.
+    Une prolongation est une NOUVELLE garantie ; l'ancienne se libère.
+    """
+
+    contrat = models.ForeignKey(Contrat, on_delete=models.PROTECT, related_name="garanties")
+    project_id = models.UUIDField(db_index=True)
+    type_garantie = models.CharField(max_length=16, choices=TypeGarantie.choices)
+    emetteur = models.CharField(max_length=255)
+    reference = models.CharField(max_length=60)
+    montant = MontantField()
+    devise = models.CharField(max_length=3)
+    date_emission = models.DateField()
+    date_echeance = models.DateField()
+    statut = models.CharField(
+        max_length=8, choices=StatutGarantie.choices, default=StatutGarantie.ACTIVE
+    )
+    date_cloture = models.DateField(null=True, blank=True)
+    note_cloture = models.TextField(blank=True, default="")
+
+    class Meta:
+        constraints = [
+            models.UniqueConstraint(
+                fields=["org_id", "contrat", "reference"], name="uq_garantie_reference"
+            ),
+            models.CheckConstraint(
+                condition=Q(type_garantie__in=TypeGarantie.values), name="garantie_type_ferme"
+            ),
+            models.CheckConstraint(
+                condition=Q(statut__in=StatutGarantie.values), name="garantie_statut_ferme"
+            ),
+            models.CheckConstraint(condition=Q(montant__gt=0), name="garantie_montant_positif"),
+            models.CheckConstraint(
+                condition=Q(date_echeance__gte=models.F("date_emission")),
+                name="garantie_periode_coherente",
+            ),
+            # Clôturée ⇔ une date de clôture ; un appel se motive.
+            models.CheckConstraint(
+                condition=(Q(statut="active", date_cloture__isnull=True))
+                | (~Q(statut="active") & Q(date_cloture__isnull=False)),
+                name="garantie_cloture_coherente",
+            ),
+            models.CheckConstraint(
+                condition=~Q(statut="appelee") | ~Q(note_cloture=""), name="garantie_appel_motive"
+            ),
+        ]

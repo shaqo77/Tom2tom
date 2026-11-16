@@ -53,7 +53,10 @@ def demander_avis(
     courante = LignePassation.objects.get(pk=ligne.pk)
     if not courante.non_objection_requise:
         _refuser("passation.avis_ligne_non_soumise", reference=courante.reference)
-    if courante.statut in (StatutLigne.SIGNE, StatutLigne.ANNULE):
+    # Un marché signé ne reçoit plus que des demandes d'avis sur ses avenants.
+    if courante.statut == StatutLigne.ANNULE or (
+        courante.statut == StatutLigne.SIGNE and objet != ObjetAvis.AVENANT
+    ):
         raise ErreurMetier(
             CodeErreur.TRANSITION_INTERDITE,
             msg("passation.ligne_definitive", statut=courante.statut),
@@ -190,10 +193,15 @@ def enregistrer_decision(
 
 
 def avis_manquants(ligne: LignePassation) -> list[str]:
-    """Les objets dont l'avis fait défaut (vide = engagement permis). `[""]` si aucun avis."""
+    """Objets (hors avenant) dont l'avis fait défaut ; vide = permis, `[""]` si aucun avis."""
     if not ligne.non_objection_requise:
         return []
-    tous = list(AvisNonObjection.objects.filter(ligne=ligne).order_by("created_at"))
+    # L'avis « avenant » vit avec le contrat : il ne conditionne pas l'engagement.
+    tous = list(
+        AvisNonObjection.objects.filter(ligne=ligne)
+        .exclude(objet=ObjetAvis.AVENANT)
+        .order_by("created_at")
+    )
     if not tous:
         return [""]
     obtenus = {a.objet: a.created_at for a in tous if a.statut == StatutAvis.OBTENU}

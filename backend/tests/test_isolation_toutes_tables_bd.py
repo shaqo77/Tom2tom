@@ -36,8 +36,11 @@ from niveau1_socle.financements.services import (
     creer_compte_bancaire,
 )
 from niveau1_socle.marches.models import (
+    AvenantContrat,
     AvisNonObjection,
+    Contrat,
     EtapeAvancement,
+    Garantie,
     LignePassation,
     MethodePassation,
     PieceAvis,
@@ -492,6 +495,47 @@ def _peupler(organisation, projet, profils, accord, categories):
         sha256=b"\x07" * 32,
         taille=1,
         ajoutee_par=dora.id,
+    )
+    # Contrat, avenant et garantie (L9-T03) : le contrat suppose un marché attribué.
+    LignePassation.objects.filter(pk=ligne_passation.pk).update(statut="attribue")
+    fournisseur = Tiers.objects.create(
+        org_id=organisation.id, code="FRN", nature="fournisseur", nom="Fournisseur"
+    )
+    contrat = Contrat.objects.create(
+        org_id=organisation.id,
+        ligne=ligne_passation,
+        project_id=projet.id,
+        reference="C-001",
+        tiers=fournisseur,
+        objet="Véhicules",
+        montant_initial=D(1000),
+        devise="USD",
+        date_signature=datetime.date(2026, 4, 1),
+        date_debut=datetime.date(2026, 4, 15),
+        date_fin_initiale=datetime.date(2026, 10, 15),
+    )
+    AvenantContrat.objects.create(
+        org_id=organisation.id,
+        contrat=contrat,
+        project_id=projet.id,
+        numero=1,
+        date_effet=datetime.date(2026, 5, 1),
+        montant=D(1200),
+        date_fin=datetime.date(2026, 12, 15),
+        motif="Extension",
+        cree_par=dora.id,
+    )
+    Garantie.objects.create(
+        org_id=organisation.id,
+        contrat=contrat,
+        project_id=projet.id,
+        type_garantie="bonne_execution",
+        emetteur="Banque",
+        reference="GBE-1",
+        montant=D(100),
+        devise="USD",
+        date_emission=datetime.date(2026, 4, 1),
+        date_echeance=datetime.date(2026, 11, 1),
     )
     # Justification, dérogation et circuit de validation (L6-T02).
     justifier(utilisateur=amina, evaluation=evaluation, texte="Pièces attendues du fournisseur")

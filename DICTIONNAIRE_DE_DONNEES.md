@@ -3,7 +3,7 @@
 Généré depuis les modèles (`python manage.py generer_dictionnaire`). Ne le modifiez pas
 à la main : un test échoue si ce fichier n'est plus celui que les modèles produisent.
 
-90 tables. « Isolée » : la table porte `org_id` et sa politique de
+93 tables. « Isolée » : la table porte `org_id` et sa politique de
 sécurité par ligne (RLS). Les contraintes nommées sont contrôlées par la base.
 
 ## Index
@@ -58,8 +58,11 @@ sécurité par ligne (RLS). Les contraintes nommées sont contrôlées par la ba
 - [`habilitations_role`](#habilitations_role) — habilitations.Role
 - [`mapping_rule`](#mapping_rule) — mapping.RegleMapping
 - [`mapping_table`](#mapping_table) — mapping.TableMapping
+- [`marches_avenantcontrat`](#marches_avenantcontrat) — marches.AvenantContrat
 - [`marches_avisnonobjection`](#marches_avisnonobjection) — marches.AvisNonObjection
+- [`marches_contrat`](#marches_contrat) — marches.Contrat
 - [`marches_etapeavancement`](#marches_etapeavancement) — marches.EtapeAvancement
+- [`marches_garantie`](#marches_garantie) — marches.Garantie
 - [`marches_lignepassation`](#marches_lignepassation) — marches.LignePassation
 - [`marches_methodepassation`](#marches_methodepassation) — marches.MethodePassation
 - [`marches_pieceavis`](#marches_pieceavis) — marches.PieceAvis
@@ -1281,6 +1284,32 @@ Une version d'une nomenclature bailleur pour un projet.
 
 Contraintes : `mapping_dates_coherentes` (verification), `mapping_validation_obligatoire` (verification), `uq_mapping_version` (unicite)
 
+## marches_avenantcontrat
+
+Modèle `marches.AvenantContrat` — isolée par organisation.
+
+Un avenant : il PORTE la nouvelle valeur (montant total, date de fin), en ajout seul.
+
+| Colonne | Type | Null | Clé | Relation | Description |
+|---|---|---|---|---|---|
+| `id` | uuid | non | PK |  | Identifiant unique (UUID) de la ligne. |
+| `created_at` | timestamp with time zone | non |  |  | Date et heure de création de la ligne. |
+| `created_by` | uuid | oui |  |  | Identifiant de l'utilisateur qui a créé la ligne. |
+| `updated_at` | timestamp with time zone | non |  |  | Date et heure de la dernière modification. |
+| `updated_by` | uuid | oui |  |  | Identifiant de l'utilisateur qui l'a modifiée en dernier. |
+| `org_id` | uuid | non |  |  | Organisation propriétaire : l'isolation des données repose dessus (RLS). |
+| `contrat_id` | uuid | non |  | `marches_contrat.id` | — |
+| `project_id` | uuid | non |  |  | Projet auquel la ligne se rattache (cloisonné par habilitation). |
+| `numero` | smallint | non |  |  | — |
+| `date_effet` | date | non |  |  | — |
+| `montant` | numeric(20, 4) | non |  |  | — |
+| `date_fin` | date | non |  |  | — |
+| `motif` | text | non |  |  | — |
+| `avis_id` | uuid | oui |  | `marches_avisnonobjection.id` | — |
+| `cree_par` | uuid | non |  |  | — |
+
+Contraintes : `avenant_numero_positif` (verification), `avenantcontrat_montant_positif` (verification), `avenantcontrat_motive` (verification), `uq_avenant_numero` (unicite)
+
 ## marches_avisnonobjection
 
 Modèle `marches.AvisNonObjection` — isolée par organisation.
@@ -1308,6 +1337,33 @@ Une demande d'avis de non-objection sur une ligne du plan, et sa réponse. Voir 
 
 Contraintes : `avis_decision_coherente` (verification), `avis_objet_ferme` (verification), `avis_refus_motive` (verification), `avis_statut_ferme` (verification)
 
+## marches_contrat
+
+Modèle `marches.Contrat` — isolée par organisation.
+
+Le contrat conclu pour une ligne du plan. Voir L9-T03.
+
+| Colonne | Type | Null | Clé | Relation | Description |
+|---|---|---|---|---|---|
+| `id` | uuid | non | PK |  | Identifiant unique (UUID) de la ligne. |
+| `created_at` | timestamp with time zone | non |  |  | Date et heure de création de la ligne. |
+| `created_by` | uuid | oui |  |  | Identifiant de l'utilisateur qui a créé la ligne. |
+| `updated_at` | timestamp with time zone | non |  |  | Date et heure de la dernière modification. |
+| `updated_by` | uuid | oui |  |  | Identifiant de l'utilisateur qui l'a modifiée en dernier. |
+| `org_id` | uuid | non |  |  | Organisation propriétaire : l'isolation des données repose dessus (RLS). |
+| `ligne_id` | uuid | non |  | `marches_lignepassation.id` | — |
+| `project_id` | uuid | non |  |  | Projet auquel la ligne se rattache (cloisonné par habilitation). |
+| `reference` | varchar(60) | non |  |  | — |
+| `tiers_id` | uuid | non |  | `referentiels_tiers.id` | — |
+| `objet` | varchar(255) | non |  |  | — |
+| `montant_initial` | numeric(20, 4) | non |  |  | — |
+| `devise` | varchar(3) | non |  |  | — |
+| `date_signature` | date | non |  |  | — |
+| `date_debut` | date | non |  |  | — |
+| `date_fin_initiale` | date | non |  |  | — |
+
+Contraintes : `contrat_montant_positif` (verification), `contrat_periode_coherente` (verification), `uq_contrat_reference` (unicite)
+
 ## marches_etapeavancement
 
 Modèle `marches.EtapeAvancement` — isolée par organisation.
@@ -1329,6 +1385,35 @@ Une étape franchie par une ligne, avec sa date et son auteur. En ajout seul.
 | `par` | uuid | non |  |  | — |
 
 Contraintes : `etape_annulation_motivee` (verification), `etape_statut_ferme` (verification), `uq_etape_une_fois` (unicite)
+
+## marches_garantie
+
+Modèle `marches.Garantie` — isolée par organisation.
+
+Une garantie ou assurance attachée à un contrat, avec son échéance. Voir L9-T03.
+
+| Colonne | Type | Null | Clé | Relation | Description |
+|---|---|---|---|---|---|
+| `id` | uuid | non | PK |  | Identifiant unique (UUID) de la ligne. |
+| `created_at` | timestamp with time zone | non |  |  | Date et heure de création de la ligne. |
+| `created_by` | uuid | oui |  |  | Identifiant de l'utilisateur qui a créé la ligne. |
+| `updated_at` | timestamp with time zone | non |  |  | Date et heure de la dernière modification. |
+| `updated_by` | uuid | oui |  |  | Identifiant de l'utilisateur qui l'a modifiée en dernier. |
+| `org_id` | uuid | non |  |  | Organisation propriétaire : l'isolation des données repose dessus (RLS). |
+| `contrat_id` | uuid | non |  | `marches_contrat.id` | — |
+| `project_id` | uuid | non |  |  | Projet auquel la ligne se rattache (cloisonné par habilitation). |
+| `type_garantie` | varchar(16) | non |  |  | — |
+| `emetteur` | varchar(255) | non |  |  | — |
+| `reference` | varchar(60) | non |  |  | — |
+| `montant` | numeric(20, 4) | non |  |  | — |
+| `devise` | varchar(3) | non |  |  | — |
+| `date_emission` | date | non |  |  | — |
+| `date_echeance` | date | non |  |  | — |
+| `statut` | varchar(8) | non |  |  | — |
+| `date_cloture` | date | oui |  |  | — |
+| `note_cloture` | text | non |  |  | — |
+
+Contraintes : `garantie_appel_motive` (verification), `garantie_cloture_coherente` (verification), `garantie_montant_positif` (verification), `garantie_periode_coherente` (verification), `garantie_statut_ferme` (verification), `garantie_type_ferme` (verification), `uq_garantie_reference` (unicite)
 
 ## marches_lignepassation
 
