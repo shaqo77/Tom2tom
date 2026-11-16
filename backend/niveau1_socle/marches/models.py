@@ -334,3 +334,97 @@ class Garantie(ModeleOrganisation):
                 condition=~Q(statut="appelee") | ~Q(note_cloture=""), name="garantie_appel_motive"
             ),
         ]
+
+
+class StatutDecompte(models.TextChoices):
+    SOUMIS = "soumis", "Soumis"
+    CERTIFIE = "certifie", "Certifié"
+    REJETE = "rejete", "Rejeté"
+
+
+class Decompte(ModeleOrganisation):
+    """Un décompte (situation) présenté sur un contrat. Voir L9-T04.
+
+    `montant_brut` est dans la devise du contrat. Certifié par une AUTRE personne que celle qui
+    l'a soumis, il apure l'engagement du marché (`montant_apure`, en monnaie de tenue du projet)
+    dans la même transaction. Certifié ou rejeté, il est définitif : on corrige par un décompte
+    suivant. Numéroté sans trou par contrat.
+    """
+
+    contrat = models.ForeignKey(Contrat, on_delete=models.PROTECT, related_name="decomptes")
+    project_id = models.UUIDField(db_index=True)
+    numero = models.PositiveSmallIntegerField()
+    date_decompte = models.DateField()
+    montant_brut = MontantField()
+    retenue = MontantField(default=0)
+    avancement_physique = models.DecimalField(max_digits=6, decimal_places=2)  # % cumulé, 0 à 100
+    facture_reference = models.CharField(max_length=60, blank=True, default="")
+    facture_date = models.DateField(null=True, blank=True)
+    soumis_par = models.UUIDField()
+    statut = models.CharField(
+        max_length=8, choices=StatutDecompte.choices, default=StatutDecompte.SOUMIS
+    )
+    decide_par = models.UUIDField(null=True, blank=True)
+    date_decision = models.DateField(null=True, blank=True)
+    engagement = models.ForeignKey(
+        "budget.Engagement",
+        null=True,
+        blank=True,
+        on_delete=models.PROTECT,
+        related_name="decomptes",
+    )
+    montant_apure = MontantField(null=True, blank=True)  # monnaie de tenue du projet
+    motif_rejet = models.TextField(blank=True, default="")
+
+    class Meta:
+        constraints = [
+            models.UniqueConstraint(fields=["contrat", "numero"], name="uq_decompte_numero"),
+            models.CheckConstraint(condition=Q(numero__gte=1), name="decompte_numero_positif"),
+            models.CheckConstraint(condition=Q(montant_brut__gt=0), name="decompte_brut_positif"),
+            models.CheckConstraint(
+                condition=Q(retenue__gte=0, retenue__lte=models.F("montant_brut")),
+                name="decompte_retenue_bornee",
+            ),
+            models.CheckConstraint(
+                condition=Q(avancement_physique__gte=0, avancement_physique__lte=100),
+                name="decompte_avancement_borne",
+            ),
+            models.CheckConstraint(
+                condition=Q(statut__in=StatutDecompte.values), name="decompte_statut_ferme"
+            ),
+            # Soumis : sans décision. Certifié : engagement, montant apuré, date, décideur ≠ auteur.
+            # Rejeté : décideur, date et motif.
+            models.CheckConstraint(
+                condition=(
+                    Q(statut="soumis", decide_par__isnull=True, engagement__isnull=True)
+                    | (
+                        Q(statut="certifie", engagement__isnull=False, montant_apure__gt=0)
+                        & Q(decide_par__isnull=False, date_decision__isnull=False)
+                        & ~Q(decide_par=models.F("soumis_par"))
+                    )
+                    | (
+                        Q(statut="rejete", engagement__isnull=True, decide_par__isnull=False)
+                        & Q(date_decision__isnull=False)
+                        & ~Q(motif_rejet="")
+                    )
+                ),
+                name="decompte_decision_coherente",
+            ),
+        ]
+
+
+class Paiement(ModeleOrganisation):
+    """Un paiement sur un décompte certifié, en ajout seul. Voir L9-T04."""
+
+    decompte = models.ForeignKey(Decompte, on_delete=models.PROTECT, related_name="paiements")
+    project_id = models.UUIDField(db_index=True)
+    reference = models.CharField(max_length=60)
+    date_paiement = models.DateField()
+    montant = MontantField()
+    enregistre_par = models.UUIDField()
+
+    class Meta:
+        constraints = [
+            models.UniqueConstraint(fields=["decompte", "reference"], name="uq_paiement_reference"),
+            models.CheckConstraint(condition=Q(montant__gt=0), name="paiement_montant_positif"),
+        ]

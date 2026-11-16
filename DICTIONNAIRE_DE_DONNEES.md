@@ -3,7 +3,7 @@
 Généré depuis les modèles (`python manage.py generer_dictionnaire`). Ne le modifiez pas
 à la main : un test échoue si ce fichier n'est plus celui que les modèles produisent.
 
-93 tables. « Isolée » : la table porte `org_id` et sa politique de
+95 tables. « Isolée » : la table porte `org_id` et sa politique de
 sécurité par ligne (RLS). Les contraintes nommées sont contrôlées par la base.
 
 ## Index
@@ -61,10 +61,12 @@ sécurité par ligne (RLS). Les contraintes nommées sont contrôlées par la ba
 - [`marches_avenantcontrat`](#marches_avenantcontrat) — marches.AvenantContrat
 - [`marches_avisnonobjection`](#marches_avisnonobjection) — marches.AvisNonObjection
 - [`marches_contrat`](#marches_contrat) — marches.Contrat
+- [`marches_decompte`](#marches_decompte) — marches.Decompte
 - [`marches_etapeavancement`](#marches_etapeavancement) — marches.EtapeAvancement
 - [`marches_garantie`](#marches_garantie) — marches.Garantie
 - [`marches_lignepassation`](#marches_lignepassation) — marches.LignePassation
 - [`marches_methodepassation`](#marches_methodepassation) — marches.MethodePassation
+- [`marches_paiement`](#marches_paiement) — marches.Paiement
 - [`marches_pieceavis`](#marches_pieceavis) — marches.PieceAvis
 - [`marches_planpassation`](#marches_planpassation) — marches.PlanPassation
 - [`niveau2_profils_elementprofil`](#niveau2_profils_elementprofil) — niveau2_profils.ElementProfil
@@ -1364,6 +1366,39 @@ Le contrat conclu pour une ligne du plan. Voir L9-T03.
 
 Contraintes : `contrat_montant_positif` (verification), `contrat_periode_coherente` (verification), `uq_contrat_reference` (unicite)
 
+## marches_decompte
+
+Modèle `marches.Decompte` — isolée par organisation.
+
+Un décompte (situation) présenté sur un contrat. Voir L9-T04.
+
+| Colonne | Type | Null | Clé | Relation | Description |
+|---|---|---|---|---|---|
+| `id` | uuid | non | PK |  | Identifiant unique (UUID) de la ligne. |
+| `created_at` | timestamp with time zone | non |  |  | Date et heure de création de la ligne. |
+| `created_by` | uuid | oui |  |  | Identifiant de l'utilisateur qui a créé la ligne. |
+| `updated_at` | timestamp with time zone | non |  |  | Date et heure de la dernière modification. |
+| `updated_by` | uuid | oui |  |  | Identifiant de l'utilisateur qui l'a modifiée en dernier. |
+| `org_id` | uuid | non |  |  | Organisation propriétaire : l'isolation des données repose dessus (RLS). |
+| `contrat_id` | uuid | non |  | `marches_contrat.id` | — |
+| `project_id` | uuid | non |  |  | Projet auquel la ligne se rattache (cloisonné par habilitation). |
+| `numero` | smallint | non |  |  | — |
+| `date_decompte` | date | non |  |  | — |
+| `montant_brut` | numeric(20, 4) | non |  |  | — |
+| `retenue` | numeric(20, 4) | non |  |  | — |
+| `avancement_physique` | numeric(6, 2) | non |  |  | — |
+| `facture_reference` | varchar(60) | non |  |  | — |
+| `facture_date` | date | oui |  |  | — |
+| `soumis_par` | uuid | non |  |  | — |
+| `statut` | varchar(8) | non |  |  | — |
+| `decide_par` | uuid | oui |  |  | — |
+| `date_decision` | date | oui |  |  | — |
+| `engagement_id` | uuid | oui |  | `budget_engagement.id` | — |
+| `montant_apure` | numeric(20, 4) | oui |  |  | — |
+| `motif_rejet` | text | non |  |  | — |
+
+Contraintes : `decompte_avancement_borne` (verification), `decompte_brut_positif` (verification), `decompte_decision_coherente` (verification), `decompte_numero_positif` (verification), `decompte_retenue_bornee` (verification), `decompte_statut_ferme` (verification), `uq_decompte_numero` (unicite)
+
 ## marches_etapeavancement
 
 Modèle `marches.EtapeAvancement` — isolée par organisation.
@@ -1469,6 +1504,29 @@ Une méthode de passation, pour une plage de montants `[seuil_min, seuil_max[`, 
 | `valid_to` | date | oui |  |  | Fin de validité, EXCLUE ; vide si la ligne est ouverte. |
 
 Contraintes : `methode_plage_non_vide` (verification), `methode_seuil_min_positif` (verification), `methode_validite_coherente` (verification), `uq_methodepassation_version` (unicite)
+
+## marches_paiement
+
+Modèle `marches.Paiement` — isolée par organisation.
+
+Un paiement sur un décompte certifié, en ajout seul. Voir L9-T04.
+
+| Colonne | Type | Null | Clé | Relation | Description |
+|---|---|---|---|---|---|
+| `id` | uuid | non | PK |  | Identifiant unique (UUID) de la ligne. |
+| `created_at` | timestamp with time zone | non |  |  | Date et heure de création de la ligne. |
+| `created_by` | uuid | oui |  |  | Identifiant de l'utilisateur qui a créé la ligne. |
+| `updated_at` | timestamp with time zone | non |  |  | Date et heure de la dernière modification. |
+| `updated_by` | uuid | oui |  |  | Identifiant de l'utilisateur qui l'a modifiée en dernier. |
+| `org_id` | uuid | non |  |  | Organisation propriétaire : l'isolation des données repose dessus (RLS). |
+| `decompte_id` | uuid | non |  | `marches_decompte.id` | — |
+| `project_id` | uuid | non |  |  | Projet auquel la ligne se rattache (cloisonné par habilitation). |
+| `reference` | varchar(60) | non |  |  | — |
+| `date_paiement` | date | non |  |  | — |
+| `montant` | numeric(20, 4) | non |  |  | — |
+| `enregistre_par` | uuid | non |  |  | — |
+
+Contraintes : `paiement_montant_positif` (verification), `uq_paiement_reference` (unicite)
 
 ## marches_pieceavis
 

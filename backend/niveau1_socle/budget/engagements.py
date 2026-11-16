@@ -135,43 +135,60 @@ def _verifier_marche(ligne, project_id) -> None:
 
 
 def apurer_engagement(engagement: Engagement, *, utilisateur, montant) -> Engagement:
-    """Apure tout ou partie d'un engagement ouvert. Apuré en totalité, il passe à « soldé »."""
+    """Apure tout ou partie d'un engagement ouvert. Apuré en totalité, il passe à « soldé ».
+
+    Un engagement rattaché à un marché (L9-T04) ne s'apure QUE par décompte certifié : l'apurement
+    à la main contournerait les soldes contractuels.
+    """
     montant = Decimal(str(montant))
     with transaction.atomic():
         courant = Engagement.objects.select_for_update().get(pk=engagement.pk)
         _habilite(utilisateur, "saisir", courant.project_id)
-        if courant.status != StatutEngagement.OUVERT:
-            raise TransitionInterdite(
-                msg(
-                    "engagements.engagement_on_apure_engagement_ouvert",
-                    reference=courant.reference,
-                    status=courant.status,
-                )
-            )
-        if montant <= 0:
-            raise BudgetInvalide(msg("engagements.montant_apurer_strictement_positif"))
-        reste = courant.montant - courant.apure
-        if montant > reste:
+        if courant.ligne_passation_id is not None:
             raise BudgetInvalide(
-                msg("engagements.on_peut_apurer_plus_reste", reste=reste, montant=montant)
+                msg("passation.apurement_par_decompte", reference=courant.reference)
             )
-        apure = courant.apure + montant
-        solde = apure == courant.montant
-        Engagement.objects.filter(pk=courant.pk).update(
-            apure=apure, status=StatutEngagement.SOLDE if solde else StatutEngagement.OUVERT
-        )
-        journaliser(
-            org_id=courant.org_id,
-            actor_id=utilisateur.id,
-            action="engagement_cleared",
-            object_type="engagement",
-            object_id=courant.id,
-            project_id=courant.project_id,
-            before={"apure": str(courant.apure)},
-            after={"apure": str(apure), "status": "solde" if solde else "ouvert"},
-        )
+        apurer_verrouille(courant, utilisateur=utilisateur, montant=montant)
     engagement.refresh_from_db()
     return engagement
+
+
+def apurer_verrouille(courant: Engagement, *, utilisateur, montant: Decimal) -> None:
+    """Apure un engagement DÉJÀ verrouillé (`select_for_update`) dans la transaction en cours.
+
+    L'habilitation est l'affaire de l'appelant : « saisir » pour l'apurement direct, « valider »
+    pour la certification d'un décompte.
+    """
+    if courant.status != StatutEngagement.OUVERT:
+        raise TransitionInterdite(
+            msg(
+                "engagements.engagement_on_apure_engagement_ouvert",
+                reference=courant.reference,
+                status=courant.status,
+            )
+        )
+    if montant <= 0:
+        raise BudgetInvalide(msg("engagements.montant_apurer_strictement_positif"))
+    reste = courant.montant - courant.apure
+    if montant > reste:
+        raise BudgetInvalide(
+            msg("engagements.on_peut_apurer_plus_reste", reste=reste, montant=montant)
+        )
+    apure = courant.apure + montant
+    solde = apure == courant.montant
+    Engagement.objects.filter(pk=courant.pk).update(
+        apure=apure, status=StatutEngagement.SOLDE if solde else StatutEngagement.OUVERT
+    )
+    journaliser(
+        org_id=courant.org_id,
+        actor_id=utilisateur.id,
+        action="engagement_cleared",
+        object_type="engagement",
+        object_id=courant.id,
+        project_id=courant.project_id,
+        before={"apure": str(courant.apure)},
+        after={"apure": str(apure), "status": "solde" if solde else "ouvert"},
+    )
 
 
 def annuler_engagement(engagement: Engagement, *, utilisateur, motif: str) -> Engagement:

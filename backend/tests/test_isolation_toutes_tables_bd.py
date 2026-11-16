@@ -27,6 +27,7 @@ from django.db import connection
 from niveau1_socle.avances.services import justifier_avance, parametrer_delai, verser_avance
 from niveau1_socle.budget.controle import parametrer_controle
 from niveau1_socle.budget.engagements import creer_engagement
+from niveau1_socle.budget.models import Engagement
 from niveau1_socle.budget.services import ajouter_ligne, approuver_version, creer_version
 from niveau1_socle.comptabilite.models import Ecriture, PieceJustificative
 from niveau1_socle.decaissements.services import preparer_demande, soumettre_demande
@@ -39,10 +40,12 @@ from niveau1_socle.marches.models import (
     AvenantContrat,
     AvisNonObjection,
     Contrat,
+    Decompte,
     EtapeAvancement,
     Garantie,
     LignePassation,
     MethodePassation,
+    Paiement,
     PieceAvis,
     PlanPassation,
 )
@@ -536,6 +539,43 @@ def _peupler(organisation, projet, profils, accord, categories):
         devise="USD",
         date_emission=datetime.date(2026, 4, 1),
         date_echeance=datetime.date(2026, 11, 1),
+    )
+    # Décompte certifié et paiement (L9-T04) : le décompte apure l'engagement du marché.
+    engagement_marche = Engagement.objects.create(
+        org_id=organisation.id,
+        project_id=projet.id,
+        reference="ENG-MARCHE",
+        annee=2026,
+        montant=D(500),
+        ligne_passation=ligne_passation,
+    )
+    decompte = Decompte.objects.create(
+        org_id=organisation.id,
+        contrat=contrat,
+        project_id=projet.id,
+        numero=1,
+        date_decompte=datetime.date(2026, 5, 1),
+        montant_brut=D(300),
+        retenue=D(30),
+        avancement_physique=D(20),
+        soumis_par=dora.id,
+    )
+    Decompte.objects.filter(pk=decompte.pk).update(
+        statut="certifie",
+        decide_par=amina.id,
+        date_decision=datetime.date(2026, 5, 10),
+        engagement=engagement_marche,
+        montant_apure=D(300),
+    )
+    decompte.refresh_from_db()
+    Paiement.objects.create(
+        org_id=organisation.id,
+        decompte=decompte,
+        project_id=projet.id,
+        reference="PAY-1",
+        date_paiement=datetime.date(2026, 5, 15),
+        montant=D(100),
+        enregistre_par=dora.id,
     )
     # Justification, dérogation et circuit de validation (L6-T02).
     justifier(utilisateur=amina, evaluation=evaluation, texte="Pièces attendues du fournisseur")
