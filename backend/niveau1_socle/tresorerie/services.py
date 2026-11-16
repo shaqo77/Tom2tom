@@ -125,6 +125,10 @@ def apparier_demande(
         with transaction.atomic():
             # Le verrou de la demande sérialise les appariements concurrents (plafond du total).
             DemandeRetrait.objects.select_for_update().get(pk=demande.pk)
+            if AppariementDemande.objects.filter(
+                mouvement=mouvement, annule_at__isnull=True
+            ).exists():
+                refuser("tresorerie.mouvement_deja_apparie", reference=mouvement.reference)
             appariement = AppariementDemande.objects.create(
                 org_id=mouvement.org_id,
                 mouvement=mouvement,
