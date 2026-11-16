@@ -735,6 +735,10 @@ Généré depuis les modèles : table, colonne, type, description, relations. **
 
 **Objectif.** Un engagement bloqué faute d'avis de non-objection.
 
+> **Contrôle de sortie de L9** (`backend/tests/test_sortie_l9_bd.py`, 2 tests). Le premier vérifie que chaque contrôle du plan de L9 (T01 à T05) renvoie à un test qui existe. Le second déroule le scénario de bout en bout : un marché soumis à non-objection (méthode AOI) **refuse l'engagement sans avis** et **l'accepte dès réception** ; le contrat s'appuie sur l'avis, et un avenant sur un avis « avenant » obtenu ; deux décomptes certifiés par une autre personne **apurent exactement l'engagement** du marché ordinaire (1 234 567,89 = 700 000,11 + 534 567,78) : il est soldé, seul reste engagé celui du marché soumis, et l'incrémental égale le recalcul complet des soldes ; les paiements portent l'exécution à 100 % (solde contractuel nul, taux financier et physique à 100,00) ; une garantie à échéance proche lève une alerte ; l'état de reconstitution du compte désigné se rapproche du relevé **sans écart**, numéro de compte masqué ; la chaîne du journal d'audit est intacte.
+> - **Ce que le scénario ne prouve pas** (couvert par les tests propres de chaque tâche, mutations vérifiées) : le refus d'un engagement sans avis ou sur un marché annulé en base, le refus d'un avenant sans avis, le dépassement du montant du contrat, l'écart non justifié, l'appariement double d'un mouvement. Vérifié à la main : supprimer le blocage de l'engagement ou l'apurement du décompte fait échouer le scénario ; deux mutations (avis « avenant » d'un mauvais objet, solde du relevé injecté dans le rapprochement) ne le font pas échouer : ce sont des refus, que seuls les tests unitaires exercent.
+> - **Restent hors de ce contrôle** : l'écriture comptable du paiement d'un décompte (le paiement n'écrit rien au grand livre) ; l'import de relevés au format bancaire ; un modèle de rapport « rapprochement du compte désigné » branché sur le moteur d'états ; les API HTTP du plan de passation, des contrats et de la trésorerie ; la revue de code du lot.
+
 ---
 
 ### L9-T01 — Plan de passation
