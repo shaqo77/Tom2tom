@@ -28,7 +28,7 @@ from niveau1_socle.marches.contrats import (
     ajouter_avenant,
     alertes_echeances,
 )
-from niveau1_socle.marches.decomptes import enregistrer_paiement, situation_contrat
+from niveau1_socle.marches.decomptes import situation_contrat
 from niveau1_socle.marches.models import AvenantContrat, LignePassation
 from niveau1_socle.marches.plan import avancer_ligne
 from niveau1_socle.tresorerie.services import (
@@ -36,6 +36,7 @@ from niveau1_socle.tresorerie.services import (
     previsions,
     solde_comptable_a,
 )
+from tests.outils_paiement import ecriture_quelconque, payer  # noqa: F401
 from tests.test_contrats_bd import _attribuer, _contrat
 from tests.test_cycle_ecriture_bd import decor  # noqa: F401
 from tests.test_decomptes_bd import _certifier, _soumettre, marche  # noqa: F401
@@ -299,29 +300,15 @@ def test_un_contrat_entierement_execute_et_paye_ne_donne_plus_d_alerte(marche):
             utilisateur=amina, project_id=marche[1].id, jour=jour, horizon_jours=0
         )
     ] == ["C-001"]
-    enregistrer_paiement(
-        utilisateur=amina,
-        decompte=d1,
-        reference="P1",
-        date_paiement=J(2026, 7, 20),
-        montant="60000",
-    )
-    enregistrer_paiement(
-        utilisateur=amina,
-        decompte=d2,
-        reference="P2",
-        date_paiement=J(2026, 8, 20),
-        montant="57999",
-    )
+    payer(marche, d1, "P1", J(2026, 7, 20), "60000")
+    payer(marche, d2, "P2", J(2026, 8, 20), "57999")
     assert [
         a.reference
         for a in alertes_echeances(
             utilisateur=amina, project_id=marche[1].id, jour=jour, horizon_jours=0
         )
     ] == ["C-001"]  # reste 1,50 à payer
-    enregistrer_paiement(
-        utilisateur=amina, decompte=d2, reference="P3", date_paiement=J(2026, 8, 21), montant="1.50"
-    )
+    payer(marche, d2, "P3", J(2026, 8, 21), "1.50")
     assert (
         alertes_echeances(utilisateur=amina, project_id=marche[1].id, jour=jour, horizon_jours=0)
         == []

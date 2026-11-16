@@ -752,6 +752,13 @@ Généré depuis les modèles : table, colonne, type, description, relations. **
 > - **Mutations vérifiées** (16, toutes détectées). Une avait d'abord survécu (garde SQL sur l'engagement ouvert) : test ajouté.
 > - **Limites assumées** : un contrat ne peut toujours pas être clos explicitement (il sort des alertes parce qu'il est soldé, pas parce qu'on l'a clos) ; l'annulation d'une ligne sous contrat reste impossible (aucune résiliation de contrat n'est modélisée).
 
+> **Le paiement d'un décompte s'écrit au grand livre** (`backend/niveau1_socle/marches/decomptes.py`, `Paiement.ecriture`, migration `marches 0011`, `tests/test_paiement_ecriture_bd.py`, 13 tests). `enregistrer_paiement` crée, dans la même transaction que le paiement, un **brouillon d'écriture équilibré** : le fournisseur (tiers du contrat, sur le compte donné) au débit, la banque (compte bancaire, sur le compte donné) au crédit, au journal donné. Le paiement et son écriture naissent ensemble ou pas du tout (journal inconnu, période close : rien n'est créé).
+> - **Aucun compte, journal ni taux n'est supposé** : l'appelant les donne. Le compte bancaire est dans la **devise du contrat** ; si elle diffère de la monnaie de tenue du projet, le **taux est obligatoire** et le montant converti est arrondi à la devise de tenue (arrondi supérieur à la demi-unité) ; l'écriture est alors équilibrée en monnaie de tenue **et** en devise.
+> - **Le brouillon suit le cycle ordinaire** : validé par une autre personne, puis comptabilisé ; c'est à ce moment seulement qu'il compte dans le solde comptable du compte (test : brouillon = solde nul, comptabilisé = −60 000 USD). Clé d'idempotence stable par décompte et référence.
+> - **Tenu en base** : tout nouveau paiement exige une écriture **du même projet** (`marches_paiement_naissance`) ; les paiements antérieurs, sans écriture, restent lisibles.
+> - **Mutations vérifiées** (13, toutes détectées) : devise du compte, taux obligatoire (message), arrondi, lien du paiement à l'écriture, montants en devise, compte bancaire de la ligne, clé d'idempotence, écriture requise et du même projet. Trois ont d'abord survécu (message du taux, clé, projet de l'écriture) : tests ajoutés.
+> - **Limites assumées** : seul le **paiement** est écrit ; la **certification** d'un décompte (charge, dette fournisseur, retenue) n'écrit toujours rien : l'imputation de la charge (compte, axes, accord, catégorie) n'est pas encore décidée ; aucune écriture de différence de change entre la dette et le paiement.
+
 ---
 
 ### L9-T01 — Plan de passation

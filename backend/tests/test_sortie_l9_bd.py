@@ -26,9 +26,10 @@ from niveau1_socle.marches.contrats import (
     enregistrer_garantie,
     montant_courant,
 )
-from niveau1_socle.marches.decomptes import enregistrer_paiement, situation_contrat
+from niveau1_socle.marches.decomptes import situation_contrat
 from niveau1_socle.marches.plan import avancer_ligne
 from niveau1_socle.tresorerie.services import enregistrer_solde_releve, etat_reconstitution
+from tests.outils_paiement import ecriture_quelconque, payer  # noqa: F401
 from tests.test_contrats_bd import _attribuer, _avis_avenant, _contrat
 from tests.test_cycle_ecriture_bd import decor  # noqa: F401
 from tests.test_decomptes_bd import ENGAGEMENT, _certifier, _soumettre, marche  # noqa: F401
@@ -178,20 +179,8 @@ def test_du_marche_soumis_a_la_tresorerie_un_engagement_bloque_puis_libere_au_ce
     assert comparer_soldes(projet.id) == []
 
     # 4. Paiements et soldes contractuels : le contrat est exécuté à 100 %.
-    enregistrer_paiement(
-        utilisateur=amina,
-        decompte=d1,
-        reference="P1",
-        date_paiement=J(2026, 7, 15),
-        montant="60000",
-    )
-    enregistrer_paiement(
-        utilisateur=amina,
-        decompte=d2,
-        reference="P2",
-        date_paiement=J(2026, 8, 15),
-        montant="58000.50",
-    )
+    payer(marche, d1, "P1", J(2026, 7, 15), "60000")
+    payer(marche, d2, "P2", J(2026, 8, 15), "58000.50")
     s = situation_contrat(utilisateur=amina, contrat=contrat)
     assert (s.solde_contractuel, s.taux_financier, s.taux_physique, s.reste_a_payer) == (
         0,

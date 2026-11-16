@@ -622,6 +622,7 @@ def _peupler(organisation, projet, profils, accord, categories):
     )
     decompte.refresh_from_db()
     Paiement.objects.create(
+        ecriture=Ecriture.objects.filter(project_id=projet.id).first(),
         org_id=organisation.id,
         decompte=decompte,
         project_id=projet.id,

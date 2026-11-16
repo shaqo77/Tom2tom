@@ -9,7 +9,7 @@ coïncident, sinon donné explicitement par le certificateur : aucun taux n'est 
 
 import datetime
 from dataclasses import dataclass
-from decimal import Decimal
+from decimal import ROUND_HALF_UP, Decimal
 
 from django.db import IntegrityError, transaction
 from django.db.models import Max, Sum
@@ -21,7 +21,10 @@ from core.metier import decimal as nombre_decimal
 from core.metier import habilite, refuser, traduire_integrite
 from niveau1_socle.budget.engagements import apurer_verrouille
 from niveau1_socle.budget.models import Engagement
+from niveau1_socle.comptabilite.services import saisir_ecriture
+from niveau1_socle.financements.models import CompteBancaire
 from niveau1_socle.organisations.models import Projet
+from niveau1_socle.referentiels.models import Devise
 
 from .contrats import montant_courant
 from .models import Contrat, Decompte, Paiement, StatutDecompte
@@ -236,9 +239,27 @@ def rejeter_decompte(
 
 
 def enregistrer_paiement(
-    *, utilisateur, decompte: Decompte, reference: str, date_paiement: datetime.date, montant
+    *,
+    utilisateur,
+    decompte: Decompte,
+    reference: str,
+    date_paiement: datetime.date,
+    montant,
+    compte_bancaire: CompteBancaire,
+    compte_fournisseur: str,
+    compte_banque: str,
+    journal: str,
+    taux=None,
 ) -> Paiement:
-    """Enregistre un paiement sur un décompte certifié, sans dépasser son net (brut − retenue)."""
+    """Enregistre un paiement sur un décompte certifié, sans dépasser son net (brut − retenue), et
+    l'ÉCRIT au grand livre : fournisseur (tiers du contrat) au débit, banque au crédit.
+
+    L'écriture naît BROUILLON : elle suit le cycle ordinaire (validée par une autre personne, puis
+    comptabilisée), comme toute saisie. Aucun compte, journal ni taux n'est supposé : l'appelant les
+    donne. Le compte bancaire est dans la devise du contrat ; si cette devise n'est pas la monnaie
+    de tenue du projet, `taux` (vers la monnaie de tenue) est obligatoire et le montant converti
+    est arrondi à la devise de tenue. Le paiement et son écriture naissent ensemble ou pas du tout.
+    """
     habilite(utilisateur, "saisir", decompte.project_id)
     if not (reference or "").strip():
         refuser("passation.code_obligatoire")
@@ -258,6 +279,20 @@ def enregistrer_paiement(
                 refuser(
                     "passation.paiement_date_anterieure", date=courant.date_decision.isoformat()
                 )
+            contrat = courant.contrat
+            ecriture = _ecrire_le_paiement(
+                utilisateur=utilisateur,
+                contrat=contrat,
+                decompte=courant,
+                reference=reference.strip(),
+                date_paiement=date_paiement,
+                montant=montant,
+                compte_bancaire=compte_bancaire,
+                compte_fournisseur=compte_fournisseur,
+                compte_banque=compte_banque,
+                journal=journal,
+                taux=taux,
+            )
             paiement = Paiement.objects.create(
                 org_id=courant.org_id,
                 decompte=courant,
@@ -266,6 +301,7 @@ def enregistrer_paiement(
                 date_paiement=date_paiement,
                 montant=montant,
                 enregistre_par=utilisateur.id,
+                ecriture=ecriture,
                 created_by=utilisateur.id,
             )
             journaliser(
@@ -275,7 +311,11 @@ def enregistrer_paiement(
                 object_type="decompte",
                 object_id=courant.id,
                 project_id=courant.project_id,
-                after={"reference": paiement.reference, "montant": str(montant)},
+                after={
+                    "reference": paiement.reference,
+                    "montant": str(montant),
+                    "ecriture": str(ecriture.id),
+                },
             )
     except IntegrityError as erreur:
         raise traduire_integrite(
@@ -288,6 +328,82 @@ def enregistrer_paiement(
             },
         ) from erreur
     return paiement
+
+
+def _ecrire_le_paiement(
+    *,
+    utilisateur,
+    contrat: Contrat,
+    decompte: Decompte,
+    reference: str,
+    date_paiement: datetime.date,
+    montant: Decimal,
+    compte_bancaire: CompteBancaire,
+    compte_fournisseur: str,
+    compte_banque: str,
+    journal: str,
+    taux,
+):
+    """Le brouillon d'écriture d'un paiement : équilibré en monnaie de tenue ET en devise."""
+    if compte_bancaire.devise_id != contrat.devise:
+        refuser(
+            "passation.paiement_devise_compte",
+            compte=compte_bancaire.devise_id,
+            contrat=contrat.devise,
+        )
+    projet = Projet.objects.get(pk=contrat.project_id)
+    etrangere = contrat.devise != projet.base_currency
+    if etrangere:
+        if taux is None:
+            refuser(
+                "passation.paiement_taux_obligatoire",
+                devise=contrat.devise,
+                base=projet.base_currency,
+            )
+        facteur = nombre_decimal(taux, "taux")
+        decimales = Devise.objects.get(pk=projet.base_currency).decimales
+        en_base = (montant * facteur).quantize(
+            Decimal(1).scaleb(-decimales), rounding=ROUND_HALF_UP
+        )
+        lignes = [
+            {
+                "compte": compte_fournisseur,
+                "debit": en_base,
+                "debit_cur": montant,
+                "tiers": contrat.tiers.code,
+                "contract_id": contrat.id,
+            },
+            {
+                "compte": compte_banque,
+                "credit": en_base,
+                "credit_cur": montant,
+                "bank_account_id": compte_bancaire.id,
+            },
+        ]
+        taux_ecriture = facteur
+    else:
+        lignes = [
+            {
+                "compte": compte_fournisseur,
+                "debit": montant,
+                "tiers": contrat.tiers.code,
+                "contract_id": contrat.id,
+            },
+            {"compte": compte_banque, "credit": montant, "bank_account_id": compte_bancaire.id},
+        ]
+        taux_ecriture = 1
+    return saisir_ecriture(
+        utilisateur=utilisateur,
+        project_id=contrat.project_id,
+        journal=journal,
+        date_comptable=date_paiement,
+        libelle=f"Paiement {reference} — décompte {decompte.numero} du contrat {contrat.reference}",
+        lignes=lignes,
+        devise=contrat.devise,
+        taux=taux_ecriture,
+        reference_piece=reference,
+        cle_idempotence=f"paiement-decompte:{decompte.id}:{reference}",
+    )
 
 
 # --- soldes contractuels et taux d'exécution ---------------------------------------------------

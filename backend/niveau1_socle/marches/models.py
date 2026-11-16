@@ -414,7 +414,7 @@ class Decompte(ModeleOrganisation):
 
 
 class Paiement(ModeleOrganisation):
-    """Un paiement sur un décompte certifié, en ajout seul. Voir L9-T04."""
+    """Un paiement sur un décompte certifié, en ajout seul, avec son écriture au grand livre."""
 
     decompte = models.ForeignKey(Decompte, on_delete=models.PROTECT, related_name="paiements")
     project_id = models.UUIDField(db_index=True)
@@ -422,6 +422,15 @@ class Paiement(ModeleOrganisation):
     date_paiement = models.DateField()
     montant = MontantField()
     enregistre_par = models.UUIDField()
+    # L'écriture (brouillon à sa naissance) que le paiement a écrite au grand livre. Nullable pour
+    # les paiements antérieurs ; la base l'EXIGE à l'insertion (voir `marches_paiement_naissance`).
+    ecriture = models.ForeignKey(
+        "comptabilite.Ecriture",
+        null=True,
+        blank=True,
+        on_delete=models.PROTECT,
+        related_name="paiements_decompte",
+    )
 
     class Meta:
         constraints = [

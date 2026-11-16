@@ -1513,7 +1513,7 @@ Contraintes : `methode_plage_non_vide` (verification), `methode_seuil_min_positi
 
 Modèle `marches.Paiement` — isolée par organisation.
 
-Un paiement sur un décompte certifié, en ajout seul. Voir L9-T04.
+Un paiement sur un décompte certifié, en ajout seul, avec son écriture au grand livre.
 
 | Colonne | Type | Null | Clé | Relation | Description |
 |---|---|---|---|---|---|
@@ -1529,6 +1529,7 @@ Un paiement sur un décompte certifié, en ajout seul. Voir L9-T04.
 | `date_paiement` | date | non |  |  | — |
 | `montant` | numeric(20, 4) | non |  |  | — |
 | `enregistre_par` | uuid | non |  |  | — |
+| `ecriture_id` | uuid | oui |  | `comptabilite_ecriture.id` | — |
 
 Contraintes : `paiement_montant_positif` (verification), `uq_paiement_reference` (unicite)
 

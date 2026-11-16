@@ -26,7 +26,6 @@ from niveau1_socle.marches.avis import demander_avis, enregistrer_decision  # no
 from niveau1_socle.marches.contrats import ajouter_avenant, conclure_contrat
 from niveau1_socle.marches.decomptes import (
     certifier_decompte,
-    enregistrer_paiement,
     rejeter_decompte,
     situation_contrat,
     soumettre_decompte,
@@ -34,6 +33,7 @@ from niveau1_socle.marches.decomptes import (
 from niveau1_socle.marches.models import Decompte, Paiement
 from niveau1_socle.marches.plan import avancer_ligne
 from niveau1_socle.referentiels.models import Tiers
+from tests.outils_paiement import ecriture_quelconque, payer  # noqa: F401
 from tests.test_cycle_ecriture_bd import decor  # noqa: F401
 from tests.test_financements_bd import cadre  # noqa: F401
 from tests.test_plan_passation_bd import _ligne, pas  # noqa: F401
@@ -268,73 +268,40 @@ def test_la_base_tient_la_numerotation_l_ajout_seul_et_le_plafond_des_decomptes(
 
 
 def test_les_paiements_ne_depassent_pas_le_net_et_ne_concernent_que_les_decomptes_certifies(marche):
-    amina = marche[2]["amina"]
     decompte = _soumettre(marche, "60000", "40", retenue="3000")
     with pytest.raises(ErreurMetier):  # pas encore certifié
-        enregistrer_paiement(
-            utilisateur=amina,
-            decompte=decompte,
-            reference="P1",
-            date_paiement=J(2026, 7, 11),
-            montant="100",
-        )
+        payer(marche, decompte, "P1", J(2026, 7, 11), "100")
     decompte = _certifier(marche, decompte, apure="700000.11")
     with pytest.raises(ErreurMetier):  # avant la certification
-        enregistrer_paiement(
-            utilisateur=amina,
-            decompte=decompte,
-            reference="P1",
-            date_paiement=J(2026, 7, 9),
-            montant="100",
-        )
-    enregistrer_paiement(
-        utilisateur=amina,
-        decompte=decompte,
-        reference="P1",
-        date_paiement=J(2026, 7, 11),
-        montant="40000",
-    )
+        payer(marche, decompte, "P1", J(2026, 7, 9), "100")
+    payer(marche, decompte, "P1", J(2026, 7, 11), "40000")
     with pytest.raises(ErreurMetier) as e:  # net = 57 000 ; reste 17 000
-        enregistrer_paiement(
-            utilisateur=amina,
-            decompte=decompte,
-            reference="P2",
-            date_paiement=J(2026, 7, 12),
-            montant="17000.01",
-        )
+        payer(marche, decompte, "P2", J(2026, 7, 12), "17000.01")
     assert "17000" in str(e.value)
-    enregistrer_paiement(
-        utilisateur=amina,
-        decompte=decompte,
-        reference="P2",
-        date_paiement=J(2026, 7, 12),
-        montant="17000",
-    )
+    payer(marche, decompte, "P2", J(2026, 7, 12), "17000")
     with pytest.raises(ErreurMetier):
-        enregistrer_paiement(
-            utilisateur=amina,
-            decompte=decompte,
-            reference="P2",
-            date_paiement=J(2026, 7, 13),
-            montant="0.01",
-        )
+        payer(marche, decompte, "P2", J(2026, 7, 13), "0.01")
 
 
 def test_la_base_refuse_un_paiement_hors_net_ou_sur_un_decompte_non_certifie(marche):
     contrat = marche[3]
     soumis = _soumettre(marche)
+    ecriture = ecriture_quelconque(marche)
     with pytest.raises(IntegrityError), transaction.atomic():
         Paiement.objects.create(
+            ecriture=ecriture,
             org_id=contrat.org_id, decompte=soumis, project_id=contrat.project_id, reference="X",
             date_paiement=J(2026, 8, 1), montant=1, enregistre_par=contrat.id,
         )  # fmt: skip
     certifie = _certifier(marche, soumis, apure="1000")
     with pytest.raises(IntegrityError), transaction.atomic():
         Paiement.objects.create(
+            ecriture=ecriture,
             org_id=contrat.org_id, decompte=certifie, project_id=contrat.project_id, reference="Y",
             date_paiement=J(2026, 8, 1), montant=D("60000.01"), enregistre_par=contrat.id,
         )  # fmt: skip
     ok = Paiement.objects.create(
+        ecriture=ecriture,
         org_id=contrat.org_id, decompte=certifie, project_id=contrat.project_id, reference="Z",
         date_paiement=J(2026, 8, 1), montant=D("60000"), enregistre_par=contrat.id,
     )  # fmt: skip
@@ -348,13 +315,7 @@ def test_les_soldes_contractuels_et_les_taux_d_execution(marche):
     vide = situation_contrat(utilisateur=amina, contrat=contrat)
     assert (vide.certifie, vide.taux_financier, vide.taux_physique) == (0, 0, 0)
     d1 = _certifier(marche, _soumettre(marche, "59000.25", "50", retenue="2950.01"), apure="600000")
-    enregistrer_paiement(
-        utilisateur=amina,
-        decompte=d1,
-        reference="P1",
-        date_paiement=J(2026, 7, 15),
-        montant="30000",
-    )
+    payer(marche, d1, "P1", J(2026, 7, 15), "30000")
     s = situation_contrat(utilisateur=amina, contrat=contrat)
     assert s.montant_courant == D("118000.50") and s.certifie == D("59000.25")
     assert s.solde_contractuel == D("59000.25")
