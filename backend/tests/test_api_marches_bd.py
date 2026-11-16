@@ -466,3 +466,44 @@ def test_aucune_reponse_ne_contient_de_nombre_decimal_json(api):
         {"statut": "prevu", "devise": "USD", "montant": "900000.0000"}
     ]
     assert synthese["nombre"] == 1 and synthese["non_objection_requise"] == 1
+
+
+def test_la_certification_exige_le_droit_avant_la_lecture_du_corps(api):
+    organisation, projet, profils, tiers = api
+    _, ligne = _plan_et_ligne(api, montant="120000", methode="AON")
+    for statut, jour in (("lance", "2026-03-02"), ("attribue", "2026-05-02")):
+        appeler(
+            profils["amina"],
+            "post",
+            f"/lignes/{ligne['id']}/avancer/",
+            {"statut": statut, "date_effet": jour},
+        )
+    contrat = appeler(
+        profils["amina"],
+        "post",
+        f"/lignes/{ligne['id']}/contrat/",
+        {
+            "reference": "C-1",
+            "tiers": str(tiers.id),
+            "objet": "x",
+            "montant": "118000",
+            "date_signature": "2026-06-01",
+            "date_debut": "2026-06-15",
+            "date_fin": "2026-12-15",
+        },
+    ).json()
+    d = appeler(
+        profils["amina"],
+        "post",
+        f"/contrats/{contrat['id']}/decomptes/",
+        {"date_decompte": "2026-07-01", "montant_brut": "1000", "avancement_physique": "10"},
+    ).json()
+    assert (
+        appeler(profils["amina"], "post", f"/decomptes/{d['id']}/certifier/", {}).status_code == 403
+    )
+    assert (
+        appeler(profils["amina"], "post", f"/decomptes/{d['id']}/rejeter/", {}).status_code == 403
+    )
+    assert (
+        appeler(profils["bruno"], "post", f"/decomptes/{d['id']}/certifier/", {}).status_code == 422
+    )

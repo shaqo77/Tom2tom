@@ -274,3 +274,62 @@ def test_un_compte_d_une_autre_organisation_est_introuvable(tres):
         == 403
     )
     assert connection.vendor == "postgresql"
+
+
+def test_l_habilitation_est_verifiee_avant_la_lecture_du_corps(tres):
+    """Sans le droit, la réponse est 403 même si le corps est invalide : rien n'est révélé."""
+    organisation, projet, profils, designe, _ = tres
+    amina = profils["amina"]  # consulte et saisit ; ne comptabilise, ne valide ni ne publie
+    assert appeler(amina, "post", f"/comptes/{designe.id}/releves/", {}).status_code == 403
+    assert appeler(amina, "post", f"/comptes/{designe.id}/justifications/", {}).status_code == 403
+    assert appeler(amina, "post", f"/comptes/{designe.id}/rapport/", {}).status_code == 403
+    assert (
+        appeler(profils["bruno"], "post", f"/projets/{projet.id}/previsions/", {}).status_code
+        == 403
+    )
+    # Avec le droit, le même corps vide est une erreur de validation nommant le champ.
+    assert (
+        appeler(profils["claire"], "post", f"/comptes/{designe.id}/releves/", {}).status_code == 422
+    )
+
+
+def test_un_booleen_n_est_pas_un_entier_et_par_axe_se_lit_dans_l_adresse(tres):
+    organisation, projet, profils, _, _ = tres
+    amina = profils["amina"]
+    r = appeler(
+        amina,
+        "post",
+        f"/projets/{projet.id}/previsions/",
+        {"devise": "DJF", "annee": True, "mois": 4},
+    )
+    assert r.status_code == 422 and "annee" in r.json()["message"]
+    from tests.outils import _valeur_axe
+
+    _poser(organisation)
+    axe = _valeur_axe(organisation.id, "COMP-A")
+    base = {"devise": "DJF", "annee": 2026, "mois": 6}
+    appeler(amina, "post", f"/projets/{projet.id}/previsions/", base | {"encaissements": "100"})
+    appeler(
+        amina,
+        "post",
+        f"/projets/{projet.id}/previsions/",
+        base | {"encaissements": "60", "axe": str(axe.id)},
+    )
+    url = f"/projets/{projet.id}/previsions/?annee=2026&mois=6&nombre_mois=1"
+    detail = appeler(amina, "get", url).json()
+    assert [(p["axe"], p["encaissements"]) for p in detail] == [
+        (None, "100.0000"),
+        ("COMP-A", "60.0000"),
+    ]
+    agrege = appeler(amina, "get", url + "&par_axe=false").json()
+    assert [(p["axe"], p["encaissements"]) for p in agrege] == [
+        (None, "100.0000")
+    ]  # « tous axes » l'emporte
+
+
+def test_le_serialiseur_refuse_un_float():
+    from core.api import serialiser
+
+    with pytest.raises(TypeError):
+        serialiser({"montant": 1.5})
+    assert serialiser({"m": __import__("decimal").Decimal("1.50")}) == {"m": "1.50"}
