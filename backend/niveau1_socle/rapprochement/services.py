@@ -467,6 +467,14 @@ def etat_de_rapprochement(
     il part du solde de la banque et retrouve le solde comptable, élément en suspens par élément.
     """
     _habilite(utilisateur, "consulter", compte.project_id)
+    return calculer_etat_de_rapprochement(compte, date, solde_ouverture=solde_ouverture)
+
+
+def calculer_etat_de_rapprochement(
+    compte: CompteBancaire, date: datetime.date, *, solde_ouverture=0
+) -> EtatRapprochement:
+    """L'état de rapprochement SANS contrôle d'habilitation : pour les états produits par le moteur,
+    dont l'habilitation (publier) est vérifiée en amont. Même calcul que `etat_de_rapprochement`."""
     _, _, etrangere = _contexte(compte)
     lignes = list(
         LigneEcriture.objects.filter(

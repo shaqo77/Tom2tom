@@ -28,6 +28,8 @@ from .assertions import (
 )
 from .dependances import ordonner
 from .formules import evaluer
+from .sources_externes import lire as lire_source_externe
+from .sources_externes import verifier
 
 ZERO = Decimal(0)
 COLONNES_SOURCE = (
@@ -74,6 +76,8 @@ class EtatCompile:
     # traçabilité (L0-T07) rejoue la même CTE pour lister les lignes.
     colonnes_mapping: tuple[str, ...]
     params_cas: tuple
+    # Rubriques lues auprès d'une source externe (voir `sources_externes`) : pas de SQL pour elles.
+    externes: tuple = ()
 
 
 @dataclass(frozen=True)
@@ -109,11 +113,16 @@ def _valider_modele(
     ) != len(codes_colonnes):
         raise ModeleEtatInvalide(msg("compilateur.chaque_colonne_doit_porter_code"))
     agregats = [ligne for ligne in lignes if ligne.get("type") == "aggregate"]
-    if not agregats:
+    externes = [ligne for ligne in lignes if ligne.get("type") == "external"]
+    if not agregats and not externes:
         raise ModeleEtatInvalide(msg("compilateur.etat_l0_doit_contenir_rubrique"))
     for ligne in lignes:
-        if ligne.get("type") not in {"heading", "aggregate", "computed"}:
+        if ligne.get("type") not in {"heading", "aggregate", "computed", "external"}:
             raise ModeleEtatInvalide(msg("compilateur.type_rubrique_inconnu", v1=ligne.get("type")))
+    for (
+        ligne
+    ) in externes:  # source et élément déclarés : refus à la compilation, pas à la génération
+        verifier(ligne.get("source"), ligne.get("item"))
     formules = {
         ligne["code"]: ligne.get("formula") for ligne in lignes if ligne.get("type") == "computed"
     }
@@ -325,6 +334,8 @@ def compiler(
             params_valeurs += [f"{prefixe}%", *params_condition]
             index_balances[(prefixe, code_colonne)] = len(valeurs_sql) - 1
 
+    if not valeurs_sql and not mappings_utilises:  # état uniquement externe : colonne neutre
+        valeurs_sql.append("0 AS neutre")
     for i, _ in enumerate(mappings_utilises):
         valeurs_sql.append(
             f"ARRAY_AGG(DISTINCT compte) FILTER (WHERE mapping_{i} IS NULL "
@@ -360,6 +371,7 @@ def compiler(
         index_balances=index_balances,
         colonnes_mapping=tuple(colonnes_mapping),
         params_cas=tuple(params_cas),
+        externes=tuple(ligne for ligne in lignes if ligne.get("type") == "external"),
     )
 
 
@@ -387,6 +399,10 @@ def generer(
     for (code, colonne), index in etat.index_valeurs.items():
         valeur = resultat[index]
         valeurs[code][colonne] = valeur if isinstance(valeur, Decimal) else Decimal(str(valeur))
+    for ligne in etat.externes:  # la valeur d'une source externe vaut pour chaque colonne
+        valeur_externe = lire_source_externe(ligne["source"], ligne["item"], parametres)
+        for colonne in etat.colonnes:
+            valeurs[ligne["code"]][colonne] = valeur_externe
     for code in etat.ordre_formules:
         for colonne in etat.colonnes:
             valeurs_colonne = {

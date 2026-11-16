@@ -23,7 +23,7 @@ from niveau1_socle.comptabilite.models import LigneEcriture
 from niveau1_socle.decaissements.models import DemandeRetrait
 from niveau1_socle.financements.models import CompteBancaire, TypeCompte
 from niveau1_socle.rapprochement.models import MouvementReleve
-from niveau1_socle.rapprochement.services import _contexte, etat_de_rapprochement
+from niveau1_socle.rapprochement.services import _contexte, calculer_etat_de_rapprochement
 from niveau1_socle.referentiels.models import ValeurDimension
 
 from .models import (
@@ -508,6 +508,13 @@ def etat_reconstitution(
     Chaque écart doit être justifié explicitement (`justifier_ecart`), au centime.
     """
     habilite(utilisateur, "consulter", compte.project_id)
+    return calculer_reconstitution(compte, date_debut, date_fin)
+
+
+def calculer_reconstitution(
+    compte: CompteBancaire, date_debut: datetime.date, date_fin: datetime.date
+) -> EtatReconstitution:
+    """L'état de reconstitution SANS contrôle d'habilitation (états produits par le moteur)."""
     if compte.type != TypeCompte.DESIGNE:
         refuser("tresorerie.compte_non_designe", code=compte.code)
     if date_fin < date_debut:
@@ -566,7 +573,7 @@ def etat_reconstitution(
     )
     etat.ecart_releve = etat.cloture_releve - etat.cloture_calculee
     # Du relevé au grand livre : le rapprochement existant, avec le solde du relevé ENREGISTRÉ.
-    rapprochement = etat_de_rapprochement(utilisateur, compte, date_fin)
+    rapprochement = calculer_etat_de_rapprochement(compte, date_fin)
     rapprochement.solde_releve = etat.cloture_releve
     etat.solde_comptable = rapprochement.solde_comptable
     etat.ecart_comptable = rapprochement.ecart
