@@ -21,6 +21,7 @@ from niveau1_socle.financements.services import creer_bailleur, creer_categorie
 from niveau3_config.models import ProfilDecaissement
 from niveau3_config.services.decaissement import profil_en_vigueur
 from tests.outils_profil import creer_profil
+from tests.test_activation_bd import cfg  # noqa: F401
 from tests.test_cycle_ecriture_bd import decor  # noqa: F401
 from tests.test_demandes_retrait_bd import _depense, _preparer, drf  # noqa: F401
 from tests.test_financements_bd import _accord, _activer, cadre  # noqa: F401
@@ -180,6 +181,7 @@ def test_aucune_application_n_est_propre_a_un_bailleur():
 # --- T17 : deux accords, un projet ---------------------------------------------------------------
 
 
+@pytest.mark.django_db(transaction=True)
 def test_t17_deux_accords_un_projet(realloc):
     organisation, projet, profils, a1, cat, v1 = realloc
     dora = profils["dora"]

@@ -904,6 +904,9 @@ Exécuter les dix-sept tests de réception (T1 à T17) de la [spécification fon
 
 > **Le critère qui prime sur tous les autres :** la solution est acceptée si elle démontre qu'un nouveau projet, un nouveau bailleur ou un nouveau modèle de reporting s'ajoute **par paramétrage**, sans application distincte et sans duplication des données comptables.
 
+> **Réalisation de L10-T03 (recette d'architecture).** `tests/test_recette_architecture_bd.py` : chaque scénario T1 à T17 de la spécification §17 renvoie au(x) test(s) qui le démontrent (vérifié : tous existent) ; **T17 est joué de bout en bout** — un projet, deux accords de deux bailleurs, chacun avec son profil : une dépense à 80 % sous l'un et à 50 % sous l'autre (chacune contrôlée par SES règles), la dépense de l'un refusée sous l'autre, un avenant sur le premier qui crée la version 2 sans toucher au second (version, validité et montant inchangés), la demande antérieure qui garde sa version, un accès d'une autre organisation qui ne voit ni accord ni profil, et **aucune écriture comptable créée** en ajoutant le second accord et sa configuration (pas de duplication des données comptables). Un test vérifie qu'aucune application installée n'est propre à un bailleur (le critère qui prime). Mutations : taux de l'accord 2 et recherche du profil en vigueur sans l'accord, toutes deux tuées.
+> **Limites déclarées, pas contournées.** **T14 (connectivité dégradée) n'est pas livré** : la capture hors ligne est la version 2 du plan ; la recette le déclare (`NON_LIVRES`) et vérifie qu'il figure bien au plan. T1 à T13, T15 et T16 s'appuient sur les tests des lots précédents plutôt que sur un nouveau scénario ; T13 (reprise à écart nul) repose sur les données du contrôle de sortie de L8, pas sur une base cliente réelle. Les profils BAD, UE, FIDA, Fonds mondial, BID et Nations unies restent des squelettes sourcés (L10-T01) : T3 démontre le mécanisme, pas le contenu réglementaire.
+
 ---
 
 # APRÈS : VERSION 2
