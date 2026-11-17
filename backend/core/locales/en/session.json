@@ -1,5 +1,9 @@
 {
   "session.identifiants_invalides": "Incorrect username or password.",
   "session.non_authentifie": "Sign-in required: please log in to continue.",
-  "session.langue_non_geree": "The language {langue} is not supported (available: fr, en)."
+  "session.langue_non_geree": "The language {langue} is not supported (available: fr, en).",
+  "session.trop_de_tentatives": "Too many attempts: please try again in a few minutes.",
+  "session.mot_de_passe_actuel_incorrect": "The current password is incorrect.",
+  "session.mot_de_passe_identique": "The new password must differ from the current one.",
+  "session.mot_de_passe_refuse": "Password rejected: {details}"
 }

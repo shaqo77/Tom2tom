@@ -8,7 +8,12 @@ un mauvais mot de passe et un compte désactivé donnent EXACTEMENT la même ré
 (l'interface masque, elle ne protège pas).
 """
 
-from django.contrib.auth import authenticate, login, logout
+import hashlib
+
+from django.contrib.auth import authenticate, login, logout, update_session_auth_hash
+from django.contrib.auth.password_validation import validate_password
+from django.core.cache import cache
+from django.core.exceptions import ValidationError
 from django.db import connection
 from django.middleware.csrf import get_token
 from django.utils.decorators import method_decorator
@@ -25,6 +30,48 @@ from niveau1_socle.habilitations.models import OPERATIONS, Habilitation
 from .models import Organisation, Projet
 
 LANGUES = ("fr", "en")
+
+# Limitation des tentatives : 5 échecs par identifiant et 30 par adresse, sur 15 minutes. Le cache
+# est celui de Django : propre à chaque processus tant qu'aucun cache partagé n'est configuré.
+ECHECS_PAR_IDENTIFIANT = 5
+ECHECS_PAR_ADRESSE = 30
+FENETRE = 15 * 60
+
+
+def _adresse(requete) -> str:
+    return requete.META.get("REMOTE_ADDR", "")
+
+
+def _cles(requete, identifiant: str) -> list[tuple[str, int]]:
+    return [
+        (
+            f"connexion:id:{hashlib.sha256(identifiant.encode()).hexdigest()}",
+            ECHECS_PAR_IDENTIFIANT,
+        ),
+        (f"connexion:ip:{_adresse(requete)}", ECHECS_PAR_ADRESSE),
+    ]
+
+
+def _bloque(cles) -> bool:
+    return any(cache.get(cle, 0) >= limite for cle, limite in cles)
+
+
+def _compter_echec(cles) -> None:
+    for cle, _ in cles:
+        cache.add(cle, 0, FENETRE)  # ne crée que la première fois : la fenêtre ne glisse pas
+        try:
+            cache.incr(cle)
+        except ValueError:  # expirée entre-temps
+            cache.set(cle, 1, FENETRE)
+
+
+def _trop_de_tentatives() -> Response:
+    reponse_429 = Response(
+        {"code": "TROP_DE_TENTATIVES", "message": str(msg("session.trop_de_tentatives"))},
+        status=429,
+    )
+    reponse_429["Retry-After"] = str(FENETRE)
+    return reponse_429
 
 
 def _ordonner(operations) -> list[str]:
@@ -114,8 +161,14 @@ class Connexion(APIView):
         donnees = corps(requete)
         identifiant = champ_texte(donnees, "identifiant")
         mot_de_passe = champ_texte(donnees, "mot_de_passe")
+        cles = _cles(requete, identifiant)
+        if _bloque(
+            cles
+        ):  # même un bon mot de passe est refusé : sinon on pourrait deviner à loisir
+            return _trop_de_tentatives()
         utilisateur = authenticate(requete._request, username=identifiant, password=mot_de_passe)
         if utilisateur is None:
+            _compter_echec(cles)
             return Response(
                 {
                     "code": "IDENTIFIANTS_INVALIDES",
@@ -123,6 +176,7 @@ class Connexion(APIView):
                 },
                 status=401,
             )
+        cache.delete(cles[0][0])  # un succès remet le compteur du compte à zéro
         login(requete._request, utilisateur)  # change l'identifiant de session
         return reponse(profil(utilisateur))
 
@@ -144,6 +198,35 @@ class Moi(APIView):
         requete.user.langue = langue
         requete.user.save(update_fields=["langue"])
         return reponse(profil(requete.user))
+
+
+class MotDePasse(APIView):
+    permission_classes = [AllowAny]
+
+    def post(self, requete):
+        utilisateur = requete.user
+        if not utilisateur.is_authenticated:
+            return _non_authentifie()
+        donnees = corps(requete)
+        actuel = champ_texte(donnees, "actuel")
+        nouveau = champ_texte(donnees, "nouveau")
+        cles = [(f"motdepasse:{utilisateur.id}", ECHECS_PAR_IDENTIFIANT)]
+        if _bloque(cles):
+            return _trop_de_tentatives()
+        if not utilisateur.check_password(actuel):
+            _compter_echec(cles)
+            refuser("session.mot_de_passe_actuel_incorrect")
+        if nouveau == actuel:
+            refuser("session.mot_de_passe_identique")
+        try:
+            validate_password(nouveau, utilisateur)
+        except ValidationError as erreur:
+            refuser("session.mot_de_passe_refuse", details=" ".join(erreur.messages))
+        utilisateur.set_password(nouveau)
+        utilisateur.save(update_fields=["password"])
+        update_session_auth_hash(requete._request, utilisateur)  # la session en cours survit
+        cache.delete(cles[0][0])
+        return Response(status=204)
 
 
 class Deconnexion(APIView):

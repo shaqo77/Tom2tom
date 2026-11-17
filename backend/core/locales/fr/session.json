@@ -1,5 +1,9 @@
 {
   "session.identifiants_invalides": "Identifiant ou mot de passe incorrect.",
   "session.non_authentifie": "Connexion requise : identifiez-vous pour continuer.",
-  "session.langue_non_geree": "La langue {langue} n'est pas gérée (langues disponibles : fr, en)."
+  "session.langue_non_geree": "La langue {langue} n'est pas gérée (langues disponibles : fr, en).",
+  "session.trop_de_tentatives": "Trop de tentatives : réessayez dans quelques minutes.",
+  "session.mot_de_passe_actuel_incorrect": "Le mot de passe actuel est incorrect.",
+  "session.mot_de_passe_identique": "Le nouveau mot de passe doit être différent de l'actuel.",
+  "session.mot_de_passe_refuse": "Mot de passe refusé : {details}"
 }

@@ -229,3 +229,106 @@ def test_la_session_change_a_la_connexion(decor):
     avant = client.cookies.get("sessionid")
     _connecter(client)
     assert client.cookies["sessionid"].value != (avant.value if avant else None)
+
+
+# --- limitation des tentatives et changement de mot de passe -------------------------------------
+
+
+@pytest.fixture(autouse=True)
+def _cache_vide():
+    from django.core.cache import cache
+
+    cache.clear()
+    yield
+    cache.clear()
+
+
+def _echouer(client, identifiant, fois):
+    return [_connecter(client, identifiant, "faux").status_code for _ in range(fois)]
+
+
+def test_apres_cinq_echecs_meme_le_bon_mot_de_passe_est_refuse_temporairement(decor):
+    client = _client()
+    assert _echouer(client, "amina", 5) == [401] * 5
+    bloque = _connecter(client, "amina", "x")  # le BON mot de passe
+    assert bloque.status_code == 429
+    assert bloque.json()["code"] == "TROP_DE_TENTATIVES" and bloque.json()["message"]
+    assert int(bloque["Retry-After"]) > 0
+    _reset()
+    assert client.get(f"{RACINE}/moi/").status_code == 401  # rien ne s'est ouvert
+
+
+def test_les_autres_comptes_ne_sont_pas_touches_par_le_blocage_d_un_compte(decor):
+    client = _client()
+    _echouer(client, "amina", 5)
+    assert _connecter(_client(), "bruno").status_code == 200
+
+
+def test_un_identifiant_inconnu_est_limite_comme_un_identifiant_connu(decor):
+    """Sinon la limitation révélerait quels comptes existent."""
+    client = _client()
+    assert _echouer(client, "personne", 5) == [401] * 5
+    assert _connecter(client, "personne", "x").status_code == 429
+
+
+def test_une_connexion_reussie_remet_le_compteur_a_zero(decor):
+    client = _client()
+    _echouer(client, "amina", 4)
+    assert _connecter(_client(), "amina").status_code == 200
+    assert _echouer(_client(), "amina", 4) == [401] * 4  # repart de zéro, pas de blocage
+
+
+def test_une_adresse_qui_essaie_trop_de_comptes_est_limitee(decor):
+    client = _client()
+    codes = [_connecter(client, f"inconnu{i}", "faux").status_code for i in range(31)]
+    assert codes[:30] == [401] * 30 and codes[30] == 429
+
+
+def _changer(client, actuel="x", nouveau="Un-mot-de-passe-solide-2026", **plus):
+    return _envoyer(
+        client, "post", "/mot-de-passe/", {"actuel": actuel, "nouveau": nouveau}, **plus
+    )
+
+
+def test_changer_son_mot_de_passe_garde_la_session_et_remplace_l_ancien(decor):
+    client = _client()
+    _connecter(client)
+    assert _changer(client).status_code == 204
+    _reset()
+    assert client.get(f"{RACINE}/moi/").status_code == 200  # la session n'est pas coupée
+    assert _connecter(_client(), "amina", "x").status_code == 401  # l'ancien ne marche plus
+    assert _connecter(_client(), "amina", "Un-mot-de-passe-solide-2026").status_code == 200
+
+
+def test_un_mauvais_mot_de_passe_actuel_ou_un_mot_de_passe_faible_est_refuse(decor):
+    client = _client()
+    _connecter(client)
+    faux = _changer(client, actuel="faux")
+    assert (faux.status_code, faux.json()["code"]) == (422, "REGLE_INVALIDE")
+    faible = _changer(client, nouveau="court")
+    assert faible.status_code == 422 and faible.json()["message"]
+    assert _changer(client).status_code == 204  # un mot de passe solide est posé
+    solide = "Un-mot-de-passe-solide-2026"
+    identique = _changer(
+        client, actuel=solide, nouveau=solide
+    )  # solide, donc refusé pour autre chose
+    assert identique.status_code == 422 and "différent" in identique.json()["message"]
+    assert (
+        _connecter(_client(), "amina", solide).status_code == 200
+    )  # le dernier mot de passe reste
+
+
+def test_changer_de_mot_de_passe_exige_une_session_et_le_jeton_csrf(decor):
+    anonyme = _client()
+    assert _changer(anonyme).status_code == 401
+    client = _client()
+    _connecter(client)
+    assert _changer(client, jeton=False).status_code == 403
+
+
+def test_deviner_le_mot_de_passe_actuel_est_limite_aussi(decor):
+    client = _client()
+    _connecter(client)
+    codes = [_changer(client, actuel=f"faux{i}").status_code for i in range(5)]
+    assert codes == [422] * 5
+    assert _changer(client, actuel="x").status_code == 429  # même le bon est refusé un temps
