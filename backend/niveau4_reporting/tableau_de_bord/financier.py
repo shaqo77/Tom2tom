@@ -14,17 +14,28 @@ from decimal import Decimal
 from django.db.models import Sum
 
 from niveau1_socle.avances.services import suivi
-from niveau1_socle.budget.models import Engagement, LigneBudget, StatutEngagement, VersionBudget
 from niveau1_socle.budget.soldes import situation
-from niveau1_socle.financements.services import montant_courant
 from niveau1_socle.organisations.models import Projet
 from niveau1_socle.rapprochement.models import MouvementReleve
-from niveau1_socle.tresorerie.models import AppariementDemande
 from niveau1_socle.tresorerie.services import disponibilites
 from niveau3_config.services.activation import resoudre_configuration
 
 from .conformite import Conformite, conformite_du_projet
-from .filtres import CONFIGURE, NON_CONFIGURE, Filtres, accords_du_filtre, perimetre
+from .filtres import (
+    CONFIGURE,
+    NON_CONFIGURE,
+    Filtres,
+    accords_du_filtre,
+    ids_accords_du_filtre,
+    perimetre,
+)
+from .sources import (
+    appariements_recus,
+    engagements_ouverts,
+    lignes_budget,
+    montant_accord,
+    version_budget,
+)
 
 ZERO = Decimal("0")
 
@@ -89,13 +100,6 @@ class TableauDeBord:
         }
 
 
-def _ids_accords(projet: Projet, filtres: Filtres):
-    """Les accords que le filtre désigne, ou `None` si aucun filtre d'accord ne restreint."""
-    if not filtres.restreint_les_accords:
-        return None
-    return list(accords_du_filtre(projet.id, filtres).values_list("pk", flat=True))
-
-
 def tableau_de_bord(
     *, utilisateur, jour: datetime.date, filtres: Filtres | None = None
 ) -> TableauDeBord:
@@ -110,10 +114,10 @@ def tableau_de_bord(
     )  # fmt: skip
     ind = {code: Indicateur(code) for code in codes}
     for projet in projets:
-        ids_accords = _ids_accords(projet, filtres)
+        ids_accords = ids_accords_du_filtre(projet, filtres)
         tdb.projets.append(_vue_projet(projet, filtres, jour))
         _budgets(projet, ids_accords, ind)
-        _financements(projet, filtres, ind)
+        _financements(projet, filtres, jour, ind)
         _execution(projet, ids_accords, ind, tdb)
         _soldes_bancaires(utilisateur, projet, jour, ind)
         _engagements(projet, ids_accords, jour, ind)
@@ -126,6 +130,9 @@ def tableau_de_bord(
         for code, i in ventilation.items():
             ventilation[code] = i.restreindre_a(filtres.devise)
     tdb.avertissements.append("tableau_de_bord.execution_recouvrement")
+    if jour != datetime.date.today():
+        # Les soldes budgétaires sont tenus au fil de l'eau : l'exécution est celle d'aujourd'hui.
+        tdb.avertissements.append("tableau_de_bord.execution_etat_courant")
     return tdb
 
 
@@ -149,32 +156,22 @@ def _vue_projet(projet: Projet, filtres: Filtres, jour: datetime.date) -> Projet
 
 
 def _budgets(projet: Projet, ids_accords, ind: dict) -> None:
-    devise = projet.base_currency
-    courant = VersionBudget.objects.filter(project_id=projet.id, status="approuve").first()
-    initial = VersionBudget.objects.filter(project_id=projet.id, type="initial").first()
-    for code, version in (("budget_approuve", courant), ("budget_initial", initial)):
+    for code in ("budget_approuve", "budget_initial"):
+        version = version_budget(projet.id, code)
         if version is None:
             continue
-        lignes = LigneBudget.objects.filter(version=version)
-        if ids_accords is not None:
-            lignes = lignes.filter(agreement_id__in=ids_accords)
-        ind[code].ajouter(projet.id, devise, lignes.aggregate(t=Sum("montant_base"))["t"] or ZERO)
+        lignes = lignes_budget(version, ids_accords)
+        ind[code].ajouter(
+            projet.id, projet.base_currency, lignes.aggregate(t=Sum("montant_base"))["t"] or ZERO
+        )
 
 
-def _financements(projet: Projet, filtres: Filtres, ind: dict) -> None:
-    accords = list(accords_du_filtre(projet.id, filtres).select_related("devise"))
-    for accord in accords:
-        ind["financements_accordes"].ajouter(projet.id, accord.devise_id, montant_courant(accord))
-    recus = AppariementDemande.objects.filter(
-        project_id=projet.id,
-        annule_at__isnull=True,
-        demande__accord__in=[a.pk for a in accords],
-    ).select_related("mouvement__compte")
-    if filtres.du:
-        recus = recus.filter(mouvement__date_operation__gte=filtres.du)
-    if filtres.au:
-        recus = recus.filter(mouvement__date_operation__lte=filtres.au)
-    for appariement in recus:
+def _financements(projet: Projet, filtres: Filtres, jour: datetime.date, ind: dict) -> None:
+    for accord in accords_du_filtre(projet.id, filtres).select_related("devise"):
+        ind["financements_accordes"].ajouter(
+            projet.id, accord.devise_id, montant_accord(accord, jour)
+        )
+    for appariement in appariements_recus(projet.id, filtres, jour):
         mouvement: MouvementReleve = appariement.mouvement
         ind["financements_recus"].ajouter(projet.id, mouvement.compte.devise_id, mouvement.montant)
 
@@ -207,12 +204,9 @@ def _soldes_bancaires(utilisateur, projet: Projet, jour: datetime.date, ind: dic
 
 
 def _engagements(projet: Projet, ids_accords, jour: datetime.date, ind: dict) -> None:
-    engagements = Engagement.objects.filter(
-        project_id=projet.id, status=StatutEngagement.OUVERT, annee__lte=jour.year
+    ouvert = sum(
+        (e.montant - e.apure for e in engagements_ouverts(projet.id, ids_accords, jour)), ZERO
     )
-    if ids_accords is not None:
-        engagements = engagements.filter(agreement_id__in=ids_accords)
-    ouvert = sum((e.montant - e.apure for e in engagements), ZERO)
     ind["engagements_ouverts"].ajouter(projet.id, projet.base_currency, ouvert)
 
 

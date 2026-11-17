@@ -6,6 +6,7 @@ existe). T14 (connectivité dégradée) relève de la VERSION 2 du plan : il est
 contourné. T17, le scénario de référence, est joué ici de bout en bout.
 """
 
+import ast
 import datetime
 import re
 from decimal import Decimal
@@ -13,6 +14,7 @@ from pathlib import Path
 
 import pytest
 from django.conf import settings
+from django.db import connection
 
 from niveau1_socle.comptabilite.models import Ecriture, LigneEcriture
 from niveau1_socle.decaissements.services import DemandeInvalide
@@ -145,13 +147,32 @@ CORRESPONDANCE = {
 NON_LIVRES = {"T14": "connectivité dégradée : capture hors ligne, version 2 du plan"}
 
 
-def test_chaque_scenario_de_reception_renvoie_a_un_test_qui_existe():
+def _est_desactive(source: str, nom: str) -> bool:
+    """Vrai si le test cité est ignoré (skip, skipif, xfail) ou vide : il ne démontre alors rien."""
+    for noeud in ast.walk(ast.parse(source)):
+        if isinstance(noeud, ast.FunctionDef) and noeud.name == nom:
+            decorateurs = " ".join(ast.unparse(d) for d in noeud.decorator_list)
+            if re.search(r"\b(skip|skipif|xfail)\b", decorateurs):
+                return True
+            utile = [
+                n
+                for n in noeud.body
+                if not isinstance(n, ast.Pass)
+                and not (isinstance(n, ast.Expr) and isinstance(n.value, ast.Constant))
+            ]
+            return not utile
+    return False
+
+
+def test_chaque_scenario_de_reception_renvoie_a_un_test_qui_existe_et_qui_s_execute():
     manquants = []
     for scenario, tests in CORRESPONDANCE.items():
         for fichier, nom in tests:
             source = (DOSSIER / f"{fichier}.py").read_text(encoding="utf-8")
-            if not re.search(rf"^def {re.escape(nom)}\(", source, flags=re.MULTILINE):
-                manquants.append(f"{scenario} -> {fichier}::{nom}")
+            if not re.search(rf"^(@.*\n)*def {re.escape(nom)}\(", source, flags=re.MULTILINE):
+                manquants.append(f"{scenario} -> {fichier}::{nom} (absent)")
+            elif _est_desactive(source, nom):
+                manquants.append(f"{scenario} -> {fichier}::{nom} (ignoré ou vide)")
     assert not manquants, manquants
 
 
@@ -252,6 +273,10 @@ def test_t17_deux_accords_un_projet(realloc):
     # Un accès croisé d'une autre organisation est refusé.
     autre = _creer_organisation("AUTRE")
     _poser(autre.id)
-    assert Accord.objects.count() == 0
-    assert ProfilDecaissement.objects.count() == 0
-    assert not Accord.objects.filter(pk=a1.pk).exists()
+    try:
+        assert Accord.objects.count() == 0
+        assert ProfilDecaissement.objects.count() == 0
+        assert not Accord.objects.filter(pk=a1.pk).exists()
+    finally:
+        with connection.cursor() as cur:  # le périmètre d'un test ne survit pas à ce test
+            cur.execute("RESET app.org_id")

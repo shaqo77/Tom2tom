@@ -15,7 +15,7 @@ from decimal import Decimal
 
 from niveau3_config.models import Echeance, StatutEcheance
 from niveau3_config.services.calendrier import alertes_du_jour
-from niveau4_reporting.controles.models import EvaluationControle
+from niveau4_reporting.controles.models import EvaluationControle, Resultat
 from niveau4_reporting.controles.services import controles_en_attente
 from niveau4_reporting.publication.models import ResultatSoumission, SoumissionBailleur
 from niveau4_reporting.publication.revue import taux_acceptation_premier_envoi
@@ -86,8 +86,12 @@ def conformite_du_projet(
     c.rapports_en_attente = SoumissionBailleur.objects.filter(
         project_id=project_id, resultat=ResultatSoumission.EN_ATTENTE
     ).count()
+    # Un objet dont aucune évaluation n'est bloquante ni « à vérifier » ne peut rien avoir en
+    # attente : on ne l'examine pas (sinon une requête par objet évalué, à chaque affichage).
     objets = (
-        EvaluationControle.objects.filter(project_id=project_id)
+        EvaluationControle.objects.filter(
+            project_id=project_id, resultat__in=(Resultat.BLOQUANT, Resultat.A_VERIFIER)
+        )
         .values_list("objet_type", "objet_id")
         .distinct()
     )

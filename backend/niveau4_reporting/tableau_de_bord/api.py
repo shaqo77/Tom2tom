@@ -8,12 +8,15 @@ ignoré dans le tableau (jamais d'élargissement) et refusé (403) pour la desce
 
 import uuid
 
+from rest_framework.exceptions import NotFound
+
 from core.api import (
     VueMetier,
     parametre_date,
     reponse,
 )
 from core.metier import refuser as refuser_champ
+from niveau1_socle.referentiels.models import Devise, TypeTaux
 from niveau4_reporting.tableau_de_bord import (
     Filtres,
     consolider,
@@ -37,13 +40,16 @@ def _filtres(requete) -> Filtres:
     q = requete.query_params
     projets = q.get("projets")
     statut_projet = q.get("statut_projet") or Filtres.statut_projet
+    devise = q.get("devise") or None
+    if devise and not Devise.objects.filter(pk=devise).exists():
+        refuser_champ("api.champ_invalide", champ="devise", attendu="devise connue")
     return Filtres(
         projets=frozenset(_uuid(p, "projets") for p in projets.split(",") if p)
         if projets
         else None,
         bailleur_id=_uuid(q["bailleur"], "bailleur") if q.get("bailleur") else None,
         accord_id=_uuid(q["accord"], "accord") if q.get("accord") else None,
-        devise=q.get("devise") or None,
+        devise=devise,
         du=parametre_date(requete, "du", obligatoire=False),
         au=parametre_date(requete, "au", obligatoire=False),
         statut_accord=q.get("statut_accord") or None,
@@ -102,12 +108,15 @@ class Consolidation(VueMetier):
         devise_reference = requete.query_params.get("devise_reference")
         if not devise_reference:
             refuser_champ("api.champ_obligatoire", champ="devise_reference")
+        type_taux = requete.query_params.get("type_taux", TypeTaux.OFFICIEL)
+        if type_taux not in TypeTaux.values:
+            refuser_champ("api.champ_invalide", champ="type_taux", attendu="type de taux connu")
         tdb = tableau_de_bord(utilisateur=requete.user, jour=jour, filtres=_filtres(requete))
         c = consolider(
             tdb.indicateurs[code],
             devise_reference=devise_reference,
             jour=jour,
-            type_taux=requete.query_params.get("type_taux", "officiel"),
+            type_taux=type_taux,
         )
         return reponse(
             {
@@ -160,8 +169,6 @@ class DetailEcritures(VueMetier):
         )
         detail = next((d for d in lignes if d.id == detail_id), None)
         if detail is None:
-            from rest_framework.exceptions import NotFound
-
             raise NotFound
         ecritures = ecritures_du_detail(
             utilisateur=requete.user, detail=detail, project_id=project_id, jour=jour

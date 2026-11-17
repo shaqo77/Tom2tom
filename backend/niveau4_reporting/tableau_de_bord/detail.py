@@ -16,20 +16,25 @@ from decimal import Decimal
 from core.metier import habilite
 from niveau1_socle.avances.models import Avance
 from niveau1_socle.avances.services import suivi
-from niveau1_socle.budget.models import Engagement, LigneBudget, StatutEngagement, VersionBudget
+from niveau1_socle.budget.models import LigneBudget
 from niveau1_socle.budget.soldes import situation
 from niveau1_socle.comptabilite.models import LigneEcriture
-from niveau1_socle.financements.services import montant_courant
 from niveau1_socle.organisations.models import Projet
 from niveau1_socle.rapprochement.services import _contexte, _montant_devise
-from niveau1_socle.tresorerie.models import AppariementDemande, CompteBancaire
+from niveau1_socle.tresorerie.models import CompteBancaire
 from niveau1_socle.tresorerie.services import solde_releve_a
 
-from .filtres import Filtres, accords_du_filtre
-from .financier import _ids_accords
+from .filtres import Filtres, accords_du_filtre, ids_accords_du_filtre
+from .sources import (
+    appariements_recus,
+    engagements_ouverts,
+    lignes_budget,
+    montant_accord,
+    version_budget,
+)
 
 ZERO = Decimal("0")
-AVEC_ECRITURE = {"compte_bancaire", "avance"}
+AVEC_ECRITURE = {"compte_bancaire", "avance"}  # un solde de relevé (compte_releve) : aucune
 CODES = (
     "budget_approuve", "budget_initial", "financements_accordes", "financements_recus",
     "execution_budget", "execution_engage", "execution_consomme", "soldes_comptables",
@@ -78,18 +83,10 @@ def detail_indicateur(
     habilite(utilisateur, "consulter", project_id)
     filtres = filtres or Filtres()
     projet = Projet.objects.get(pk=project_id)
-    ids_accords = _ids_accords(projet, filtres)
+    ids_accords = ids_accords_du_filtre(projet, filtres)
     devise = projet.base_currency
     if code in ("budget_approuve", "budget_initial"):
-        if code == "budget_approuve":
-            version = VersionBudget.objects.filter(project_id=project_id, status="approuve").first()
-        else:
-            version = VersionBudget.objects.filter(project_id=project_id, type="initial").first()
-        lignes = (
-            LigneBudget.objects.filter(version=version) if version else LigneBudget.objects.none()
-        )
-        if ids_accords is not None:
-            lignes = lignes.filter(agreement_id__in=ids_accords)
+        lignes = lignes_budget(version_budget(project_id, code), ids_accords)
         return [
             LigneDetail("ligne_budget", ligne.pk, _libelle_ligne(ligne), devise, ligne.montant_base)
             for ligne in lignes.select_related("dim1").order_by("annee", "periode", "id")
@@ -112,24 +109,16 @@ def detail_indicateur(
         return resultat
     if code == "financements_accordes":
         return [
-            LigneDetail("accord", a.pk, a.numero, a.devise_id, montant_courant(a))
+            LigneDetail("accord", a.pk, a.numero, a.devise_id, montant_accord(a, jour))
             for a in accords_du_filtre(project_id, filtres).select_related("devise")
         ]
     if code == "financements_recus":
-        accords = [a.pk for a in accords_du_filtre(project_id, filtres)]
-        recus = AppariementDemande.objects.filter(
-            project_id=project_id, annule_at__isnull=True, demande__accord__in=accords
-        ).select_related("mouvement__compte")
-        if filtres.du:
-            recus = recus.filter(mouvement__date_operation__gte=filtres.du)
-        if filtres.au:
-            recus = recus.filter(mouvement__date_operation__lte=filtres.au)
         return [
             LigneDetail(
                 "appariement", r.pk, r.mouvement.reference, r.mouvement.compte.devise_id,
                 r.mouvement.montant,
             )
-            for r in recus
+            for r in appariements_recus(project_id, filtres, jour)
         ]  # fmt: skip
     if code in ("soldes_comptables", "soldes_releves"):
         from niveau1_socle.tresorerie.services import solde_comptable_a
@@ -143,19 +132,13 @@ def detail_indicateur(
                 montant, _ = solde_releve_a(compte, jour)
                 if montant is None:
                     continue
-            resultat.append(
-                LigneDetail("compte_bancaire", compte.pk, compte.code, compte.devise_id, montant)
-            )
+            genre = "compte_bancaire" if code == "soldes_comptables" else "compte_releve"
+            resultat.append(LigneDetail(genre, compte.pk, compte.code, compte.devise_id, montant))
         return resultat
     if code == "engagements_ouverts":
-        engagements = Engagement.objects.filter(
-            project_id=project_id, status=StatutEngagement.OUVERT, annee__lte=jour.year
-        )
-        if ids_accords is not None:
-            engagements = engagements.filter(agreement_id__in=ids_accords)
         return [
             LigneDetail("engagement", e.pk, e.reference, devise, e.montant - e.apure)
-            for e in engagements.order_by("reference")
+            for e in engagements_ouverts(project_id, ids_accords, jour).order_by("reference")
         ]
     return [  # avances_non_justifiees
         LigneDetail("avance", s.avance.pk, s.avance.reference, devise, s.reste)

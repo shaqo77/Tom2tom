@@ -2,5 +2,6 @@
   "tableau_de_bord.devise_reference_inconnue": "Unknown reference currency: {devise}",
   "tableau_de_bord.execution_recouvrement": "Overall consumption adds the lines of the approved version: an expense covered by two overlapping lines counts twice there (see availability per line)",
   "tableau_de_bord.methode_consolidation": "Latest “{type_taux}” rate on {jour}, in {reference}; each (project, currency) amount converted then rounded to the reference currency before addition",
-  "tableau_de_bord.taux_manquant": "Indicator not consolidated: no “{type_taux}” rate on {jour} for {devises}"
+  "tableau_de_bord.taux_manquant": "Indicator not consolidated: no “{type_taux}” rate on {jour} for {devises}",
+  "tableau_de_bord.execution_etat_courant": "Budget execution (current budget, committed, spent) is as of today, not as of the requested date; the other indicators are as of the requested date"
 }

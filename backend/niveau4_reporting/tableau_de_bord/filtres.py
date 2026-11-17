@@ -82,3 +82,10 @@ def perimetre(utilisateur, filtres: Filtres, jour: datetime.date) -> list[Projet
                 continue
         retenus.append(projet)
     return retenus
+
+
+def ids_accords_du_filtre(projet, filtres: Filtres):
+    """Les accords que le filtre désigne, ou `None` si aucun filtre d'accord ne restreint."""
+    if not filtres.restreint_les_accords:
+        return None
+    return list(accords_du_filtre(projet.id, filtres).values_list("pk", flat=True))
