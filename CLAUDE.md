@@ -7,16 +7,18 @@ Seuls les champs techniques standard restent en anglais (`org_id`, `project_id`,
 Documents de référence, à lire avant de toucher à l'architecture :
 `01_SPECIFICATION_FONCTIONNELLE.md`, `02_ARCHITECTURE_TECHNIQUE.md`, `03_GUIDE_DEMARRAGE.md`
 (conventions, partie B ; règles, partie C), `04_PLAN_LOTS_L0_A_L4.md`, `05_PLAN_LOTS_L5_A_L10.md`.
-État actuel : lots **L0** à **L4** livrés (fondations : grand livre, clôtures, restitutions, budget,
-financements, cofinancement, demandes de retrait, avances, rapprochement bancaire), avec leur contrôle
-de sortie. Le lot **L5** (configuration et registre des exigences) est livré tâche par tâche (T01 à
-T07 : documents de référence, extraction, registre avec citation vérifiée, rattachement, profil de
-décaissement, activation et versionnement, réallocations et avenants, profils de bailleurs, profil
-Banque mondiale, guide de configuration) ; **son contrôle de sortie reste à exécuter**. Restent
-**L2-T05/T06** (paquets réglementaires : il manque la source du plan comptable) et les lots **L6** à
-**L10**. Le code vit dans `core/`, `niveau1_socle/` (organisations, habilitations, exercices,
-référentiels, comptabilité, budget, financements, décaissements, avances, rapprochement),
-`niveau2_profils/` (bibliothèque de profils de bailleurs), `niveau3_config/` et `niveau4_reporting/`.
+État actuel : lots **L0** à **L10** livrés, chacun avec son contrôle de sortie (fondations, configuration
+et registre des exigences, contrôles et rapports, dossier de conformité et accès auditeur, reprise et
+export, marchés et trésorerie, tableau de bord multi-projets et recette d'architecture T1 à T17). Restent
+**L2-T05/T06** (paquets réglementaires : il manque la source du plan comptable) et les chantiers de la
+version 2 du plan, dont **T14** (capture hors ligne), déclaré non livré. Les profils BAD, UE, FIDA, Fonds
+mondial, BID et Nations unies sont des **squelettes sourcés**, sans règle inventée : les remplir demande
+les documents des bailleurs. Le code vit dans `core/`, `niveau1_socle/` (organisations, habilitations,
+exercices, référentiels, comptabilité, budget, financements, décaissements, avances, rapprochement,
+marchés, trésorerie), `niveau2_profils/` (bibliothèque de profils de bailleurs), `niveau3_config/` et
+`niveau4_reporting/` (moteur d'états, publication, contrôles, tableau de bord). L'API HTTP (`/api/v1/`,
+JSON strict, montants en chaînes, erreurs `{code, message}`) couvre les marchés, la trésorerie et le
+tableau de bord ; elle n'a ni pagination ni jeton d'API.
 Chaque tâche a sa note « Réalisation » dans `04_PLAN_LOTS_L0_A_L4.md` ou `05_PLAN_LOTS_L5_A_L10.md`,
 avec ses limites assumées : à lire avant de s'appuyer sur un comportement.
 
