@@ -62,7 +62,7 @@ export function demarrerServeur(comptes: Compte[]): FauxServeur {
         return json({ csrf: "jeton-de-test" });
       }
       if (methode !== "GET" && entetes.get("X-CSRFToken") !== "jeton-de-test") {
-        return json({ detail: "CSRF Failed" }, 403);
+        return json({ code: "CSRF_INVALIDE", message: "La page a expiré" }, 403);
       }
       if (chemin === "/session/moi/" && methode === "GET") {
         return connecte

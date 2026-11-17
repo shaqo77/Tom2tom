@@ -142,6 +142,7 @@
 .grille-projets .carte {
   display: flex;
   flex-direction: column;
+  align-items: flex-start; /* la pastille garde sa taille au lieu de s'étirer sur la carte */
   gap: var(--esp-2);
   block-size: 100%;
 }

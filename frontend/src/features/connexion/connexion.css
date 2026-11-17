@@ -18,6 +18,7 @@
 }
 .connexion__oeil {
   align-self: flex-start;
+  margin-inline-start: calc(-1 * var(--esp-2)); /* le texte s'aligne sur celui du champ */
   padding: var(--esp-1) var(--esp-2);
   border: 0;
   background: transparent;

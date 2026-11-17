@@ -24,6 +24,8 @@ export interface OptionsAppel {
   methode?: "GET" | "POST" | "PUT" | "PATCH" | "DELETE";
   corps?: unknown;
   signal?: AbortSignal;
+  /** Interne : la requête a déjà été rejouée une fois avec un jeton CSRF frais. */
+  rejouee?: boolean;
   /** Un 401 attendu (« suis-je connecté ? ») ne doit pas déclencher « votre session a expiré ». */
   sansAlerteSession?: boolean;
 }
@@ -91,6 +93,12 @@ export async function appeler<T = unknown>(chemin: string, options: OptionsAppel
   const code = typeof donnees.code === "string" ? donnees.code : "ERREUR_SERVEUR";
   const message =
     typeof donnees.message === "string" ? donnees.message : `Erreur du serveur (${reponse.status}).`;
+  if (reponse.status === 403 && code === "CSRF_INVALIDE" && MODIFIE.has(methode) && !options.rejouee) {
+    // Jeton périmé (cookie effacé, connexion faite dans un autre onglet) : on en demande un frais,
+    // une seule fois, puis on rejoue. Si cela échoue encore, l'erreur est montrée telle quelle.
+    await appeler("/session/csrf/");
+    return appeler<T>(chemin, { ...options, rejouee: true });
+  }
   if (reponse.status === 401 && code === "NON_AUTHENTIFIE" && !options.sansAlerteSession) sessionPerdue?.();
   throw new ErreurApi(reponse.status, code, message);
 }

@@ -76,6 +76,8 @@ def test_la_connexion_sans_jeton_csrf_est_refusee(decor):
         content_type="application/json",
     )
     assert reponse.status_code == 403
+    # Lisible par le frontend : le même format que toute erreur de l'API, pas une page HTML.
+    assert reponse.json()["code"] == "CSRF_INVALIDE" and reponse.json()["message"]
 
 
 def test_une_connexion_reussie_rend_qui_je_suis_et_ce_que_je_peux_faire(decor):
@@ -332,3 +334,23 @@ def test_deviner_le_mot_de_passe_actuel_est_limite_aussi(decor):
     codes = [_changer(client, actuel=f"faux{i}").status_code for i in range(5)]
     assert codes == [422] * 5
     assert _changer(client, actuel="x").status_code == 429  # même le bon est refusé un temps
+
+
+def test_le_refus_csrf_hors_api_reste_la_page_de_django():
+    from django.test import RequestFactory
+
+    from core.csrf import refus_csrf
+
+    reponse = refus_csrf(RequestFactory().post("/export/x/"), reason="absent")
+    assert reponse.status_code == 403 and reponse["Content-Type"].startswith("text/html")
+
+
+def test_le_serveur_de_developpement_du_frontend_est_reconnu_mais_jamais_en_production():
+    from pathlib import Path
+
+    from config.settings import dev
+
+    assert "http://127.0.0.1:5173" in dev.CSRF_TRUSTED_ORIGINS
+    # On lit le fichier : l'importer lèverait, la clé de test étant trop courte pour la production.
+    prod = (Path(__file__).parent.parent / "config" / "settings" / "prod.py").read_text("utf-8")
+    assert "5173" not in prod

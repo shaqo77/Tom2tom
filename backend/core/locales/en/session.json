@@ -5,5 +5,6 @@
   "session.trop_de_tentatives": "Too many attempts: please try again in a few minutes.",
   "session.mot_de_passe_actuel_incorrect": "The current password is incorrect.",
   "session.mot_de_passe_identique": "The new password must differ from the current one.",
-  "session.mot_de_passe_refuse": "Password rejected: {details}"
+  "session.mot_de_passe_refuse": "Password rejected: {details}",
+  "session.csrf_invalide": "The page has expired: reload it and try again."
 }

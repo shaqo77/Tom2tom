@@ -221,6 +221,18 @@ describe("projets et droits", () => {
     expect(await screen.findByRole("heading", { level: 1, name: /Bonjour/ })).toBeInTheDocument();
   });
 
+  it("chaque sélecteur a pour nom accessible son étiquette seule, sans la valeur choisie", async () => {
+    await monter("/", { comptes: [deuxProjets], connecteComme: "amina" });
+    await screen.findByRole("heading", { level: 1, name: /Bonjour/ });
+    for (const nom of ["Projet", "Langue", "Thème"]) {
+      const selecteur = screen.getByRole("combobox", { name: nom }) as HTMLSelectElement;
+      // Une liste DANS son étiquette fait entrer ses options dans le nom du champ (« Projet Tous les
+      // projets ») dans un vrai navigateur : l'étiquette ne contient que son texte.
+      expect(selecteur.closest("label"), nom).toBeNull();
+      expect(selecteur.labels?.[0]?.textContent, nom).toBe(nom);
+    }
+  });
+
   it("la page d'un projet dit en clair ce que la personne y peut faire", async () => {
     await monter("/projets/id-P1", { connecteComme: "amina" });
     await screen.findByRole("heading", { level: 1, name: /P1/ });

@@ -12,6 +12,7 @@ import { appliquerTheme, themeEnregistre } from "../shared/theme";
 import type { Theme } from "../shared/theme";
 import { Bouton } from "../shared/ui/Bouton";
 import { Message } from "../shared/ui/Message";
+import { Selecteur } from "../shared/ui/Selecteur";
 import "./app.css";
 
 const THEMES: Theme[] = ["systeme", "clair", "sombre"];
@@ -62,59 +63,39 @@ export function MiseEnPage() {
           {t("accueil.titre")}
         </Link>
         {moi && moi.projets.length > 0 && (
-          <label className="reglage">
-            <span className="reglage__nom">{t("projets.choisir")}</span>
-            <select
-              value={courant?.params.projetId ?? ""}
-              onChange={(e) =>
-                void (e.target.value
-                  ? navigate({ to: "/projets/$projetId", params: { projetId: e.target.value } })
-                  : navigate({ to: "/" }))
-              }
-              className="reglage__choix"
-            >
-              <option value="">{t("projets.tous")}</option>
-              {moi.projets.map((p) => (
-                <option key={p.id} value={p.id}>
-                  {p.code} — {libelleProjet(p, i18n.language)}
-                </option>
-              ))}
-            </select>
-          </label>
+          <Selecteur
+            etiquette={t("projets.choisir")}
+            valeur={courant?.params.projetId ?? ""}
+            options={[
+              { valeur: "", libelle: t("projets.tous") },
+              ...moi.projets.map((p) => ({
+                valeur: p.id,
+                libelle: `${p.code} — ${libelleProjet(p, i18n.language)}`,
+              })),
+            ]}
+            onChange={(id) =>
+              void (id
+                ? navigate({ to: "/projets/$projetId", params: { projetId: id } })
+                : navigate({ to: "/" }))
+            }
+          />
         )}
         <div className="entete__reglages">
-          <label className="reglage">
-            <span className="reglage__nom">{t("commun.langue")}</span>
-            <select
-              value={i18n.language}
-              onChange={(e) => void changerLangue(e.target.value)}
-              className="reglage__choix"
-            >
-              {langues.map((code) => (
-                <option key={code} value={code}>
-                  {NOMS_LANGUES[code]}
-                </option>
-              ))}
-            </select>
-          </label>
-          <label className="reglage">
-            <span className="reglage__nom">{t("commun.theme")}</span>
-            <select
-              value={theme}
-              onChange={(e) => {
-                const choisi = e.target.value as Theme;
-                definirTheme(choisi);
-                appliquerTheme(choisi);
-              }}
-              className="reglage__choix"
-            >
-              {THEMES.map((valeur) => (
-                <option key={valeur} value={valeur}>
-                  {t(`commun.theme_${valeur}`)}
-                </option>
-              ))}
-            </select>
-          </label>
+          <Selecteur
+            etiquette={t("commun.langue")}
+            valeur={i18n.language}
+            options={langues.map((code) => ({ valeur: code, libelle: NOMS_LANGUES[code] ?? code }))}
+            onChange={(code) => void changerLangue(code)}
+          />
+          <Selecteur
+            etiquette={t("commun.theme")}
+            valeur={theme}
+            options={THEMES.map((valeur) => ({ valeur, libelle: t(`commun.theme_${valeur}`) }))}
+            onChange={(choisi) => {
+              definirTheme(choisi as Theme);
+              appliquerTheme(choisi as Theme);
+            }}
+          />
           {moi && (
             <div className="compte">
               <span className="compte__nom">

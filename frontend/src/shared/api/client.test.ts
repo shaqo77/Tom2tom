@@ -80,6 +80,45 @@ describe("requêtes", () => {
   });
 });
 
+describe("jeton CSRF périmé", () => {
+  const refus = () => json({ code: "CSRF_INVALIDE", message: "La page a expiré" }, 403);
+
+  it("redemande un jeton frais puis rejoue la requête, une seule fois", async () => {
+    document.cookie = "csrftoken=perime; path=/";
+    appels = [];
+    const reponses = [refus(), json({ csrf: "frais" }), json({ ok: true })];
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async (url: string, init: RequestInit) => {
+        appels.push({ url, init });
+        if (url.endsWith("/session/csrf/")) document.cookie = "csrftoken=frais; path=/";
+        return reponses.shift() as Response;
+      }),
+    );
+    expect(await appeler("/session/connexion/", { methode: "POST", corps: {} })).toEqual({ ok: true });
+    expect(appels.map((a) => a.url)).toEqual([
+      "/api/v1/session/connexion/",
+      "/api/v1/session/csrf/",
+      "/api/v1/session/connexion/",
+    ]);
+    expect(new Headers((appels[2] as Appel).init.headers).get("X-CSRFToken")).toBe("frais");
+  });
+
+  it("n'insiste pas : si le deuxième essai échoue aussi, l'erreur est rendue (pas de boucle)", async () => {
+    document.cookie = "csrftoken=perime; path=/";
+    simuler(refus(), json({ csrf: "x" }), refus());
+    const erreur = (await appeler("/x/", { methode: "POST" }).catch((e) => e)) as ErreurApi;
+    expect(erreur).toMatchObject({ statut: 403, code: "CSRF_INVALIDE" });
+    expect(appels).toHaveLength(3);
+  });
+
+  it("ne rejoue jamais une lecture", async () => {
+    simuler(refus());
+    await appeler("/x/").catch(() => undefined);
+    expect(appels).toHaveLength(1);
+  });
+});
+
 describe("erreurs", () => {
   it("transforme {code, message} du serveur en ErreurApi", async () => {
     simuler(json({ code: "REGLE_INVALIDE", message: "Montant invalide" }, 422));

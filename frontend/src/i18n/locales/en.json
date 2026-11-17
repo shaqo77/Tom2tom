@@ -81,5 +81,6 @@
   "droits.exporter": "Export",
   "droits.publier": "Publish",
   "droits.voir_numero_compte": "See account numbers",
-  "accueil.bonjour": "Hello, {{nom}}"
+  "accueil.bonjour": "Hello, {{nom}}",
+  "erreur.CSRF_INVALIDE": "The page has expired: reload it and try again."
 }

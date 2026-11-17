@@ -6,6 +6,7 @@ import { createRoot } from "react-dom/client";
 import { appliquerLangue } from "../i18n";
 import "../shared/styles/global.css";
 import { appliquerTheme, themeEnregistre } from "../shared/theme";
+import { langueDeDepart } from "./demarrage";
 import { creerRouteur } from "./routes";
 import { brancherSessionPerdue } from "./sessionPerdue";
 
@@ -17,8 +18,11 @@ const routeur = creerRouteur({ queryClient: requetes });
 brancherSessionPerdue(requetes, routeur);
 
 appliquerTheme(themeEnregistre());
-const demandee = new URLSearchParams(window.location.search).get("langue") ?? navigator.language.slice(0, 2);
-void appliquerLangue(demandee).then(() => {
+void langueDeDepart(requetes, {
+  navigateur: navigator.language.slice(0, 2),
+  demandee: new URLSearchParams(window.location.search).get("langue"),
+}).then(async (langue) => {
+  await appliquerLangue(langue);
   createRoot(document.getElementById("racine") as HTMLElement).render(
     <StrictMode>
       <QueryClientProvider client={requetes}>
