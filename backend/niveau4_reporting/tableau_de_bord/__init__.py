@@ -11,6 +11,7 @@ détails par projet.
 """
 
 from .conformite import Conformite, ConformiteProjet
+from .detail import EcritureRef, LigneDetail, detail_indicateur, ecritures_du_detail
 from .devises import Consolidation, consolider
 from .filtres import Filtres, perimetre
 from .financier import Indicateur, TableauDeBord, tableau_de_bord
@@ -19,6 +20,10 @@ __all__ = [
     "Conformite",
     "ConformiteProjet",
     "Consolidation",
+    "EcritureRef",
+    "LigneDetail",
+    "detail_indicateur",
+    "ecritures_du_detail",
     "Filtres",
     "Indicateur",
     "TableauDeBord",
