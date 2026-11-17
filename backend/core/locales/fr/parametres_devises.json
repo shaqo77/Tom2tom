@@ -1,0 +1,12 @@
+{
+  "parametres_devises.rien_a_parametrer": "Rien à paramétrer : indiquez au moins une devise de référence, une liste de devises autorisées ou un type de taux.",
+  "parametres_devises.devise_inconnue": "La devise {code} n'existe pas dans le référentiel des devises.",
+  "parametres_devises.liste_vide": "La liste des devises autorisées ne peut pas être vide.",
+  "parametres_devises.type_taux_inconnu": "Type de taux inconnu : {type_taux}.",
+  "parametres_devises.reference_hors_liste": "La devise de référence {code} doit faire partie des devises autorisées.",
+  "parametres_devises.sans_monnaie_de_tenue": "La liste des devises autorisées doit contenir la monnaie de tenue de l'organisation ({code}).",
+  "parametres_devises.sans_monnaie_du_projet": "La liste des devises autorisées exclut la monnaie de base du projet {projet} ({code}).",
+  "parametres_devises.date_effet_posterieure": "La nouvelle version doit prendre effet après le {valid_from}.",
+  "parametres_devises.habilitation_requise": "Il faut l'habilitation « {operation} » pour paramétrer les devises.",
+  "parametres_devises.devise_non_autorisee": "La devise {code} n'est pas autorisée pour ce projet à cette date."
+}

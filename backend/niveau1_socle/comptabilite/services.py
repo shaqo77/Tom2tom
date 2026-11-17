@@ -30,6 +30,7 @@ from niveau1_socle.habilitations.separation import exiger_separation_des_taches
 from niveau1_socle.referentiels.axes import exiger_valeur_imputable
 from niveau1_socle.referentiels.comptes import exiger_compte_imputable
 from niveau1_socle.referentiels.models import PlanDimension, Tiers
+from niveau1_socle.referentiels.parametres_devises import exiger_devise_autorisee, monnaie_de_base
 
 from .models import Ecriture, Journal, LigneEcriture
 
@@ -159,7 +160,7 @@ def saisir_ecriture(
     date_comptable: datetime.date,
     libelle: str,
     lignes: list[dict],
-    devise: str = "DJF",
+    devise: str | None = None,
     taux=1,
     reference_piece: str = "",
     cle_idempotence: str | None = None,
@@ -168,13 +169,17 @@ def saisir_ecriture(
     """Enregistre un BROUILLON équilibré. Retourne l'écriture existante si la clé est connue.
 
     Les montants des lignes sont en monnaie de tenue. Le brouillon doit être équilibré (la base
-    l'exige à la fin de la transaction) : une pièce est saisie complète, en une fois.
+    l'exige à la fin de la transaction) : une pièce est saisie complète, en une fois. Sans `devise`,
+    on prend la monnaie de base du projet (une donnée du projet) ; une devise que les réglages
+    n'autorisent pas pour ce projet à cette date est refusée.
     """
     _exiger_habilitation(utilisateur, "saisir", project_id)
     if cle_idempotence:
         deja = Ecriture.objects.filter(idempotency_key=cle_idempotence).first()
         if deja is not None:
             return deja
+    devise = devise or monnaie_de_base(project_id)
+    exiger_devise_autorisee(project_id, devise, date_comptable)
 
     # Un accord qui n'est pas actif (suspendu, clos…) ne reçoit aucune nouvelle imputation (L4-T04).
     for agreement_id in {ligne["agreement_id"] for ligne in lignes if ligne.get("agreement_id")}:

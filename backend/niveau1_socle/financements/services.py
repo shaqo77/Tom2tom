@@ -16,6 +16,7 @@ from core.i18n import libelle, msg
 from niveau1_socle.exercices.services import TransitionInterdite
 from niveau1_socle.habilitations.models import Habilitation
 from niveau1_socle.habilitations.permissions import est_habilite
+from niveau1_socle.referentiels.parametres_devises import exiger_devise_autorisee
 from niveau3_config.models import DocumentReference
 
 from .models import (
@@ -107,6 +108,7 @@ def creer_accord(
     _habilite(utilisateur, "parametrer", project_id)
     if not (numero or "").strip():
         raise FinancementInvalide(msg("financements.numero_accord_obligatoire"))
+    exiger_devise_autorisee(project_id, devise, date_effet)
     with transaction.atomic():
         accord = Accord.objects.create(
             org_id=utilisateur.org_id,
@@ -309,6 +311,7 @@ def creer_compte_bancaire(
     _habilite(utilisateur, "parametrer", project_id)
     if not (numero or "").strip():
         raise FinancementInvalide(msg("financements.numero_compte_obligatoire"))
+    exiger_devise_autorisee(project_id, devise)
     with transaction.atomic():
         compte = CompteBancaire.objects.create(
             org_id=utilisateur.org_id,

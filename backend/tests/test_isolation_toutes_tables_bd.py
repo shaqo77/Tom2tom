@@ -185,6 +185,7 @@ NON_PEUPLEES = {
     "niveau3_config_rattachementexigence": "test_exigences_bd",
     "referentiels_correspondanceimport": "test_import_referentiels_bd",
     "referentiels_taux": "test_devises_taux_bd",
+    "referentiels_parametredevises": "test_parametres_devises_bd",
 }
 
 

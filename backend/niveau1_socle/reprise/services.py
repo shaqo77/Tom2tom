@@ -32,6 +32,7 @@ from niveau1_socle.financements.models import Accord
 from niveau1_socle.habilitations.permissions import est_habilite
 from niveau1_socle.referentiels.imports import _normaliser, lire_fichier
 from niveau1_socle.referentiels.models import Compte, Devise, Tiers, ValeurDimension
+from niveau1_socle.referentiels.parametres_devises import exiger_devise_autorisee, monnaie_de_base
 
 from .models import (
     LigneBalanceOrigine,
@@ -154,13 +155,15 @@ class Erreurs:
 
 
 def ouvrir_reprise(
-    *, utilisateur, project_id, nom: str, date_bascule: datetime.date, devise: str = "DJF"
+    *, utilisateur, project_id, nom: str, date_bascule: datetime.date, devise: str | None = None
 ) -> Reprise:
     _habilite(utilisateur, "parametrer", project_id)
+    devise = devise or monnaie_de_base(project_id)  # la monnaie de base du projet, une donnée
     if not (nom or "").strip():
         _refuser("reprise.nom_obligatoire")
     if not Devise.objects.filter(code=devise).exists():
         _refuser("reprise.devise_inconnue", devise=devise)
+    exiger_devise_autorisee(project_id, devise, date_bascule)
     with transaction.atomic():
         reprise = Reprise.objects.create(
             org_id=utilisateur.org_id,

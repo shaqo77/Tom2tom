@@ -174,15 +174,18 @@ def saisir_depuis_schema(
     montant,
     date_comptable: datetime.date,
     libelle: str,
-    devise: str = "DJF",
+    devise: str | None = None,
     taux=1,
     journal: str | None = None,
     reference_piece: str = "",
     cle_idempotence: str | None = None,
 ):
     """Saisit un brouillon dont les lignes viennent d'un schéma. Même garde-fous que la saisie."""
+    from niveau1_socle.referentiels.parametres_devises import monnaie_de_base
+
     from .services import JournalIntrouvable, saisir_ecriture
 
+    devise = devise or monnaie_de_base(project_id)
     schema, lignes = generer_lignes_du_schema(code_schema, date_comptable, montant, devise)
     code_journal = journal or (schema.journal.code if schema.journal else None)
     if code_journal is None:

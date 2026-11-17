@@ -6,6 +6,7 @@ la lecture. Les taux, eux, appartiennent à une organisation (taux de bailleur,
 de budget…) et sont isolés par la RLS.
 """
 
+from django.contrib.postgres.fields import ArrayField
 from django.db import models
 from django.db.models import Q
 
@@ -257,3 +258,57 @@ class CorrespondanceImport(ModeleOrganisation):
 
     def __str__(self) -> str:
         return self.nom
+
+
+class ParametreDevises(ModeleOrganisation):
+    """Les réglages de devises d'une organisation, ou d'un projet qui les surcharge.
+
+    Tout est ici, en base : la devise de référence des consolidations, les devises autorisées et le
+    type de taux par défaut. Rien n'est écrit dans le code, et un champ à `NULL` signifie « je ne
+    dis rien, hérite du niveau au-dessus » (le projet hérite de l'organisation ; l'organisation, de
+    rien : le système dit alors « non paramétré » au lieu de deviner).
+
+    Versionné `[valid_from, valid_to[`, sans chevauchement (la base le garantit) ; une version
+    posée ne se modifie plus, on en crée une nouvelle (règle 7). Seul `valid_to` se pose, une fois.
+    """
+
+    project_id = models.UUIDField(null=True, blank=True, db_index=True)  # nul : niveau organisation
+    devise_reference = models.ForeignKey(
+        Devise, null=True, blank=True, on_delete=models.PROTECT, related_name="+"
+    )
+    devises_autorisees = ArrayField(models.CharField(max_length=3), null=True, blank=True)
+    type_taux = models.CharField(max_length=16, choices=TypeTaux.choices, null=True, blank=True)
+    version = models.PositiveIntegerField()
+    valid_from = models.DateField()
+    valid_to = models.DateField(null=True, blank=True)  # exclu
+    motif = models.TextField(blank=True, default="")
+
+    class Meta:
+        constraints = [
+            models.UniqueConstraint(
+                fields=["org_id", "version"],
+                condition=Q(project_id__isnull=True),
+                name="uq_parametredevises_version_organisation",
+            ),
+            models.UniqueConstraint(
+                fields=["org_id", "project_id", "version"],
+                condition=Q(project_id__isnull=False),
+                name="uq_parametredevises_version_projet",
+            ),
+            models.CheckConstraint(
+                condition=Q(valid_to__isnull=True) | Q(valid_to__gt=models.F("valid_from")),
+                name="parametredevises_dates_coherentes",
+            ),
+            models.CheckConstraint(
+                condition=(
+                    Q(devise_reference__isnull=False)
+                    | Q(devises_autorisees__isnull=False)
+                    | Q(type_taux__isnull=False)
+                ),
+                name="parametredevises_regle_quelque_chose",
+            ),
+            models.CheckConstraint(
+                condition=Q(type_taux__isnull=True) | Q(type_taux__in=TypeTaux.values),
+                name="parametredevises_type_taux_ferme",
+            ),
+        ]
