@@ -112,3 +112,55 @@
   border: 1px solid var(--bordure);
   border-radius: var(--rayon-m);
 }
+
+.compte {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--esp-3);
+  padding-inline-start: var(--esp-4);
+  border-inline-start: 1px solid var(--bordure);
+}
+.compte__nom {
+  font-weight: 600;
+}
+.compte__nom small {
+  font-weight: 500;
+  color: var(--texte-2);
+}
+
+.titre-section {
+  margin-block-end: var(--esp-3);
+}
+.grille-projets {
+  display: grid;
+  gap: var(--esp-4);
+  grid-template-columns: repeat(auto-fill, minmax(15rem, 1fr));
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.grille-projets .carte {
+  display: flex;
+  flex-direction: column;
+  gap: var(--esp-2);
+  block-size: 100%;
+}
+.carte-projet__lien {
+  font-size: var(--texte-l);
+  font-weight: 700;
+  color: var(--accent-texte);
+}
+.liste-pastilles {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--esp-2);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.droits-site {
+  margin-block-start: var(--esp-4);
+  display: flex;
+  flex-direction: column;
+  gap: var(--esp-2);
+}

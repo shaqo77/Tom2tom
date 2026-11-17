@@ -24,6 +24,8 @@ export interface OptionsAppel {
   methode?: "GET" | "POST" | "PUT" | "PATCH" | "DELETE";
   corps?: unknown;
   signal?: AbortSignal;
+  /** Un 401 attendu (« suis-je connecté ? ») ne doit pas déclencher « votre session a expiré ». */
+  sansAlerteSession?: boolean;
 }
 
 let langue = "fr";
@@ -89,6 +91,6 @@ export async function appeler<T = unknown>(chemin: string, options: OptionsAppel
   const code = typeof donnees.code === "string" ? donnees.code : "ERREUR_SERVEUR";
   const message =
     typeof donnees.message === "string" ? donnees.message : `Erreur du serveur (${reponse.status}).`;
-  if (reponse.status === 401 && code === "NON_AUTHENTIFIE") sessionPerdue?.();
+  if (reponse.status === 401 && code === "NON_AUTHENTIFIE" && !options.sansAlerteSession) sessionPerdue?.();
   throw new ErreurApi(reponse.status, code, message);
 }

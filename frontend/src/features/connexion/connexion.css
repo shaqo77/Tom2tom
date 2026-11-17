@@ -1,0 +1,33 @@
+.connexion {
+  display: flex;
+  justify-content: center;
+  padding-block-start: var(--esp-6);
+}
+.connexion > .carte {
+  inline-size: min(100%, 26rem);
+}
+.connexion__formulaire {
+  display: flex;
+  flex-direction: column;
+  gap: var(--esp-4);
+}
+.connexion__mot-de-passe {
+  display: flex;
+  flex-direction: column;
+  gap: var(--esp-1);
+}
+.connexion__oeil {
+  align-self: flex-start;
+  padding: var(--esp-1) var(--esp-2);
+  border: 0;
+  background: transparent;
+  color: var(--accent-texte);
+  font: inherit;
+  font-size: var(--texte-s);
+  font-weight: 600;
+  cursor: pointer;
+  border-radius: var(--rayon-s);
+}
+.connexion__oeil:hover {
+  background: var(--accent-fond);
+}

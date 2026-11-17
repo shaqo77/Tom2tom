@@ -24,7 +24,7 @@ describe("catalogues", () => {
   });
 
   it("aucune traduction n'est identique au français, sauf les noms propres", () => {
-    const IDENTIQUES = new Set(["accueil.titre", "conception.messages", "message.info"]); // mots identiques dans les deux langues
+    const IDENTIQUES = new Set(["accueil.titre", "conception.messages", "message.info", "session.organisation"]); // mots identiques dans les deux langues
     const memes = Object.entries(fr).filter(
       ([cle, texte]) => (en as Record<string, string>)[cle] === texte && !IDENTIQUES.has(cle),
     );

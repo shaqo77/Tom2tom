@@ -108,6 +108,14 @@ describe("erreurs", () => {
     expect(perdue).toHaveBeenCalledTimes(1);
   });
 
+  it("ne déclenche pas « session expirée » pour une lecture dont le 401 est attendu", async () => {
+    const perdue = vi.fn();
+    surNonAuthentifie(perdue);
+    simuler(json({ code: "NON_AUTHENTIFIE", message: "Connexion requise" }, 401));
+    await appeler("/session/moi/", { sansAlerteSession: true }).catch(() => undefined);
+    expect(perdue).not.toHaveBeenCalled();
+  });
+
   it("ne confond pas un mauvais mot de passe avec une session perdue", async () => {
     const perdue = vi.fn();
     surNonAuthentifie(perdue);

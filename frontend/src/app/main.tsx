@@ -7,11 +7,14 @@ import { appliquerLangue } from "../i18n";
 import "../shared/styles/global.css";
 import { appliquerTheme, themeEnregistre } from "../shared/theme";
 import { creerRouteur } from "./routes";
+import { brancherSessionPerdue } from "./sessionPerdue";
 
 const requetes = new QueryClient({
   defaultOptions: { queries: { retry: 1, refetchOnWindowFocus: false, staleTime: 30_000 } },
 });
-const routeur = creerRouteur();
+const routeur = creerRouteur({ queryClient: requetes });
+
+brancherSessionPerdue(requetes, routeur);
 
 appliquerTheme(themeEnregistre());
 const demandee = new URLSearchParams(window.location.search).get("langue") ?? navigator.language.slice(0, 2);

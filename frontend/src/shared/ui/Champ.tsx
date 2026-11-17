@@ -1,9 +1,9 @@
-import type { InputHTMLAttributes } from "react";
+import type { ComponentProps } from "react";
 import { useId } from "react";
 
 import "./ui.css";
 
-interface Props extends InputHTMLAttributes<HTMLInputElement> {
+interface Props extends ComponentProps<"input"> {
   etiquette: string;
   aide?: string;
   erreur?: string;
