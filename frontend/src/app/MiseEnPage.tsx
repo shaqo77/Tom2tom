@@ -68,6 +68,9 @@ export function MiseEnPage() {
               <Link to="/tableau-de-bord" className="navigation__lien" activeProps={{ className: "navigation__lien navigation__lien--actif" }}>
                 {t("tableau.nav")}
               </Link>
+              <Link to="/parametres-devises" className="navigation__lien" activeProps={{ className: "navigation__lien navigation__lien--actif" }}>
+                {t("devises.nav")}
+              </Link>
             </nav>
           )}
           {moi && (

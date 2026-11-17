@@ -4,6 +4,7 @@ import { createRootRouteWithContext, createRoute, createRouter, redirect } from 
 import { Accueil } from "../features/accueil/Accueil";
 import { Conception } from "../features/accueil/Conception";
 import { Connexion } from "../features/connexion/Connexion";
+import { ReglagesDevises } from "../features/devises/ReglagesDevises";
 import { ProjetPage } from "../features/projets/ProjetPage";
 import { TableauDeBord } from "../features/tableau/TableauDeBord";
 import { dateIsoValide } from "../features/tableau/api";
@@ -66,12 +67,22 @@ const tableau = createRoute({
   component: TableauDeBord,
 });
 
+const reglagesDevises = createRoute({
+  getParentRoute: () => protege,
+  path: "/parametres-devises",
+  // (valeur invalide écrasée par `undefined` : le routeur fusionne la recherche brute avec ce validateur)
+  validateSearch: (recherche: Record<string, unknown>): { portee?: string | undefined } => ({
+    portee: typeof recherche.portee === "string" && recherche.portee !== "" ? recherche.portee : undefined,
+  }),
+  component: ReglagesDevises,
+});
+
 // Le guide de style n'existe qu'en développement.
 const conception = createRoute({ getParentRoute: () => racine, path: "/conception", component: Conception });
 
 export const arbre = racine.addChildren([
   connexion,
-  protege.addChildren([accueil, tableau, projet]),
+  protege.addChildren([accueil, tableau, reglagesDevises, projet]),
   ...(import.meta.env.DEV ? [conception] : []),
 ]);
 
