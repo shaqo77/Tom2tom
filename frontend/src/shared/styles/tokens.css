@@ -1,0 +1,132 @@
+/*
+  Jeu de couleurs du SIGF : des NEUTRES froids et sobres pour tout ce qui porte de l'information,
+  quelques accents VIFS réservés à ce qui demande l'attention (action principale, état, alerte).
+  Chaque paire texte/fond est vérifiée à 4,5:1 au moins par un test (tokens.test.ts).
+  Propriétés LOGIQUES uniquement dans tout le CSS : l'arabe (droite-à-gauche) viendra.
+*/
+
+:root {
+  color-scheme: light dark;
+
+  /* Échelle neutre */
+  --neutre-0: #ffffff;
+  --neutre-50: #f8f9fb;
+  --neutre-100: #f1f3f6;
+  --neutre-200: #e3e7ed;
+  --neutre-300: #cdd3dc;
+  --neutre-500: #6b7585;
+  --neutre-600: #4d5666;
+  --neutre-900: #151a23;
+
+  /* Sémantique (thème clair) */
+  --fond: var(--neutre-50);
+  --surface: var(--neutre-0);
+  --surface-2: var(--neutre-100);
+  --bordure: var(--neutre-200);
+  --bordure-forte: var(--neutre-300);
+  --texte: var(--neutre-900);
+  --texte-2: var(--neutre-600);
+  --texte-3: var(--neutre-500);
+
+  --accent: #4f46e5;
+  --accent-survol: #4338ca;
+  --accent-contraste: #ffffff;
+  --accent-fond: #e0e7ff;
+  --accent-texte: #3730a3;
+
+  --succes: #047857;
+  --succes-fond: #d1fae5;
+  --attention: #92400e;
+  --attention-fond: #fef3c7;
+  --danger: #be123c;
+  --danger-fond: #ffe4e6;
+  --info: #0e7490;
+  --info-fond: #cffafe;
+
+  /* Espacements (multiples de 4 px) */
+  --esp-1: 0.25rem;
+  --esp-2: 0.5rem;
+  --esp-3: 0.75rem;
+  --esp-4: 1rem;
+  --esp-5: 1.5rem;
+  --esp-6: 2rem;
+  --esp-7: 3rem;
+  --esp-8: 4rem;
+
+  /* Formes et profondeur */
+  --rayon-s: 0.375rem;
+  --rayon-m: 0.625rem;
+  --rayon-l: 1rem;
+  --ombre-1: 0 1px 2px rgb(21 26 35 / 0.06), 0 1px 1px rgb(21 26 35 / 0.04);
+  --ombre-2: 0 6px 20px rgb(21 26 35 / 0.1), 0 2px 6px rgb(21 26 35 / 0.06);
+
+  /* Typographie : pile système (aucune police distante : l'application doit marcher hors ligne) */
+  --police: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, "Noto Sans", sans-serif;
+  --police-chiffres: ui-monospace, "SF Mono", "Cascadia Mono", "Roboto Mono", monospace;
+  --texte-xs: 0.75rem;
+  --texte-s: 0.875rem;
+  --texte-m: 1rem;
+  --texte-l: 1.25rem;
+  --texte-xl: 1.625rem;
+  --texte-xxl: 2.125rem;
+
+  /* Contrôles : cible tactile d'au moins 40 px */
+  --hauteur-controle: 2.5rem;
+  --focus: 0 0 0 3px var(--fond), 0 0 0 5px var(--accent);
+  --duree: 140ms;
+}
+
+/* Thème sombre : suit le système, sauf choix explicite de l'utilisateur */
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --fond: #0f131a;
+    --surface: #171c26;
+    --surface-2: #1e2430;
+    --bordure: #2a3140;
+    --bordure-forte: #3a4356;
+    --texte: #eef1f6;
+    --texte-2: #aeb6c4;
+    --texte-3: #8d97a8;
+    --accent: #818cf8;
+    --accent-survol: #a5b4fc;
+    --accent-contraste: #0f131a;
+    --accent-fond: #262b5e;
+    --accent-texte: #c7d2fe;
+    --succes: #34d399;
+    --succes-fond: #0f2e25;
+    --attention: #fbbf24;
+    --attention-fond: #33270b;
+    --danger: #fb7185;
+    --danger-fond: #3a1420;
+    --info: #22d3ee;
+    --info-fond: #0b2f38;
+    --ombre-1: 0 1px 2px rgb(0 0 0 / 0.4);
+    --ombre-2: 0 8px 24px rgb(0 0 0 / 0.5);
+  }
+}
+
+:root[data-theme="dark"] {
+  --fond: #0f131a;
+  --surface: #171c26;
+  --surface-2: #1e2430;
+  --bordure: #2a3140;
+  --bordure-forte: #3a4356;
+  --texte: #eef1f6;
+  --texte-2: #aeb6c4;
+  --texte-3: #8d97a8;
+  --accent: #818cf8;
+  --accent-survol: #a5b4fc;
+  --accent-contraste: #0f131a;
+  --accent-fond: #262b5e;
+  --accent-texte: #c7d2fe;
+  --succes: #34d399;
+  --succes-fond: #0f2e25;
+  --attention: #fbbf24;
+  --attention-fond: #33270b;
+  --danger: #fb7185;
+  --danger-fond: #3a1420;
+  --info: #22d3ee;
+  --info-fond: #0b2f38;
+  --ombre-1: 0 1px 2px rgb(0 0 0 / 0.4);
+  --ombre-2: 0 8px 24px rgb(0 0 0 / 0.5);
+}

@@ -1,0 +1,204 @@
+/* Briques d'interface. Propriétés logiques uniquement (inline = sens de lecture, block = hauteur). */
+
+/* --- Bouton --- */
+.bouton {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--esp-2);
+  min-block-size: var(--hauteur-controle);
+  padding-inline: var(--esp-4);
+  border: 1px solid transparent;
+  border-radius: var(--rayon-m);
+  font: inherit;
+  font-weight: 600;
+  line-height: 1;
+  cursor: pointer;
+  transition:
+    background-color var(--duree),
+    border-color var(--duree),
+    box-shadow var(--duree);
+}
+.bouton:disabled {
+  cursor: not-allowed;
+  opacity: 0.55;
+}
+.bouton--primaire {
+  background: var(--accent);
+  color: var(--accent-contraste);
+}
+.bouton--primaire:hover:not(:disabled) {
+  background: var(--accent-survol);
+}
+.bouton--secondaire {
+  background: var(--surface);
+  color: var(--texte);
+  border-color: var(--bordure-forte);
+}
+.bouton--secondaire:hover:not(:disabled) {
+  background: var(--surface-2);
+}
+.bouton--discret {
+  background: transparent;
+  color: var(--accent-texte);
+}
+.bouton--discret:hover:not(:disabled) {
+  background: var(--accent-fond);
+}
+.bouton--danger {
+  background: var(--danger-fond);
+  color: var(--danger);
+  border-color: var(--danger);
+}
+.bouton--danger:hover:not(:disabled) {
+  background: var(--surface);
+}
+.bouton__rotation,
+.chargement {
+  inline-size: 1em;
+  block-size: 1em;
+  border: 2px solid currentcolor;
+  border-block-start-color: transparent;
+  border-radius: 50%;
+  animation: rotation 700ms linear infinite;
+}
+.chargement {
+  display: inline-block;
+  inline-size: 1.5rem;
+  block-size: 1.5rem;
+  color: var(--accent);
+}
+@keyframes rotation {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/* --- Champ --- */
+.champ {
+  display: flex;
+  flex-direction: column;
+  gap: var(--esp-1);
+}
+.champ__etiquette {
+  font-size: var(--texte-s);
+  font-weight: 600;
+}
+.champ__saisie {
+  min-block-size: var(--hauteur-controle);
+  padding-inline: var(--esp-3);
+  border: 1px solid var(--bordure-forte);
+  border-radius: var(--rayon-m);
+  background: var(--surface);
+  color: var(--texte);
+  font: inherit;
+}
+.champ__saisie::placeholder {
+  color: var(--texte-3);
+}
+.champ__saisie:hover {
+  border-color: var(--texte-3);
+}
+.champ__saisie[aria-invalid="true"] {
+  border-color: var(--danger);
+}
+.champ__aide {
+  font-size: var(--texte-s);
+  color: var(--texte-2);
+}
+.champ__erreur {
+  font-size: var(--texte-s);
+  font-weight: 600;
+  color: var(--danger);
+}
+
+/* --- Message --- */
+.message {
+  display: flex;
+  flex-direction: column;
+  gap: var(--esp-1);
+  padding: var(--esp-3) var(--esp-4);
+  border-inline-start: 4px solid var(--message-couleur);
+  border-radius: var(--rayon-m);
+  background: var(--message-fond);
+  color: var(--texte);
+}
+.message__type {
+  color: var(--message-couleur);
+}
+.message--info {
+  --message-couleur: var(--info);
+  --message-fond: var(--info-fond);
+}
+.message--succes {
+  --message-couleur: var(--succes);
+  --message-fond: var(--succes-fond);
+}
+.message--attention {
+  --message-couleur: var(--attention);
+  --message-fond: var(--attention-fond);
+}
+.message--danger {
+  --message-couleur: var(--danger);
+  --message-fond: var(--danger-fond);
+}
+
+/* --- Pastille --- */
+.pastille {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.125rem var(--esp-2);
+  border-radius: 999px;
+  font-size: var(--texte-xs);
+  font-weight: 650;
+  background: var(--surface-2);
+  color: var(--texte-2);
+}
+.pastille--accent {
+  background: var(--accent-fond);
+  color: var(--accent-texte);
+}
+.pastille--succes {
+  background: var(--succes-fond);
+  color: var(--succes);
+}
+.pastille--attention {
+  background: var(--attention-fond);
+  color: var(--attention);
+}
+.pastille--alerte {
+  background: var(--danger-fond);
+  color: var(--danger);
+}
+
+/* --- Carte --- */
+.carte {
+  padding: var(--esp-5);
+  border: 1px solid var(--bordure);
+  border-radius: var(--rayon-l);
+  background: var(--surface);
+  box-shadow: var(--ombre-1);
+}
+.carte__titre {
+  margin-block-end: var(--esp-4);
+}
+
+/* --- Montant --- */
+.montant {
+  display: inline-flex;
+  flex-wrap: wrap;
+  gap: var(--esp-1) var(--esp-2);
+  align-items: baseline;
+  min-inline-size: 0;
+  overflow-wrap: anywhere;
+  font-variant-numeric: tabular-nums;
+  font-weight: 560;
+}
+.montant__devise {
+  font-size: var(--texte-xs);
+  font-weight: 600;
+  color: var(--texte-2);
+}
+.montant--negatif .montant__valeur {
+  color: var(--danger);
+}
