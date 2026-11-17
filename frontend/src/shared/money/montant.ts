@@ -38,6 +38,20 @@ export function estNul(valeur: string): boolean {
   return lire(valeur).isZero();
 }
 
+/** Un rapport décimal (« 0.6834 ») écrit en pourcentage (« 68,3 % »), exact : 1,005 donne 100,5 %. */
+export function enPourcentage(rapport: string, langue: string, decimales: number): string {
+  const pourcent = lire(rapport).times(100).toFixed();
+  const nombre = formater(pourcent, langue, decimales);
+  return langue.startsWith("fr") ? `${nombre}\u00a0%` : `${nombre}%`;
+}
+
+/** La part remplie d'une jauge, en pourcentage de 0 à 100 (une décimale) : un repère visuel exact. */
+export function largeurJauge(rapport: string): string {
+  const pourcent = lire(rapport).times(100);
+  const borne = Exact.max(0, Exact.min(100, pourcent));
+  return borne.toDecimalPlaces(1, Decimal.ROUND_HALF_UP).toFixed();
+}
+
 function separateurs(langue: string): { decimal: string; groupe: string } {
   const parties = new Intl.NumberFormat(langue).formatToParts(1000.5);
   return {

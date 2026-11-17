@@ -15,6 +15,7 @@ from core.api import (
     parametre_date,
     reponse,
 )
+from core.i18n import msg
 from core.metier import refuser as refuser_champ
 from niveau1_socle.referentiels.models import Devise, TypeTaux
 from niveau4_reporting.tableau_de_bord import (
@@ -65,6 +66,17 @@ def _indicateur(i: Indicateur) -> dict:
     }
 
 
+def _decimales(tdb) -> dict[str, int]:
+    """Le nombre de décimales de chaque devise qui apparaît dans le tableau (DJF : 0, EUR : 2)."""
+    codes = {
+        devise
+        for indicateur in tdb.indicateurs.values()
+        for montants in indicateur.par_projet.values()
+        for devise in montants
+    }
+    return dict(Devise.objects.filter(pk__in=codes).order_by("pk").values_list("pk", "decimales"))
+
+
 class TableauDeBordVue(VueMetier):
     def get(self, requete):
         jour = parametre_date(requete, "jour")
@@ -88,6 +100,7 @@ class TableauDeBordVue(VueMetier):
                 "taux_execution": tdb.taux_execution(),
                 "par_composante": {
                     composante: {code: _indicateur(i) for code, i in ventilation.items()}
+                    | {"taux_execution": tdb.taux_execution(composante)}
                     for composante, ventilation in tdb.par_composante.items()
                 },
                 "conformite": {
@@ -95,7 +108,10 @@ class TableauDeBordVue(VueMetier):
                     "totaux": {champ: conformite.total(champ) for champ in CHAMPS},
                     "taux_acceptation": conformite.taux_acceptation,
                 },
-                "avertissements": tdb.avertissements,
+                "avertissements": [
+                    {"code": code, "message": str(msg(code))} for code in tdb.avertissements
+                ],
+                "devises": _decimales(tdb),
             }
         )
 

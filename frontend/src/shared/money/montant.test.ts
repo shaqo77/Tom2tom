@@ -1,5 +1,7 @@
 import {
   MontantInvalide,
+  enPourcentage,
+  largeurJauge,
   additionner,
   comparer,
   estNul,
@@ -78,5 +80,45 @@ describe("saisie de l'utilisateur", () => {
       expect(lireSaisie(mauvais, "fr"), mauvais).toBeNull();
     }
     expect(lireSaisie("12.5", "fr")).toBeNull(); // le point n'est pas la virgule française
+  });
+});
+
+describe("taux en pourcentage", () => {
+  it("écrit un rapport décimal exact en pourcentage, selon la langue", () => {
+    expect(espaces(enPourcentage("0.6834", "fr", 1))).toBe("68,3 %");
+    expect(enPourcentage("0.6834", "en", 1)).toBe("68.3%");
+    expect(espaces(enPourcentage("1", "fr", 0))).toBe("100 %");
+    expect(enPourcentage("0", "en", 1)).toBe("0.0%");
+  });
+
+  it("arrondit à la moitié en s'éloignant de zéro, sans l'erreur des flottants", () => {
+    expect(enPourcentage("0.0005", "en", 0)).toBe("0%"); // 0,05 % → 0 %
+    expect(enPourcentage("0.005", "en", 0)).toBe("1%"); // 0,5 % → 1 %
+    expect(enPourcentage("1.005", "en", 1)).toBe("100.5%"); // un nombre flottant donnerait 100.49999
+  });
+
+  it("garde les dépassements : un taux au-dessus de 100 % se lit tel quel", () => {
+    expect(enPourcentage("1.25", "en", 1)).toBe("125.0%");
+  });
+
+  it("refuse une valeur qui n'est pas un décimal", () => {
+    expect(() => enPourcentage("abc", "fr", 1)).toThrow(MontantInvalide);
+  });
+});
+
+describe("largeur d'une jauge", () => {
+  it("donne la part remplie en pourcentage, bornée entre 0 et 100", () => {
+    expect(largeurJauge("0.6834")).toBe("68.3");
+    expect(largeurJauge("0")).toBe("0");
+    expect(largeurJauge("1")).toBe("100");
+  });
+
+  it("un dépassement ou un taux négatif ne sort jamais de la jauge", () => {
+    expect(largeurJauge("12.5")).toBe("100"); // 1 250 %
+    expect(largeurJauge("-0.2")).toBe("0");
+  });
+
+  it("refuse une valeur qui n'est pas un décimal", () => {
+    expect(() => largeurJauge("abc")).toThrow(MontantInvalide);
   });
 });

@@ -59,43 +59,17 @@ export function MiseEnPage() {
         {t("commun.aller_au_contenu")}
       </a>
       <header className="entete">
-        <Link to="/" className="entete__marque">
-          {t("accueil.titre")}
-        </Link>
-        {moi && moi.projets.length > 0 && (
-          <Selecteur
-            etiquette={t("projets.choisir")}
-            valeur={courant?.params.projetId ?? ""}
-            options={[
-              { valeur: "", libelle: t("projets.tous") },
-              ...moi.projets.map((p) => ({
-                valeur: p.id,
-                libelle: `${p.code} — ${libelleProjet(p, i18n.language)}`,
-              })),
-            ]}
-            onChange={(id) =>
-              void (id
-                ? navigate({ to: "/projets/$projetId", params: { projetId: id } })
-                : navigate({ to: "/" }))
-            }
-          />
-        )}
-        <div className="entete__reglages">
-          <Selecteur
-            etiquette={t("commun.langue")}
-            valeur={i18n.language}
-            options={langues.map((code) => ({ valeur: code, libelle: NOMS_LANGUES[code] ?? code }))}
-            onChange={(code) => void changerLangue(code)}
-          />
-          <Selecteur
-            etiquette={t("commun.theme")}
-            valeur={theme}
-            options={THEMES.map((valeur) => ({ valeur, libelle: t(`commun.theme_${valeur}`) }))}
-            onChange={(choisi) => {
-              definirTheme(choisi as Theme);
-              appliquerTheme(choisi as Theme);
-            }}
-          />
+        <div className="entete__haut">
+          <Link to="/" className="entete__marque">
+            {t("accueil.titre")}
+          </Link>
+          {moi && (
+            <nav aria-label={t("commun.navigation")} className="navigation">
+              <Link to="/tableau-de-bord" className="navigation__lien" activeProps={{ className: "navigation__lien navigation__lien--actif" }}>
+                {t("tableau.nav")}
+              </Link>
+            </nav>
+          )}
           {moi && (
             <div className="compte">
               <span className="compte__nom">
@@ -108,6 +82,43 @@ export function MiseEnPage() {
               </Bouton>
             </div>
           )}
+        </div>
+        <div className="entete__contexte">
+          {moi && moi.projets.length > 0 && (
+            <Selecteur
+              etiquette={t("projets.choisir")}
+              valeur={courant?.params.projetId ?? ""}
+              options={[
+                { valeur: "", libelle: t("projets.tous") },
+                ...moi.projets.map((p) => ({
+                  valeur: p.id,
+                  libelle: `${p.code} — ${libelleProjet(p, i18n.language)}`,
+                })),
+              ]}
+              onChange={(id) =>
+                void (id
+                  ? navigate({ to: "/projets/$projetId", params: { projetId: id } })
+                  : navigate({ to: "/" }))
+              }
+            />
+          )}
+          <div className="entete__reglages">
+            <Selecteur
+              etiquette={t("commun.langue")}
+              valeur={i18n.language}
+              options={langues.map((code) => ({ valeur: code, libelle: NOMS_LANGUES[code] ?? code }))}
+              onChange={(code) => void changerLangue(code)}
+            />
+            <Selecteur
+              etiquette={t("commun.theme")}
+              valeur={theme}
+              options={THEMES.map((valeur) => ({ valeur, libelle: t(`commun.theme_${valeur}`) }))}
+              onChange={(choisi) => {
+                definirTheme(choisi as Theme);
+                appliquerTheme(choisi as Theme);
+              }}
+            />
+          </div>
         </div>
       </header>
       <main id="contenu" className="contenu" tabIndex={-1}>

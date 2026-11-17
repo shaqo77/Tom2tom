@@ -19,11 +19,16 @@ export interface Monte {
 /** L'application complète (routes, gardes, session perdue) devant un faux serveur. */
 export async function monter(
   chemin: string,
-  options: { comptes?: Compte[]; connecteComme?: string } = {},
+  options: {
+    comptes?: Compte[];
+    connecteComme?: string;
+    tableau?: (recherche: URLSearchParams) => unknown;
+  } = {},
 ): Promise<Monte & { rendu: ReturnType<typeof render> }> {
   const comptes = options.comptes ?? [unCompte("amina")];
   const serveur = demarrerServeur(comptes);
   if (options.connecteComme) serveur.ouvrirSession(options.connecteComme);
+  if (options.tableau) serveur.tableau = options.tableau;
   const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } });
   const routeur = creerRouteur({
     queryClient,

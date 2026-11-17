@@ -1,0 +1,150 @@
+.filtres {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: var(--esp-4);
+}
+.filtres__projets {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--esp-2) var(--esp-4);
+  margin: 0;
+  padding: 0;
+  border: 0;
+}
+.filtres__projets legend {
+  margin-block-end: var(--esp-1);
+  padding: 0;
+  font-size: var(--texte-s);
+  color: var(--texte-2);
+}
+.filtres__case {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--esp-2);
+}
+.filtres__case input {
+  inline-size: 1.125rem;
+  block-size: 1.125rem;
+  accent-color: var(--accent);
+}
+
+.tableau__etat:empty {
+  display: none;
+}
+.tableau__chargement {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--esp-3);
+  color: var(--texte-2);
+}
+.tableau__avertissements {
+  display: flex;
+  flex-direction: column;
+  gap: var(--esp-2);
+}
+
+.indicateurs {
+  display: grid;
+  gap: var(--esp-5) var(--esp-6);
+  grid-template-columns: repeat(auto-fill, minmax(13rem, 1fr));
+}
+.indicateur {
+  display: flex;
+  flex-direction: column;
+  gap: var(--esp-1);
+  min-inline-size: 0;
+}
+.indicateur__titre {
+  font-size: var(--texte-s);
+  font-weight: 600;
+  color: var(--texte-2);
+}
+.indicateur__lignes {
+  display: flex;
+  flex-direction: column;
+  gap: var(--esp-1);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  font-size: var(--texte-l);
+}
+.indicateur__vide {
+  color: var(--texte-3);
+  font-size: var(--texte-l);
+}
+.indicateur__valeur {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--esp-2);
+  font-size: var(--texte-xl);
+  font-weight: 650;
+}
+.indicateur__signal {
+  font-size: var(--texte-xs);
+}
+.technique-texte {
+  font-size: var(--texte-s);
+  color: var(--texte-2);
+}
+
+.taux {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: var(--esp-1) var(--esp-2);
+}
+.taux__texte {
+  font-weight: 650;
+}
+.jauge {
+  flex-basis: 100%;
+  block-size: 0.5rem;
+  border-radius: 999px;
+  background: var(--surface-2);
+  overflow: hidden;
+}
+.jauge__remplie {
+  display: block;
+  block-size: 100%;
+  border-radius: 999px;
+  background: var(--serie-1);
+}
+
+.composantes {
+  margin-block-start: var(--esp-5);
+}
+.composantes h3 {
+  margin-block-end: var(--esp-3);
+}
+.table-defilante {
+  overflow-x: auto;
+}
+.table {
+  inline-size: 100%;
+  border-collapse: collapse;
+  font-size: var(--texte-s);
+}
+.table th,
+.table td {
+  padding: var(--esp-3) var(--esp-3);
+  border-block-end: 1px solid var(--bordure);
+  text-align: start;
+  vertical-align: top;
+}
+.table thead th {
+  font-weight: 600;
+  color: var(--texte-2);
+  white-space: nowrap;
+}
+.table tbody th {
+  font-weight: 600;
+}
+.table__libelle {
+  display: block;
+  font-weight: 400;
+  color: var(--texte-2);
+}
+.table .indicateur__lignes {
+  font-size: var(--texte-s);
+}

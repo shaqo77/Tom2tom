@@ -37,7 +37,16 @@ def test_le_tableau_se_lit_par_projet_et_par_devise_avec_des_montants_en_chaines
     }
     assert all(isinstance(m, str) for m in accordes.values())  # jamais un nombre flottant
     assert corps["conformite"]["totaux"]["echeances_a_remettre"] == 0
-    assert "tableau_de_bord.execution_recouvrement" in corps["avertissements"]
+    # Les avertissements arrivent avec leur texte dans la langue : le frontend n'a rien à deviner.
+    avertissements = {a["code"]: a["message"] for a in corps["avertissements"]}
+    assert "consommé" in avertissements["tableau_de_bord.execution_recouvrement"]
+    assert all(m.strip() for m in avertissements.values())
+    # Le nombre de décimales de chaque devise affichée : un montant en DJF ne s'écrit pas « ,00 ».
+    assert corps["devises"] == {"DJF": 0, "EUR": 2, "USD": 2}
+    # Le taux d'exécution par composante vient du serveur : une seule règle de calcul.
+    sans_composante = corps["par_composante"][""]
+    assert set(sans_composante) == {"budget", "engage", "consomme", "taux_execution"}
+    assert Decimal(sans_composante["taux_execution"]["DJF"]) == Decimal("1200") / Decimal("20000")
 
 
 def test_les_filtres_de_l_url_restreignent_le_tableau(parc):

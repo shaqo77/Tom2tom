@@ -17,6 +17,10 @@ export interface FauxServeur {
   panneReseau: boolean;
   panneServeur: boolean;
   connecte(): Compte | null;
+  /** Ce que renvoie `GET /tableau-de-bord/` selon les paramètres demandés. */
+  tableau: ((recherche: URLSearchParams) => unknown) | null;
+  /** Quand défini, le serveur attend cette promesse avant de répondre au tableau de bord. */
+  retard: Promise<void> | null;
   /** Ouvre directement une session (comme si la personne s'était déjà connectée). */
   ouvrirSession(identifiant: string): void;
 }
@@ -33,6 +37,8 @@ export function demarrerServeur(comptes: Compte[]): FauxServeur {
     },
     panneReseau: false,
     panneServeur: false,
+    tableau: null,
+    retard: null,
     connecte: () => connecte,
     ouvrirSession: (identifiant) => {
       connecte = comptes.find((c) => c.identifiant === identifiant) ?? null;
@@ -63,6 +69,12 @@ export function demarrerServeur(comptes: Compte[]): FauxServeur {
       }
       if (methode !== "GET" && entetes.get("X-CSRFToken") !== "jeton-de-test") {
         return json({ code: "CSRF_INVALIDE", message: "La page a expiré" }, 403);
+      }
+      if (chemin.startsWith("/tableau-de-bord/") && methode === "GET") {
+        if (!connecte) return json({ code: "NON_AUTHENTIFIE", message: "Connexion requise" }, 401);
+        const recherche = new URLSearchParams(chemin.split("?")[1] ?? "");
+        if (serveur.retard) await serveur.retard;
+        return serveur.tableau ? json(serveur.tableau(recherche)) : json({ code: "INTROUVABLE", message: "?" }, 404);
       }
       if (chemin === "/session/moi/" && methode === "GET") {
         return connecte

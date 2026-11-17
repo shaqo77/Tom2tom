@@ -14,14 +14,33 @@
 }
 
 .entete {
+  border-block-end: 1px solid var(--bordure);
+  background: var(--surface);
+}
+/* Rangée principale : où je suis (marque, navigation) et qui je suis (compte). */
+.entete__haut {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--esp-3) var(--esp-5);
+  padding: var(--esp-3) var(--esp-5);
+}
+.entete__haut .navigation {
+  flex: 1 1 auto;
+}
+/* Rangée de contexte, plus discrète : le projet regardé, la langue et le thème. */
+.entete__contexte {
   display: flex;
   flex-wrap: wrap;
   align-items: center;
   justify-content: space-between;
-  gap: var(--esp-3);
-  padding: var(--esp-3) var(--esp-5);
-  border-block-end: 1px solid var(--bordure);
-  background: var(--surface);
+  gap: var(--esp-3) var(--esp-5);
+  padding: var(--esp-2) var(--esp-5);
+  border-block-start: 1px solid var(--bordure);
+  background: var(--surface-2);
+}
+.entete__contexte:empty {
+  display: none;
 }
 .entete__marque {
   font-size: var(--texte-l);
@@ -48,10 +67,15 @@
   display: inline-flex;
   align-items: center;
   gap: var(--esp-2);
+  min-inline-size: 0; /* un libellé long ne doit jamais élargir la page */
+  max-inline-size: 100%;
   font-size: var(--texte-s);
   color: var(--texte-2);
 }
 .reglage__choix {
+  min-inline-size: 0;
+  max-inline-size: 100%;
+  text-overflow: ellipsis;
   min-block-size: 2rem;
   padding-inline: var(--esp-2);
   border: 1px solid var(--bordure-forte);
@@ -117,8 +141,7 @@
   display: inline-flex;
   align-items: center;
   gap: var(--esp-3);
-  padding-inline-start: var(--esp-4);
-  border-inline-start: 1px solid var(--bordure);
+  margin-inline-start: auto;
 }
 .compte__nom {
   font-weight: 600;
@@ -164,4 +187,24 @@
   display: flex;
   flex-direction: column;
   gap: var(--esp-2);
+}
+
+.navigation {
+  display: flex;
+  gap: var(--esp-1);
+}
+.navigation__lien {
+  padding: var(--esp-2) var(--esp-3);
+  border-radius: var(--rayon-m);
+  font-weight: 600;
+  color: var(--texte-2);
+  text-decoration: none;
+}
+.navigation__lien:hover {
+  background: var(--surface-2);
+}
+/* L'onglet courant : la couleur de « navigation et sélection » (sarcelle), pas celle de l'action. */
+.navigation__lien--actif {
+  background: var(--secondaire-fond);
+  color: var(--secondaire-texte);
 }
