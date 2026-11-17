@@ -10,11 +10,14 @@ utilisés, et refuse de répondre sans taux ; le total d'un indicateur est TOUJO
 détails par projet.
 """
 
+from .conformite import Conformite, ConformiteProjet
 from .devises import Consolidation, consolider
 from .filtres import Filtres, perimetre
 from .financier import Indicateur, TableauDeBord, tableau_de_bord
 
 __all__ = [
+    "Conformite",
+    "ConformiteProjet",
     "Consolidation",
     "Filtres",
     "Indicateur",

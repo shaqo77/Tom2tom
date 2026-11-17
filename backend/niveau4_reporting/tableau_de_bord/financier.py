@@ -23,6 +23,7 @@ from niveau1_socle.tresorerie.models import AppariementDemande
 from niveau1_socle.tresorerie.services import disponibilites
 from niveau3_config.services.activation import resoudre_configuration
 
+from .conformite import Conformite, conformite_du_projet
 from .filtres import CONFIGURE, NON_CONFIGURE, Filtres, accords_du_filtre, perimetre
 
 ZERO = Decimal("0")
@@ -74,6 +75,7 @@ class TableauDeBord:
     indicateurs: dict[str, Indicateur] = field(default_factory=dict)
     # composante (code de la 1re dimension, « » : sans composante) -> {budget, engage, consomme}
     par_composante: dict[str, dict[str, Indicateur]] = field(default_factory=dict)
+    conformite: Conformite = field(default_factory=Conformite)
     avertissements: list[str] = field(default_factory=list)
 
     def taux_execution(self, composante: str | None = None) -> dict[str, Decimal | None]:
@@ -116,6 +118,9 @@ def tableau_de_bord(
         _soldes_bancaires(utilisateur, projet, jour, ind)
         _engagements(projet, ids_accords, jour, ind)
         _avances(utilisateur, projet, jour, ind)
+        tdb.conformite.par_projet[projet.id] = conformite_du_projet(
+            utilisateur, projet.id, jour, filtres.du, filtres.au
+        )
     tdb.indicateurs = {code: i.restreindre_a(filtres.devise) for code, i in ind.items()}
     for ventilation in tdb.par_composante.values():
         for code, i in ventilation.items():
