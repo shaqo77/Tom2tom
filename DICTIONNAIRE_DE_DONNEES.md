@@ -3,7 +3,7 @@
 Généré depuis les modèles (`python manage.py generer_dictionnaire`). Ne le modifiez pas
 à la main : un test échoue si ce fichier n'est plus celui que les modèles produisent.
 
-99 tables. « Isolée » : la table porte `org_id` et sa politique de
+100 tables. « Isolée » : la table porte `org_id` et sa politique de
 sécurité par ligne (RLS). Les contraintes nommées sont contrôlées par la base.
 
 ## Index
@@ -94,6 +94,7 @@ sécurité par ligne (RLS). Les contraintes nommées sont contrôlées par la ba
 - [`referentiels_compte`](#referentiels_compte) — referentiels.Compte
 - [`referentiels_correspondanceimport`](#referentiels_correspondanceimport) — referentiels.CorrespondanceImport
 - [`referentiels_devise`](#referentiels_devise) — referentiels.Devise
+- [`referentiels_parametredevises`](#referentiels_parametredevises) — referentiels.ParametreDevises
 - [`referentiels_plandimension`](#referentiels_plandimension) — referentiels.PlanDimension
 - [`referentiels_taux`](#referentiels_taux) — referentiels.Taux
 - [`referentiels_tiers`](#referentiels_tiers) — referentiels.Tiers
@@ -2204,6 +2205,31 @@ Modèle `referentiels.Devise`.
 | `decimales` | smallint | non |  |  | — |
 
 Contraintes : `devise_code_iso3` (verification), `devise_decimales_bornees` (verification)
+
+## referentiels_parametredevises
+
+Modèle `referentiels.ParametreDevises` — isolée par organisation.
+
+Les réglages de devises d'une organisation, ou d'un projet qui les surcharge.
+
+| Colonne | Type | Null | Clé | Relation | Description |
+|---|---|---|---|---|---|
+| `id` | uuid | non | PK |  | Identifiant unique (UUID) de la ligne. |
+| `created_at` | timestamp with time zone | non |  |  | Date et heure de création de la ligne. |
+| `created_by` | uuid | oui |  |  | Identifiant de l'utilisateur qui a créé la ligne. |
+| `updated_at` | timestamp with time zone | non |  |  | Date et heure de la dernière modification. |
+| `updated_by` | uuid | oui |  |  | Identifiant de l'utilisateur qui l'a modifiée en dernier. |
+| `org_id` | uuid | non |  |  | Organisation propriétaire : l'isolation des données repose dessus (RLS). |
+| `project_id` | uuid | oui |  |  | Projet auquel la ligne se rattache (cloisonné par habilitation). |
+| `devise_reference_id` | varchar(3) | oui |  | `referentiels_devise.code` | — |
+| `devises_autorisees` | varchar(3)[] | oui |  |  | — |
+| `type_taux` | varchar(16) | oui |  |  | — |
+| `version` | integer | non |  |  | Numéro de version : une configuration utilisée ne se modifie pas, on en crée une. |
+| `valid_from` | date | non |  |  | Début de validité, inclus (intervalle semi-ouvert [valid_from, valid_to[). |
+| `valid_to` | date | oui |  |  | Fin de validité, EXCLUE ; vide si la ligne est ouverte. |
+| `motif` | text | non |  |  | — |
+
+Contraintes : `parametredevises_dates_coherentes` (verification), `parametredevises_regle_quelque_chose` (verification), `parametredevises_type_taux_ferme` (verification), `uq_parametredevises_version_organisation` (unicite), `uq_parametredevises_version_projet` (unicite)
 
 ## referentiels_plandimension
 
