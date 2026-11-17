@@ -1,0 +1,6 @@
+{
+  "tableau_de_bord.devise_reference_inconnue": "Devise de référence inconnue : {devise}",
+  "tableau_de_bord.execution_recouvrement": "Le consommé global additionne les lignes de la version approuvée : une dépense couverte par deux lignes qui se recouvrent y compte deux fois (voir le disponible par ligne)",
+  "tableau_de_bord.methode_consolidation": "Taux « {type_taux} » le plus récent au {jour}, en {reference} ; chaque montant (projet, devise) converti puis arrondi à la devise de référence avant addition",
+  "tableau_de_bord.taux_manquant": "Indicateur non consolidé : aucun taux « {type_taux} » au {jour} pour {devises}"
+}
