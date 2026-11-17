@@ -82,5 +82,9 @@
   "droits.publier": "Publier",
   "droits.voir_numero_compte": "Voir les numéros de compte",
   "accueil.bonjour": "Bonjour, {{nom}}",
-  "erreur.CSRF_INVALIDE": "La page a expiré : rechargez-la puis réessayez."
+  "erreur.CSRF_INVALIDE": "La page a expiré : rechargez-la puis réessayez.",
+  "conception.badge_action": "Action",
+  "conception.badge_selection": "Sélection",
+  "conception.badge_donnees": "Données",
+  "conception.badge_chaud": "Mise en avant"
 }

@@ -10,7 +10,8 @@ import { Pastille } from "../../shared/ui/Pastille";
 
 const COULEURS = [
   "--fond", "--surface", "--surface-2", "--bordure", "--texte", "--texte-2",
-  "--accent", "--accent-fond", "--succes", "--succes-fond", "--attention",
+  "--accent", "--accent-fond", "--secondaire", "--secondaire-fond", "--tertiaire", "--tertiaire-fond",
+  "--chaud", "--chaud-fond", "--succes", "--succes-fond", "--attention",
   "--attention-fond", "--danger", "--danger-fond", "--info", "--info-fond",
 ]; // fmt: skip
 
@@ -64,9 +65,13 @@ export function Conception() {
           <Message variante="danger">{t("conception.message_danger")}</Message>
         </div>
         <div className="rangee" style={{ marginBlockStart: "var(--esp-4)" }}>
+          <Pastille variante="accent">{t("conception.badge_action")}</Pastille>
+          <Pastille variante="selection">{t("conception.badge_selection")}</Pastille>
+          <Pastille variante="donnees">{t("conception.badge_donnees")}</Pastille>
+          <Pastille variante="chaud">{t("conception.badge_chaud")}</Pastille>
           <Pastille variante="succes">{t("conception.badge_actif")}</Pastille>
           <Pastille>{t("conception.badge_brouillon")}</Pastille>
-          <Pastille variante="accent">{t("conception.badge_clos")}</Pastille>
+          <Pastille>{t("conception.badge_clos")}</Pastille>
           <Pastille variante="alerte">{t("conception.badge_alerte")}</Pastille>
         </div>
       </Carte>

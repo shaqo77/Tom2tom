@@ -65,6 +65,19 @@ const PAIRES: [string, string][] = [
   ["--danger", "--surface-2"],
   ["--succes", "--surface"],
   ["--danger", "--surface"],
+  // Les trois autres rôles de couleur
+  ["--secondaire-contraste", "--secondaire"],
+  ["--secondaire-contraste", "--secondaire-survol"],
+  ["--secondaire-texte", "--secondaire-fond"],
+  ["--secondaire-texte", "--surface"],
+  ["--secondaire", "--surface"],
+  ["--tertiaire-texte", "--tertiaire-fond"],
+  ["--tertiaire", "--surface"],
+  ["--chaud-texte", "--chaud-fond"],
+  ["--chaud", "--surface"],
+  ["--texte", "--secondaire-fond"],
+  ["--texte", "--tertiaire-fond"],
+  ["--texte", "--chaud-fond"],
 ];
 
 describe("jeu de couleurs", () => {
@@ -84,6 +97,23 @@ describe("jeu de couleurs", () => {
 
   it("le thème sombre du système et le thème sombre choisi sont identiques", () => {
     expect(sombreAuto).toEqual(sombreChoisi);
+  });
+
+  it("les quatre séries de graphiques sont les quatre rôles, toutes différentes", () => {
+    const series = ["--serie-1", "--serie-2", "--serie-3", "--serie-4"].map((nom) => resoudre(clair, nom));
+    expect(new Set(series).size).toBe(4);
+    expect(series).toEqual([
+      resoudre(clair, "--accent"),
+      resoudre(clair, "--secondaire"),
+      resoudre(clair, "--tertiaire"),
+      resoudre(clair, "--chaud"),
+    ]);
+  });
+
+  it("chaque rôle de couleur existe dans les trois thèmes", () => {
+    for (const nom of ["--secondaire", "--tertiaire", "--chaud"]) {
+      for (const theme of [clair, sombreAuto, sombreChoisi]) expect(resoudre(theme, nom), nom).toMatch(/^#/);
+    }
   });
 
   it("les focus sont visibles : un anneau de 2 px d'écart avec la couleur d'accent", () => {

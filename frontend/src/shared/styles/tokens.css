@@ -28,11 +28,35 @@
   --texte-2: var(--neutre-600);
   --texte-3: var(--neutre-500);
 
-  --accent: #4f46e5;
-  --accent-survol: #4338ca;
+  /* Quatre couleurs, quatre rôles. Jamais deux sens pour une couleur.
+     Bleu : l'action principale. Sarcelle : navigation et sélection. Indigo : données.
+     Corail : mise en avant (jamais un état : les états ont leurs propres couleurs ci-dessous). */
+  --accent: #1d4ed8;
+  --accent-survol: #1e40af;
   --accent-contraste: #ffffff;
-  --accent-fond: #e0e7ff;
-  --accent-texte: #3730a3;
+  --accent-fond: #dbeafe;
+  --accent-texte: #1e3a8a;
+
+  --secondaire: #0f766e;
+  --secondaire-survol: #115e59;
+  --secondaire-contraste: #ffffff;
+  --secondaire-fond: #ccfbf1;
+  --secondaire-texte: #134e4a;
+
+  --tertiaire: #4f46e5;
+  --tertiaire-fond: #e0e7ff;
+  --tertiaire-texte: #3730a3;
+
+  --chaud: #c2410c;
+  --chaud-fond: #ffedd5;
+  --chaud-texte: #7c2d12;
+
+  /* Séries de graphiques : les quatre rôles, dans cet ordre. La couleur ne suffit jamais à les
+     distinguer (bleu et indigo sont proches) : étiquettes ou motifs en plus. */
+  --serie-1: var(--accent);
+  --serie-2: var(--secondaire);
+  --serie-3: var(--tertiaire);
+  --serie-4: var(--chaud);
 
   --succes: #047857;
   --succes-fond: #d1fae5;
@@ -87,11 +111,22 @@
     --texte: #eef1f6;
     --texte-2: #aeb6c4;
     --texte-3: #8d97a8;
-    --accent: #818cf8;
-    --accent-survol: #a5b4fc;
+    --accent: #60a5fa;
+    --accent-survol: #93c5fd;
     --accent-contraste: #0f131a;
-    --accent-fond: #262b5e;
-    --accent-texte: #c7d2fe;
+    --accent-fond: #172554;
+    --accent-texte: #bfdbfe;
+    --secondaire: #2dd4bf;
+    --secondaire-survol: #5eead4;
+    --secondaire-contraste: #0f131a;
+    --secondaire-fond: #0f3b38;
+    --secondaire-texte: #99f6e4;
+    --tertiaire: #818cf8;
+    --tertiaire-fond: #262b5e;
+    --tertiaire-texte: #c7d2fe;
+    --chaud: #fb923c;
+    --chaud-fond: #431407;
+    --chaud-texte: #fed7aa;
     --succes: #34d399;
     --succes-fond: #0f2e25;
     --attention: #fbbf24;
@@ -114,11 +149,22 @@
   --texte: #eef1f6;
   --texte-2: #aeb6c4;
   --texte-3: #8d97a8;
-  --accent: #818cf8;
-  --accent-survol: #a5b4fc;
+  --accent: #60a5fa;
+  --accent-survol: #93c5fd;
   --accent-contraste: #0f131a;
-  --accent-fond: #262b5e;
-  --accent-texte: #c7d2fe;
+  --accent-fond: #172554;
+  --accent-texte: #bfdbfe;
+  --secondaire: #2dd4bf;
+  --secondaire-survol: #5eead4;
+  --secondaire-contraste: #0f131a;
+  --secondaire-fond: #0f3b38;
+  --secondaire-texte: #99f6e4;
+  --tertiaire: #818cf8;
+  --tertiaire-fond: #262b5e;
+  --tertiaire-texte: #c7d2fe;
+  --chaud: #fb923c;
+  --chaud-fond: #431407;
+  --chaud-texte: #fed7aa;
   --succes: #34d399;
   --succes-fond: #0f2e25;
   --attention: #fbbf24;

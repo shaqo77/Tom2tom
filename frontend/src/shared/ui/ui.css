@@ -158,6 +158,18 @@
   background: var(--accent-fond);
   color: var(--accent-texte);
 }
+.pastille--selection {
+  background: var(--secondaire-fond);
+  color: var(--secondaire-texte);
+}
+.pastille--donnees {
+  background: var(--tertiaire-fond);
+  color: var(--tertiaire-texte);
+}
+.pastille--chaud {
+  background: var(--chaud-fond);
+  color: var(--chaud-texte);
+}
 .pastille--succes {
   background: var(--succes-fond);
   color: var(--succes);
