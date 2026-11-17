@@ -955,6 +955,11 @@ Le front se construit **en parallèle**, lot par lot. Un lot n'est pas fini si s
 | **L9** | Plan de passation · non-objections · contrats · trésorerie |
 | **L10** | **Tableau de bord multi-projets** |
 
+## A.2bis Avancement du front-end
+
+> **F1 — API de session (livrée).** Le dépôt n'avait **aucun frontend** (backend seul) et **aucun point d'entrée de connexion**. `niveau1_socle/organisations/{api,urls}.py` : `GET /api/v1/session/csrf/` (jeton CSRF), `POST …/connexion/`, `GET|PATCH …/moi/` (qui je suis, mon organisation, ma langue, mes projets avec, pour chacun, les opérations autorisées et celles limitées à un site), `POST …/deconnexion/`. Authentification par **session** (cookie HttpOnly), CSRF contrôlé partout, connexion comprise ; un identifiant inconnu, un mauvais mot de passe et un compte désactivé donnent exactement la même réponse (401 `IDENTIFIANTS_INVALIDES`) ; la session change à la connexion (contre la fixation) ; un visiteur reçoit un 401 `NON_AUTHENTIFIE` lisible. 15 tests, 7 mutations (6 tuées, 1 équivalente retirée).
+> **Limites assumées.** Aucune limitation du nombre de tentatives de connexion (à poser au niveau du proxy ou de Fly) ; pas de réinitialisation de mot de passe ni de double authentification ; un compte de plateforme (sans organisation) peut se connecter mais ne voit aucun projet. Le frontend lui-même (React, TypeScript, Vite) reste à construire : étape F2.
+
 ## A.3 L'écran de saisie — le plus exigeant
 
 C'est le seul écran qu'un comptable utilise huit heures par jour. Exigences :

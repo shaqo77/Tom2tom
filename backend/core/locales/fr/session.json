@@ -1,0 +1,5 @@
+{
+  "session.identifiants_invalides": "Identifiant ou mot de passe incorrect.",
+  "session.non_authentifie": "Connexion requise : identifiez-vous pour continuer.",
+  "session.langue_non_geree": "La langue {langue} n'est pas gérée (langues disponibles : fr, en)."
+}

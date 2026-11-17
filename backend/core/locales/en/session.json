@@ -1,0 +1,5 @@
+{
+  "session.identifiants_invalides": "Incorrect username or password.",
+  "session.non_authentifie": "Sign-in required: please log in to continue.",
+  "session.langue_non_geree": "The language {langue} is not supported (available: fr, en)."
+}

@@ -2,6 +2,7 @@ from django.urls import include, path
 
 urlpatterns = [
     # API métier (L9) : plan de passation, avis, contrats, décomptes, trésorerie.
+    path("api/v1/", include("niveau1_socle.organisations.urls")),
     path("api/v1/", include("niveau1_socle.marches.urls")),
     path("api/v1/", include("niveau1_socle.tresorerie.urls")),
     path("api/v1/", include("niveau4_reporting.tableau_de_bord.urls")),
