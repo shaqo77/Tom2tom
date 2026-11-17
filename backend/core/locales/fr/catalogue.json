@@ -1,3 +1,4 @@
 {
+  "catalogue.aucun_modele_livre_disponibles": "aucun modèle livré « {nom} » (disponibles : {v1})",
   "catalogue.aucun_profil_livre_disponibles": "Aucun profil livré « {nom} » (disponibles : {v1})"
 }

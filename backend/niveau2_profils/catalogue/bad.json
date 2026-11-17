@@ -1,0 +1,107 @@
+{
+  "code": "BAD",
+  "version": 1,
+  "label": {
+    "fr": "Banque africaine de développement (BAD)",
+    "en": "African Development Bank (AfDB)"
+  },
+  "description": {
+    "fr": "Bibliothèque d'exigences POSSIBLES pour un projet financé par la Banque africaine de développement. Ce n'est pas un modèle universel : l'accord de financement et les documents du bailleur applicables au projet décident de ce qui s'applique, avec quelle périodicité et selon quel modèle. Aucun délai ni aucune périodicité n'est livré tant qu'un document du bailleur ne les donne pas. Chaque élément se lit « lorsque requis ».",
+    "en": "Library of POSSIBLE requirements for a project financed by the African Development Bank. This is not a universal template: the financing agreement and the donor documents that apply to the project decide what applies, with what periodicity and according to which template. No deadline or periodicity is shipped until a donor document gives it. Each element reads “when required”."
+  },
+  "elements": [
+    {
+      "kind": "document_reference",
+      "code": "REF-BAD",
+      "label": {
+        "fr": "Accord de financement de la BAD et documents du bailleur applicables au projet",
+        "en": "AfDB financing agreement and donor documents applicable to the project"
+      },
+      "contenu": {
+        "note": {
+          "fr": "À identifier au projet : le profil ne cite aucun document dont le texte n'a pas été lu.",
+          "en": "To be identified for the project: the profile cites no document whose text has not been read."
+        },
+        "source": "07_APPORTS_DOSSIERS_CONVENTIONS.md"
+      }
+    },
+    {
+      "kind": "report_family",
+      "code": "BAD-A1",
+      "label": {
+        "fr": "Formulaire A1 de la BAD (intitulé et contenu à préciser)",
+        "en": "AfDB form A1 (title and content to be confirmed)"
+      },
+      "contenu": {
+        "note": {
+          "fr": "Nom relevé au sommaire du manuel de l'éditeur ; le contenu du formulaire n'a pas été lu : le profil n'en affirme rien.",
+          "en": "Name taken from the vendor manual's table of contents; the form's content has not been read: the profile asserts nothing about it."
+        },
+        "source": "SRC:manuel:601 (sommaire du manuel, chapitre 5 « Suivi des conventions ») ; 07_APPORTS_DOSSIERS_CONVENTIONS.md"
+      },
+      "exigence": {
+        "subject": {
+          "fr": "Formulaire A1 de la BAD",
+          "en": "AfDB form A1"
+        },
+        "rule": {
+          "kind": "report",
+          "template": "BAD_A1"
+        },
+        "obligation": "optional"
+      }
+    },
+    {
+      "kind": "report_family",
+      "code": "BAD-A2",
+      "label": {
+        "fr": "Formulaire A2 de la BAD (intitulé et contenu à préciser)",
+        "en": "AfDB form A2 (title and content to be confirmed)"
+      },
+      "contenu": {
+        "note": {
+          "fr": "Nom relevé au sommaire du manuel de l'éditeur ; le contenu du formulaire n'a pas été lu : le profil n'en affirme rien.",
+          "en": "Name taken from the vendor manual's table of contents; the form's content has not been read: the profile asserts nothing about it."
+        },
+        "source": "SRC:manuel:601 (sommaire du manuel, chapitre 5 « Suivi des conventions ») ; 07_APPORTS_DOSSIERS_CONVENTIONS.md"
+      },
+      "exigence": {
+        "subject": {
+          "fr": "Formulaire A2 de la BAD",
+          "en": "AfDB form A2"
+        },
+        "rule": {
+          "kind": "report",
+          "template": "BAD_A2"
+        },
+        "obligation": "optional"
+      }
+    },
+    {
+      "kind": "report_family",
+      "code": "BAD-A3",
+      "label": {
+        "fr": "Formulaire A3 de la BAD (intitulé et contenu à préciser)",
+        "en": "AfDB form A3 (title and content to be confirmed)"
+      },
+      "contenu": {
+        "note": {
+          "fr": "Nom relevé au sommaire du manuel de l'éditeur ; le contenu du formulaire n'a pas été lu : le profil n'en affirme rien.",
+          "en": "Name taken from the vendor manual's table of contents; the form's content has not been read: the profile asserts nothing about it."
+        },
+        "source": "SRC:manuel:601 (sommaire du manuel, chapitre 5 « Suivi des conventions ») ; 07_APPORTS_DOSSIERS_CONVENTIONS.md"
+      },
+      "exigence": {
+        "subject": {
+          "fr": "Formulaire A3 de la BAD",
+          "en": "AfDB form A3"
+        },
+        "rule": {
+          "kind": "report",
+          "template": "BAD_A3"
+        },
+        "obligation": "optional"
+      }
+    }
+  ]
+}

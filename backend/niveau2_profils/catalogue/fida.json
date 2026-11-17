@@ -1,0 +1,107 @@
+{
+  "code": "FIDA",
+  "version": 1,
+  "label": {
+    "fr": "Fonds international de développement agricole (FIDA)",
+    "en": "International Fund for Agricultural Development (IFAD)"
+  },
+  "description": {
+    "fr": "Bibliothèque d'exigences POSSIBLES pour un projet financé par le FIDA. Ce n'est pas un modèle universel : l'accord de financement et les documents du bailleur applicables au projet décident de ce qui s'applique, avec quelle périodicité et selon quel modèle. Aucun délai ni aucune périodicité n'est livré tant qu'un document du bailleur ne les donne pas. Chaque élément se lit « lorsque requis ».",
+    "en": "Library of POSSIBLE requirements for a project financed by IFAD. This is not a universal template: the financing agreement and the donor documents that apply to the project decide what applies, with what periodicity and according to which template. No deadline or periodicity is shipped until a donor document gives it. Each element reads “when required”."
+  },
+  "elements": [
+    {
+      "kind": "document_reference",
+      "code": "REF-FIDA",
+      "label": {
+        "fr": "Accord de financement du FIDA et documents du bailleur applicables au projet",
+        "en": "IFAD financing agreement and donor documents applicable to the project"
+      },
+      "contenu": {
+        "note": {
+          "fr": "À identifier au projet : le profil ne cite aucun document dont le texte n'a pas été lu.",
+          "en": "To be identified for the project: the profile cites no document whose text has not been read."
+        },
+        "source": "07_APPORTS_DOSSIERS_CONVENTIONS.md"
+      }
+    },
+    {
+      "kind": "report_family",
+      "code": "FIDA-100",
+      "label": {
+        "fr": "Formulaire FIDA 100 (intitulé et contenu à préciser)",
+        "en": "IFAD form 100 (title and content to be confirmed)"
+      },
+      "contenu": {
+        "note": {
+          "fr": "Nom relevé au sommaire du manuel de l'éditeur ; le contenu du formulaire n'a pas été lu : le profil n'en affirme rien.",
+          "en": "Name taken from the vendor manual's table of contents; the form's content has not been read: the profile asserts nothing about it."
+        },
+        "source": "SRC:manuel:601 (sommaire du manuel, chapitre 5 « Suivi des conventions ») ; 07_APPORTS_DOSSIERS_CONVENTIONS.md"
+      },
+      "exigence": {
+        "subject": {
+          "fr": "Formulaire FIDA 100",
+          "en": "IFAD form 100"
+        },
+        "rule": {
+          "kind": "report",
+          "template": "FIDA_100"
+        },
+        "obligation": "optional"
+      }
+    },
+    {
+      "kind": "report_family",
+      "code": "FIDA-104",
+      "label": {
+        "fr": "Formulaire FIDA 104 (intitulé et contenu à préciser)",
+        "en": "IFAD form 104 (title and content to be confirmed)"
+      },
+      "contenu": {
+        "note": {
+          "fr": "Nom relevé au sommaire du manuel de l'éditeur ; le contenu du formulaire n'a pas été lu : le profil n'en affirme rien.",
+          "en": "Name taken from the vendor manual's table of contents; the form's content has not been read: the profile asserts nothing about it."
+        },
+        "source": "SRC:manuel:601 (sommaire du manuel, chapitre 5 « Suivi des conventions ») ; 07_APPORTS_DOSSIERS_CONVENTIONS.md"
+      },
+      "exigence": {
+        "subject": {
+          "fr": "Formulaire FIDA 104",
+          "en": "IFAD form 104"
+        },
+        "rule": {
+          "kind": "report",
+          "template": "FIDA_104"
+        },
+        "obligation": "optional"
+      }
+    },
+    {
+      "kind": "report_family",
+      "code": "FIDA-105",
+      "label": {
+        "fr": "Formulaire FIDA 105 (intitulé et contenu à préciser)",
+        "en": "IFAD form 105 (title and content to be confirmed)"
+      },
+      "contenu": {
+        "note": {
+          "fr": "Nom relevé au sommaire du manuel de l'éditeur ; le contenu du formulaire n'a pas été lu : le profil n'en affirme rien.",
+          "en": "Name taken from the vendor manual's table of contents; the form's content has not been read: the profile asserts nothing about it."
+        },
+        "source": "SRC:manuel:601 (sommaire du manuel, chapitre 5 « Suivi des conventions ») ; 07_APPORTS_DOSSIERS_CONVENTIONS.md"
+      },
+      "exigence": {
+        "subject": {
+          "fr": "Formulaire FIDA 105",
+          "en": "IFAD form 105"
+        },
+        "rule": {
+          "kind": "report",
+          "template": "FIDA_105"
+        },
+        "obligation": "optional"
+      }
+    }
+  ]
+}
