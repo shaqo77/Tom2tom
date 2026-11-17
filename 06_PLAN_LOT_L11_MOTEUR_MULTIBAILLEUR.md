@@ -1,0 +1,118 @@
+# Lot L11 — Du socle au moteur de gestion financière multibailleur
+
+Ce document complète [`05_PLAN_LOTS_L5_A_L10.md`](05_PLAN_LOTS_L5_A_L10.md). Il part du **questionnaire de
+vérification fonctionnelle** (58 questions) passé sur le code après L10 : 19 fonctions opérationnelles,
+30 partielles, 9 absentes. Le constat : le socle (grand livre immuable, isolation par organisation,
+contrôle budgétaire, profil de décaissement versionné, moteur d'états avec descente, journal d'audit) est
+réel, mais plusieurs fonctions **existent sans être branchées**, et le cœur multibailleur (formats de
+rapport par bailleur, import Excel, IA documentaire) manque.
+
+## Principes
+
+- Tests d'abord, qui **échouent avant** le correctif ; chaque garantie est vérifiée par une mutation volontaire.
+- Une branche par tâche, empilée sur la précédente, avec une note « Réalisation » et ses limites.
+- Une fonction n'est « faite » que si elle est **branchée sur le flux réel** (saisie, rapport, tableau de bord).
+  Une table, un écran ou un service que seul un test appelle ne comptent pas.
+- **Aucune règle de bailleur inventée** : sans le document du bailleur, un profil reste un squelette sourcé.
+- Aucune fusion de PR sans accord explicite. Les règles 1 à 10 de `CLAUDE.md` restent intangibles.
+
+## Ce que le diagnostic a établi (état de départ)
+
+| Constat | Conséquence pour le plan |
+|---|---|
+| `accounting_basis` est stocké mais **aucun code ne le lit**. | A3 : lui donner un effet réel, ou le retirer. |
+| La répartition entre bailleurs (`cles.py`, `cofinancement.py`) n'est appelée que par ses tests. | A2 : la brancher à la saisie. |
+| Les réglages de devises ne contrôlent que écritures, accords, comptes bancaires et reprises. | A1, A6 : les faire lire par consolidation, taux et budget. |
+| Les 22 contrôles de la bibliothèque s'exécutent à la revue, pas à la génération. | A4. |
+| L'éligibilité n'est vérifiée que dans le flux de demande de retrait. | A5. |
+| Un seul modèle d'état livré (rapprochement du compte désigné). | Phase C. |
+| Aucune IA ; l'extraction de texte sert uniquement à vérifier une citation. | Phase E. |
+| Presque aucune règle n'est administrable par une API ou un écran. | Phase B. |
+
+## Phase 0 — Débloquer l'existant
+
+| Tâche | Contenu | Preuve de fin |
+|---|---|---|
+| 0.1 CI | Vérifier le quota ou la facturation GitHub Actions (travaux sans exécuteur depuis ~15 h 20 UTC) ; relancer #86 à #91. | CI verte sur la chaîne. |
+| 0.2 Fusion | Fusionner #77 à #91 **dans l'ordre**, avec accord explicite. | `main` à jour. |
+| 0.3 Déploiement | Déployer sur Fly depuis le Mac (branche `deploiement-fly`, `DEPLOIEMENT_FLY.md`). | Application en ligne. |
+
+## Phase A — Brancher ce qui existe
+
+| Tâche | Contenu | Preuve de fin | Taille |
+|---|---|---|---|
+| **A1** | Consolidation du tableau de bord sur la devise de référence **réglée** et le type de taux réglé. Rien de paramétré : le tableau le dit, il ne devine pas. Taux manquant : la ligne est nommée. Puis descente cliquable jusqu'à l'écriture. | Somme consolidée exacte ; écart dit. | M |
+| **A2** | **Répartition entre bailleurs câblée à la saisie** : une dépense, une clé de cofinancement, lignes ventilées par accord, total conservé au centime. API et écran. | Test de propriété (somme des parts = montant) ; scénario à 3 bailleurs. | L |
+| **A3** | **Base comptable** (caisse, engagement, mixte) : elle change un comportement réel (quelles écritures alimentent les états) ou elle est retirée. | Test montrant la différence entre deux modes. | M |
+| **A4** | **Contrôles à la génération** : `publier_rapport` exécute les contrôles bloquants du profil, en plus de la revue go/no-go. | Un rapport est refusé tant qu'un contrôle bloquant échoue. | M |
+| **A5** | **Éligibilité au grand livre** : à la validation d'une écriture imputée à un accord (dates, catégorie, dépense hors ligne de budget). Modes bloquant ou avertissement, réglables comme le budget. | Une dépense inéligible est refusée ou signalée à la saisie. | M |
+| **A6** | Version de convention portée par chaque écriture ; devises autorisées étendues aux taux et au budget. | Une opération se rattache à sa version de convention. | M |
+
+## Phase B — Administrer sans développeur
+
+APIs et écrans (même méthode que les réglages de devises : API, écran, tests, vérification dans un vrai
+navigateur) pour : bailleurs et accords, profils de décaissement, clés de cofinancement, mappings,
+contrôles, exigences. Ordre : accords, profils, clés, contrôles.
+
+**Preuve de fin** : un administrateur configure un bailleur de bout en bout dans le navigateur, sans appel
+Python (questionnaire, question 14).
+
+## Phase C — Rapports par bailleur
+
+| Tâche | Contenu | Dépend de |
+|---|---|---|
+| C1 | Modèle **IFR Banque mondiale** livré et rempli depuis le grand livre. | Format officiel du bailleur. |
+| C2 | SOE et états d'utilisation des fonds. | Leurs formats. |
+| C3 | Périodes de reporting libres (trimestre, semestre) selon l'exigence. | — |
+| C4 | **Import d'un modèle Excel** : cellules rattachées aux rubriques par correspondance validée. | Décision de conception (voir plus bas). |
+| C5 | Export Excel fidèle : valeurs écrites dans le modèle d'origine, formules et mise en forme conservées. | C4. |
+| C6 | Formats UE et BAD. | Leurs documents. |
+
+## Phase D — Profils des bailleurs
+
+Remplir BAD, UE, FIDA, Fonds mondial, BID, ONU, puis AFD, **à partir de leurs documents uniquement**, chaque
+règle avec sa citation vérifiée littéralement dans le texte (mécanisme L5-T02). Le mécanisme est livré par
+le projet ; le contenu dépend des documents fournis.
+
+## Phase E — IA documentaire
+
+| Tâche | Contenu |
+|---|---|
+| E1 | Appel à un modèle d'IA, avec journal, coût et traçabilité. |
+| E2 | Extraction de règles : toute proposition dont la citation n'est pas retrouvée **littéralement** dans le document est rejetée automatiquement. |
+| E3 | Les propositions deviennent des exigences « proposées » ; l'activation reste humaine (règle 9). |
+| E4 | Comparaison avenant et convention initiale ; détection de contradictions entre documents. |
+| E5 | Évaluation sur de vrais documents, avec mesure de précision publiée. |
+
+## Phase F — Recette multibailleur
+
+Un test automatisé et un parcours navigateur : **un projet, trois bailleurs, une dépense saisie une seule
+fois, répartie, trois rapports distincts, aucune intervention manuelle** (questionnaire, questions 55 à 58).
+Le parcours navigateur entre dans la CI.
+
+## Transversal
+
+- Écran de changement de mot de passe (l'API existe) ; réinitialisation par courriel et double
+  authentification (décisions à prendre) ; pagination et jeton d'API.
+- Limiter les déclenchements de la CI pour économiser les minutes.
+- T14 (capture hors ligne) : version 2 du plan, toujours non livré.
+
+## Décisions attendues
+
+1. **Base comptable** (A3) : quel comportement exact pour caisse, engagement et mixte ?
+2. **Excel** (C4, C5) : conserver les formules du modèle, ou seulement les valeurs ?
+3. **IA** (E1) : les documents financiers peuvent-ils être envoyés à un service externe ? Sinon, un modèle hébergé en interne.
+4. **Documents des bailleurs** : IFR et SOE de la Banque mondiale en priorité, puis UE, BAD et autres.
+5. **Ordre proposé** : A1, A2, A4, A5, A3, puis B, C, D, E, avec F en continu.
+
+## Risques d'incohérence à surveiller pendant ce lot
+
+- Un projet « caisse » traité comme « engagement » (jusqu'à A3).
+- Parts de bailleurs saisies à la main qui ne somment pas au total (jusqu'à A2).
+- Dépense non couverte par une ligne de budget qui échappe au contrôle ; dépense inéligible comptabilisée (A5).
+- Devises autorisées sans taux de change ni contrôle sur le budget (A6).
+- Aucune vérification externe tant que la CI est en panne (0.1).
+
+---
+
+*Retour : [guide de démarrage](03_GUIDE_DEMARRAGE.md) · [lots L5 à L10](05_PLAN_LOTS_L5_A_L10.md)*
