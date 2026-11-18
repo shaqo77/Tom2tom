@@ -14,11 +14,14 @@ export, marchés et trésorerie, tableau de bord multi-projets et recette d'arch
 version 2 du plan, dont **T14** (capture hors ligne), déclaré non livré. Les profils BAD, UE, FIDA, Fonds
 mondial, BID et Nations unies sont des **squelettes sourcés**, sans règle inventée : les remplir demande
 les documents des bailleurs. **L11 est en cours** (`06_PLAN_LOT_L11_MOTEUR_MULTIBAILLEUR.md`, issu d'un
-audit de 58 questions) : brancher ce qui existe (A1 à A6), puis administrer sans développeur, rapports par
-bailleur, IA. Écarts connus, à ne pas supposer comblés : la répartition entre bailleurs (`cles.py`) n'est
-appelée que par ses tests, `accounting_basis` n'a qu'un effet (un projet en caisse ne crée pas d'engagement ; aucune conversion caisse/engagement), les réglages de devises ne contrôlent
-que écritures, accords, comptes bancaires et reprises, les contrôles de la bibliothèque s'exécutent à la
-revue et non à la génération, un seul modèle d'état est livré, aucune IA n'existe. Le code vit dans `core/`, `niveau1_socle/` (organisations, habilitations,
+audit de 58 questions) : le branchement de l'existant (A1 à A6) est fait ; restent l'administration sans
+développeur (phase B), les rapports par bailleur, l'IA. Écarts connus, à ne pas supposer comblés : la
+répartition entre bailleurs se déclenche à la saisie (`"cle"` sur une ligne d'écriture) mais n'a ni API ni
+écran de saisie ; les contrôles de la bibliothèque s'exécutent à la **validation d'une écriture**
+(codification, pièces, éligibilité), pas à la génération d'un rapport ; `accounting_basis` n'a qu'un
+effet (un projet en caisse ne crée pas d'engagement, aucune conversion caisse/engagement) ; les taux de
+change s'enregistrent par API (`/api/v1/taux/`) sans écran ; un seul modèle d'état est livré ; aucune IA
+n'existe. Le code vit dans `core/`, `niveau1_socle/` (organisations, habilitations,
 exercices, référentiels, comptabilité, budget, financements, décaissements, avances, rapprochement,
 marchés, trésorerie), `niveau2_profils/` (bibliothèque de profils de bailleurs), `niveau3_config/` et
 `niveau4_reporting/` (moteur d'états, publication, contrôles, tableau de bord). L'API HTTP (`/api/v1/`,
