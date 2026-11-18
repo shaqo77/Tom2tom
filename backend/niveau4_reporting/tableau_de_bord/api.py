@@ -19,6 +19,7 @@ from core.i18n import msg
 from core.metier import habilite
 from core.metier import refuser as refuser_champ
 from niveau1_socle.referentiels.models import Devise, TypeTaux
+from niveau1_socle.referentiels.parametres_devises import monnaie_de_base
 from niveau4_reporting.publication.descente import detail_ecriture
 from niveau4_reporting.tableau_de_bord import (
     Filtres,
@@ -227,6 +228,8 @@ class EcritureDuTableau(VueMetier):
                 "journal": detail.journal,
                 "date": detail.date,
                 "libelle": detail.libelle,
+                # Les montants des lignes sont dans la monnaie de base du projet (donnée du projet).
+                "devise": monnaie_de_base(project_id),
                 "lignes": [
                     {
                         "id": ligne.id,

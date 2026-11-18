@@ -72,3 +72,55 @@ export interface FiltresTableau {
 
 /** La recherche de l'adresse du tableau de bord, après validation : une valeur invalide vaut `undefined`. */
 export type RechercheTableau = { [K in keyof FiltresTableau]?: FiltresTableau[K] | undefined };
+
+/** Ce que renvoie `GET /api/v1/tableau-de-bord/<indicateur>/consolidation/`. */
+export interface ConsolidationDto {
+  indicateur: CodeIndicateur;
+  /** Nul tant qu'aucune référence n'est réglée ni demandée. */
+  devise_reference: string | null;
+  type_taux: string | null;
+  /** D'où vient chaque valeur : le paramètre demandé, le réglage du projet ou celui de l'organisation. */
+  origine: { devise_reference: Origine | null; type_taux: Origine | null };
+  jour: string;
+  consolide: boolean;
+  montant: string | null;
+  par_projet: Record<string, string>;
+  taux: Record<string, { taux: string; date: string }>;
+  methode: string | null;
+  /** Pourquoi l'indicateur n'est pas consolidé, dans la langue de la requête. */
+  raison: string | null;
+}
+export type Origine = "demande" | "projet" | "organisation";
+
+/** Un objet qui compose un indicateur pour un projet (la somme des détails égale le chiffre). */
+export interface DetailDto {
+  type: string;
+  id: string;
+  libelle: string;
+  devise: string;
+  montant: string;
+  a_une_ecriture: boolean;
+}
+
+export interface EcritureRefDto {
+  ecriture_id: string;
+  numero: string;
+  date: string;
+  libelle: string;
+  montant: string;
+}
+
+export interface EcrituresDuDetailDto {
+  detail: DetailDto;
+  ecritures: EcritureRefDto[];
+}
+
+export interface EcritureDto {
+  id: string;
+  numero: string;
+  journal: string;
+  date: string;
+  libelle: string;
+  lignes: { id: string; compte: string; montant: string }[];
+  pieces: { id: string; type: string; nom: string; taille: number }[];
+}

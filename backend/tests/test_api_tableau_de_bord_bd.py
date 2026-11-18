@@ -296,6 +296,10 @@ def test_une_ecriture_de_la_descente_se_lit_avec_ses_lignes_et_ses_pieces(parc):
     assert corps["lignes"] and all({"compte", "montant"} <= set(ligne) for ligne in corps["lignes"])
     assert sum(Decimal(ligne["montant"]) for ligne in corps["lignes"]) == Decimal(0)  # équilibrée
     assert all(isinstance(ligne["montant"], str) for ligne in corps["lignes"])
+    from niveau1_socle.referentiels.parametres_devises import monnaie_de_base
+
+    _poser(parc[0])
+    assert corps["devise"] == monnaie_de_base(p2.id)  # la monnaie des lignes : une donnée du projet
     assert corps["pieces"] == []  # ici aucune pièce : la liste est vide, pas absente
 
 
@@ -340,3 +344,22 @@ def test_les_pieces_de_l_ecriture_sont_listees_sans_leurs_octets(parc):
     piece = corps["pieces"][0]
     assert (piece["type"], piece["nom"], piece["taille"]) == ("facture", "facture-001.pdf", 9)
     assert set(piece) == {"id", "type", "nom", "taille"}  # ni octets ni empreinte
+
+
+def test_la_monnaie_des_lignes_est_celle_du_projet_et_non_une_valeur_du_code(parc):
+    from niveau1_socle.comptabilite.models import Ecriture
+    from niveau1_socle.exercices.services import creer_exercice
+    from tests.outils import creer_piece
+    from tests.test_organisations_bd import _creer_projet
+    from tests.test_tableau_de_bord_bd import _droits
+
+    organisation, p1, profils = parc[0], parc[1], parc[5]
+    _poser(organisation)
+    p5 = _creer_projet(organisation, "P5", base_currency="USD")
+    _droits(organisation, p5, profils, modele=p1)
+    creer_exercice(p5, 2026, utilisateur=None)
+    lignes = [{"compte": "6011", "debit": "10"}, {"compte": "5211", "credit": "10"}]
+    creer_piece(organisation.id, 2026, 2, lignes, project_id=p5.id)
+    ecriture = Ecriture.objects.filter(project_id=p5.id).first()
+    corps = _get(parc, f"projets/{p5.id}/tableau-de-bord/ecritures/{ecriture.id}/").json()
+    assert corps["devise"] == "USD"
