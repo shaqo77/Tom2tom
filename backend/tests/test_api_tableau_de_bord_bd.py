@@ -363,3 +363,11 @@ def test_la_monnaie_des_lignes_est_celle_du_projet_et_non_une_valeur_du_code(par
     ecriture = Ecriture.objects.filter(project_id=p5.id).first()
     corps = _get(parc, f"projets/{p5.id}/tableau-de-bord/ecritures/{ecriture.id}/").json()
     assert corps["devise"] == "USD"
+
+
+def test_le_tableau_dit_la_base_comptable_de_chaque_projet(parc):
+    corps = _get(parc, f"tableau-de-bord/?{Q}").json()
+    assert {p["code"]: p["base_comptable"] for p in corps["projets"]} == {
+        "P1": "accrual",
+        "P2": "accrual",
+    }

@@ -7,5 +7,6 @@
   "engagements.motif_annulation_obligatoire": "Le motif d'annulation est obligatoire",
   "engagements.on_peut_apurer_plus_reste": "On ne peut apurer plus que le reste de l'engagement ({reste}) : {montant} demandé",
   "engagements.periode_comprise_entre_1_12": "La période est comprise entre 1 et 12 (rien pour l'année entière)",
+  "engagements.projet_en_caisse_sans_engagement": "Ce projet est tenu en comptabilité de caisse : il ne réserve pas de budget par engagement. Pour suivre des engagements, le projet doit être tenu en « caisse avec engagements » ou en comptabilité d'engagement ; ce réglage est figé après la première écriture du projet.",
   "engagements.reference_engagement_obligatoire": "La référence de l'engagement est obligatoire"
 }

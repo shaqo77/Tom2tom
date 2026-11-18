@@ -12,6 +12,7 @@ from django.db import transaction
 from core.audit import journaliser
 from core.i18n import msg
 from niveau1_socle.exercices.services import TransitionInterdite
+from niveau1_socle.organisations.models import BaseComptable, Projet
 
 from .controle import appliquer, evaluer_engagement
 from .models import Engagement, StatutEngagement
@@ -45,6 +46,12 @@ def creer_engagement(
     obtenu. Sans marché, l'engagement reste possible (dépense hors passation).
     """
     _habilite(utilisateur, "saisir", project_id)
+    # La base comptable du projet décide s'il réserve du budget : la caisse pure n'engage rien.
+    if (
+        Projet.objects.values_list("accounting_basis", flat=True).get(pk=project_id)
+        == BaseComptable.ENCAISSEMENTS
+    ):
+        raise BudgetInvalide(msg("engagements.projet_en_caisse_sans_engagement"))
     montant = Decimal(str(montant))
     if montant <= 0:
         raise BudgetInvalide(msg("engagements.engagement_montant_strictement_positif"))

@@ -16,7 +16,7 @@ mondial, BID et Nations unies sont des **squelettes sourcés**, sans règle inve
 les documents des bailleurs. **L11 est en cours** (`06_PLAN_LOT_L11_MOTEUR_MULTIBAILLEUR.md`, issu d'un
 audit de 58 questions) : brancher ce qui existe (A1 à A6), puis administrer sans développeur, rapports par
 bailleur, IA. Écarts connus, à ne pas supposer comblés : la répartition entre bailleurs (`cles.py`) n'est
-appelée que par ses tests, `accounting_basis` n'est lu par aucun code, les réglages de devises ne contrôlent
+appelée que par ses tests, `accounting_basis` n'a qu'un effet (un projet en caisse ne crée pas d'engagement ; aucune conversion caisse/engagement), les réglages de devises ne contrôlent
 que écritures, accords, comptes bancaires et reprises, les contrôles de la bibliothèque s'exécutent à la
 revue et non à la génération, un seul modèle d'état est livré, aucune IA n'existe. Le code vit dans `core/`, `niveau1_socle/` (organisations, habilitations,
 exercices, référentiels, comptabilité, budget, financements, décaissements, avances, rapprochement,

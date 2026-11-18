@@ -96,6 +96,7 @@ class TableauDeBordVue(VueMetier):
                         "statut": p.statut,
                         "configuration": p.configuration,
                         "bailleurs": p.bailleurs,
+                        "base_comptable": p.base_comptable,
                     }
                     for p in tdb.projets
                 ],

@@ -76,6 +76,7 @@ class ProjetVue:
     statut: str
     configuration: str
     bailleurs: list[str]
+    base_comptable: str  # cash, cash_with_commitments ou accrual : voir L11-A3
 
 
 @dataclass
@@ -152,6 +153,7 @@ def _vue_projet(projet: Projet, filtres: Filtres, jour: datetime.date) -> Projet
         statut=projet.status,
         configuration=CONFIGURE if configure else NON_CONFIGURE,
         bailleurs=bailleurs,
+        base_comptable=projet.accounting_basis,
     )
 
 

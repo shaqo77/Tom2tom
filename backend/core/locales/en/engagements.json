@@ -7,5 +7,6 @@
   "engagements.motif_annulation_obligatoire": "The cancellation reason is required",
   "engagements.on_peut_apurer_plus_reste": "One cannot clear more than the remainder of the commitment ({reste}): {montant} requested",
   "engagements.periode_comprise_entre_1_12": "The period is between 1 and 12 (nothing for the whole year)",
+  "engagements.projet_en_caisse_sans_engagement": "This project is kept on a cash basis: it does not reserve budget through commitments. To track commitments, the project must be kept on “cash with commitments” or accrual basis; this setting is frozen after the project's first entry.",
   "engagements.reference_engagement_obligatoire": "The commitment reference is required"
 }

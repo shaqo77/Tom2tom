@@ -110,6 +110,23 @@ Une dépense imputée à un accord doit tomber dans sa **fenêtre d'éligibilit�
 - Tests : 20 dans `test_taux_enregistres_bd.py` et 4 de plus côté API. Mutations détectées (habilitation, float et exposant, type et devise inconnus, monnaie de tenue, liste autorisée et sa date, doublon, journal, filtres, ordre, contrôle du budget et sa date). Suite complète relancée avant la PR.
 - **Limites** : aucun **écran** de saisie des taux (l'API existe) ; pas de correction d'un taux saisi par erreur le même jour (la règle « jamais écrasé » impose d'enregistrer à une autre date : à décider) ; pas d'import en lot (fichier de la banque centrale) ; le contrôle des devises autorisées ne porte pas encore sur les budgets révisés (`modifier_ligne` ne change pas la devise) ; CI GitHub toujours en panne.
 
+### Réalisation — A3 (la base comptable a un effet réel, et un seul)
+
+**Décision (tranchée sans avis de l'utilisateur, à sa demande : « la meilleure manière optimale »).** `accounting_basis` était stocké et verrouillé après la première écriture, mais aucun code ne le lisait : une promesse que rien ne tenait. Deux issues étaient possibles : le retirer, ou lui donner un effet. Je l'ai gardé avec **un effet que le modèle de données peut vraiment tenir**, plutôt que d'inventer une conversion caisse/engagement que rien ne soutient :
+
+| Valeur | Effet dans l'application |
+|---|---|
+| `cash` (caisse pure) | le projet **ne réserve pas de budget** : `creer_engagement` est **refusé**, avec un message qui dit quoi faire |
+| `cash_with_commitments` (caisse avec engagements) | les engagements sont permis et **réduisent le disponible** |
+| `accrual` (engagement) | idem |
+
+- **Pourquoi pas plus** : la reconnaissance d'une charge reste la **date de l'écriture, saisie par les utilisateurs** (un projet en caisse enregistre ses charges au paiement, un projet en engagement à la facture). Le système ne convertit rien et ne le prétend pas. Convertir automatiquement demanderait un lien entre chaque charge et son paiement bancaire que le modèle n'a pas. Entre `cash_with_commitments` et `accrual`, le système ne distingue donc rien : la différence est celle de la saisie.
+- **Pourquoi pas le retrait** : la colonne est requise à la création d'un projet, verrouillée par déclencheur, et un retrait demande une migration sur une table centrale pour supprimer une information que les bailleurs demandent de toute façon de déclarer.
+- **Le tableau de bord dit la base de chaque projet** (`projets[].base_comptable`), pour qu'un rapport ou un écran puisse l'afficher.
+- Le réglage étant **figé après la première écriture** (déclencheur existant, testé), l'effet ne peut pas être contourné en changeant de base en cours de route.
+- Tests : 5 dans `test_base_comptable_bd.py` (+1 côté tableau de bord). Mutations détectées (contrôle retiré, valeur de base inversée, comparaison inversée). Suite complète relancée avant la PR.
+- **Limites** : pas d'écran qui affiche la base (l'API la donne) ; aucun rapport ne la porte encore dans ses métadonnées ; un projet en caisse qui a déjà des engagements les garde (seule la création est refusée) ; si les bailleurs imposent une vraie reconnaissance à l'encaissement, il faudra relier charges et paiements : travail à part, non engagé.
+
 ## Phase B — Administrer sans développeur
 
 APIs et écrans (même méthode que les réglages de devises : API, écran, tests, vérification dans un vrai
