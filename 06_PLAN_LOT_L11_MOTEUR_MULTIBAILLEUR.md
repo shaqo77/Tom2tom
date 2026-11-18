@@ -149,6 +149,17 @@ contrôles, exigences. Ordre : accords, profils, clés, contrôles.
 **Preuve de fin** : un administrateur configure un bailleur de bout en bout dans le navigateur, sans appel
 Python (questionnaire, question 14).
 
+### Réalisation — B2 (API des bailleurs, accords, catégories et avenants)
+
+Un administrateur configure un financement **de bout en bout sans développeur** : bailleur, accord, statut, catégories, avenants. Avant, tout passait par des appels de service Python ; et plusieurs refus (code déjà pris, montant négatif, dates incohérentes, pays trop long, devise inconnue) sortaient en **erreur serveur brute**.
+
+- `GET/POST /api/v1/bailleurs/` ; `GET/POST /api/v1/projets/<id>/accords/` ; `GET …/accords/<id>/` (l'accord, ses catégories rangées racines d'abord, ses avenants, le montant initial **et** le montant courant) ; `POST …/statut/` ; `POST …/categories/` ; `POST …/avenants/`.
+- Les bailleurs se désignent par leur **code**, les catégories parentes par leur **code dans l'accord**. Montants en chaînes exactes (jamais de flottant, de texte illisible, de NaN) ; un avenant rend sa situation avant/après et la variation ; l'accord ne change jamais de montant (l'avenant le porte).
+- **Refus lisibles** : toutes les contraintes de la base connues (doublon de bailleur, d'accord, de catégorie, d'avenant ; montant négatif ; six paires de dates) deviennent un 422 `{code, message}` qui nomme la valeur ; la devise, la nature et le pays sont vérifiés **avant** la base (une clé étrangère ne se contrôle qu'en fin de requête, un pays trop long lève une erreur de données) ; une transition de statut interdite est un 409, comme ailleurs. Le gestionnaire commun traduit désormais `FinancementInvalide` et `AccordNonActif` en 422.
+- Lecture : `consulter` ; écriture : `parametrer` (les bailleurs, propres à l'organisation : « paramétrer quelque part ») ; un accord s'adresse par son projet (404 sinon).
+- Tests : 38 dans `test_api_accords_bd.py`, dont le **parcours complet** (accord configuré par HTTP : refusé à l'imputation tant qu'il n'est pas actif, accepté ensuite). Mutations détectées (vérifications de bailleur, nature, devise, pays, parent, habilitations, cloisonnement par projet, traduction de chaque contrainte, ordre des catégories, réponse 201, rechargement des montants) ; une survivante équivalente : l'inexistence d'un document d'avenant est aussi refusée par le service.
+- **Limites** : pas d'écran ; **aucune API de dépôt de document** : un avenant désigne un `document_id` déjà enregistré (l'enregistrement d'un document se fait par service) : c'est la prochaine brique (B3) ; l'avenant n'ouvre pas encore la version du profil de décaissement correspondante (service `enregistrer_avenant` du niveau 3, non exposé) ; pas de modification d'un accord brouillon ni de suppression ; comptes bancaires non exposés.
+
 ## Phase C — Rapports par bailleur
 
 | Tâche | Contenu | Dépend de |
