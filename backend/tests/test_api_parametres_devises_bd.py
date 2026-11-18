@@ -143,3 +143,73 @@ def test_sans_session_l_acces_est_refuse(reglages):
     from django.test import Client
 
     assert Client().get(f"{RACINE}/parametres-devises/historique/").status_code in (401, 403)
+
+
+# --- les taux de change par HTTP (L11-A6) --------------------------------------------------------
+
+
+def test_un_taux_s_enregistre_et_se_liste_par_http(reglages):
+    _, _, _, profils = reglages
+    dora = profils["dora"]
+    r = appeler(
+        dora, "post", "/taux/",
+        {"devise": "USD", "date": "2026-03-01", "taux": "177.5", "type_taux": "officiel", "source": "BCD"},
+    )  # fmt: skip
+    assert r.status_code == 201, r.content
+    corps = r.json()
+    assert (
+        corps["devise"] == "USD" and corps["taux"] == "177.5000000000" and corps["source"] == "BCD"
+    )
+    appeler(
+        dora,
+        "post",
+        "/taux/",
+        {"devise": "USD", "date": "2026-04-01", "taux": "178", "type_taux": "officiel"},
+    )
+    liste = appeler(dora, "get", "/taux/?devise=USD&type_taux=officiel").json()
+    assert [t["date"] for t in liste] == ["2026-04-01", "2026-03-01"]  # le plus récent d'abord
+    assert all(isinstance(t["taux"], str) for t in liste)  # jamais un flottant
+
+
+def test_les_refus_de_taux_ont_le_format_stable(reglages):
+    _, _, _, profils = reglages
+    dora = profils["dora"]
+    base = {"devise": "USD", "date": "2026-03-01", "taux": "177", "type_taux": "officiel"}
+    assert appeler(dora, "post", "/taux/", base).status_code == 201
+    doublon = appeler(dora, "post", "/taux/", base | {"taux": "180"})
+    assert doublon.status_code == 422 and set(doublon.json()) == {"code", "message"}
+    assert (
+        appeler(dora, "post", "/taux/", base | {"date": "2026-03-02", "taux": 177.5}).status_code
+        == 422
+    )
+    assert appeler(dora, "post", "/taux/", base | {"date": "pas-une-date"}).status_code == 422
+    assert appeler(dora, "post", "/taux/", {"devise": "USD"}).status_code == 422
+
+
+def test_sans_habilitation_parametrer_l_enregistrement_d_un_taux_est_refuse(reglages):
+    _, _, _, profils = reglages
+    base = {"devise": "USD", "date": "2026-03-01", "taux": "177", "type_taux": "officiel"}
+    assert appeler(profils["lea"], "post", "/taux/", base).status_code == 403
+    assert appeler(profils["lea"], "get", "/taux/").status_code == 200  # la lecture reste ouverte
+
+
+def test_la_liste_des_taux_se_filtre_par_devise_et_par_type(reglages):
+    _, _, _, profils = reglages
+    dora = profils["dora"]
+    for devise, type_taux, valeur in (
+        ("USD", "officiel", "177"),
+        ("EUR", "officiel", "200"),
+        ("USD", "budget", "170"),
+    ):
+        appeler(
+            dora,
+            "post",
+            "/taux/",
+            {"devise": devise, "date": "2026-03-01", "taux": valeur, "type_taux": type_taux},
+        )
+    tous = appeler(dora, "get", "/taux/").json()
+    assert len(tous) == 3
+    usd = appeler(dora, "get", "/taux/?devise=USD").json()
+    assert {t["devise"] for t in usd} == {"USD"} and len(usd) == 2
+    budget = appeler(dora, "get", "/taux/?type_taux=budget").json()
+    assert [(t["devise"], t["type_taux"]) for t in budget] == [("USD", "budget")]

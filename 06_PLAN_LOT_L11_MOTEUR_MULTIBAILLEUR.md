@@ -99,6 +99,16 @@ Une dépense imputée à un accord doit tomber dans sa **fenêtre d'éligibilit�
 - Tests : 14 dans `test_eligibilite_depenses_bd.py` (fenêtre pure, bornes incluses, accord, catégorie, sous-catégorie, sans accord, sans borne, sans contrôle actif). Mutations détectées (début et fin, bornes, héritage de catégorie, présence d'un accord, type évalué, profil à la date, applicabilité du contrôle livré). Suites ciblées vertes ; suite complète relancée après correction.
 - **Limites** : seules les dates sont contrôlées (nature, zone et bénéficiaires exclus restent des modèles de la bibliothèque que le grand livre ne peut pas alimenter) ; la date d'effet de l'accord n'est pas une borne (la rétroactivité est portée par la date d'éligibilité du profil) ; la fin d'éligibilité de l'accord est tenue pour **incluse**, comme celle de la catégorie : à confirmer avec le texte de chaque accord ; contrôle à la validation seulement ; CI GitHub toujours en panne.
 
+### Réalisation — A6 (les taux de change s'enregistrent ; le budget respecte les devises autorisées)
+
+**Constat** : aucun service n'enregistrait un taux de change. Ils n'entraient que par des tests ou du SQL direct, alors que la consolidation du tableau de bord (A1) en dépend. Et une ligne de budget pouvait être saisie dans une devise que les réglages n'autorisent pas.
+
+- **`enregistrer_taux`** (`niveau1_socle/referentiels/taux.py`) : habilitation `parametrer` ; le taux est un **nombre exact strictement positif écrit en chiffres** (jamais un `float`, ni exposant, ni NaN) ; type de taux et devise connus (refusés **avec leur propre message** : la base les refuserait aussi, mais avec un message trompeur « déjà enregistré ») ; **la monnaie de tenue n'a pas de taux** (il vaut 1 par définition) ; la devise doit être autorisée par la liste de l'organisation **à la date du taux** ; un taux du même jour et du même type **ne s'écrase pas** ; journal d'audit `rate_recorded` avec sa source.
+- **API** `GET/POST /api/v1/taux/` : lecture filtrable par devise et par type, la plus récente d'abord (500 au plus), taux en chaîne ; enregistrement refusé en 403 sans l'habilitation, en 422 au format `{code, message}` sinon.
+- **Budget** : `ajouter_ligne` refuse une devise non autorisée, selon la liste applicable au **début de la période budgétée** (le 1er janvier de l'année pour un budget annuel).
+- Tests : 19 dans `test_taux_enregistres_bd.py` et 4 de plus côté API. Mutations détectées (habilitation, float et exposant, type et devise inconnus, monnaie de tenue, liste autorisée et sa date, doublon, journal, filtres, ordre, contrôle du budget et sa date). Suite complète relancée avant la PR.
+- **Limites** : aucun **écran** de saisie des taux (l'API existe) ; pas de correction d'un taux saisi par erreur le même jour (la règle « jamais écrasé » impose d'enregistrer à une autre date : à décider) ; pas d'import en lot (fichier de la banque centrale) ; le contrôle des devises autorisées ne porte pas encore sur les budgets révisés (`modifier_ligne` ne change pas la devise) ; CI GitHub toujours en panne.
+
 ## Phase B — Administrer sans développeur
 
 APIs et écrans (même méthode que les réglages de devises : API, écran, tests, vérification dans un vrai

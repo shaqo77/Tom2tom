@@ -10,6 +10,7 @@ import datetime
 from core.api import (
     VueMetier,
     champ_date,
+    champ_decimal,
     champ_texte,
     corps,
     objet_ou_404,
@@ -21,8 +22,9 @@ from core.api import (
 from core.metier import habilite, refuser
 from niveau1_socle.organisations.models import Projet
 
-from .models import Devise, ParametreDevises
+from .models import Devise, ParametreDevises, Taux
 from .parametres_devises import parametrer_devises, resoudre_parametres_devises
+from .taux import enregistrer_taux
 
 VERSION = ("id", "version", "devise_reference_id", "type_taux", "valid_from", "valid_to", "motif")
 
@@ -109,3 +111,39 @@ class Devises(VueMetier):
                 for d in Devise.objects.order_by("code")
             ]
         )
+
+
+def _taux(ligne: Taux) -> dict:
+    return projeter(ligne, "id", "devise_id", "date", "taux", "type_taux", "source") | {
+        "devise": ligne.devise_id
+    }
+
+
+class TauxDeChange(VueMetier):
+    """Les taux de change de l'organisation : lecture (filtrable, le plus récent d'abord) et
+    enregistrement. Un taux n'est jamais écrasé ; l'habilitation `parametrer` est contrôlée par le
+    service. Un taux est une CHAÎNE décimale, jamais un nombre à virgule."""
+
+    LIMITE = 500
+
+    def get(self, requete):
+        taux = Taux.objects.order_by("-date", "devise_id", "type_taux")
+        devise = requete.query_params.get("devise")
+        if devise:
+            taux = taux.filter(devise_id=devise)
+        type_taux = requete.query_params.get("type_taux")
+        if type_taux:
+            taux = taux.filter(type_taux=type_taux)
+        return reponse([_taux(t) for t in taux[: self.LIMITE]])
+
+    def post(self, requete):
+        d = corps(requete)
+        ligne = enregistrer_taux(
+            utilisateur=requete.user,
+            devise=champ_texte(d, "devise"),
+            date=champ_date(d, "date"),
+            taux=champ_decimal(d, "taux"),
+            type_taux=champ_texte(d, "type_taux"),
+            source=champ_texte(d, "source", obligatoire=False, defaut=""),
+        )
+        return reponse(_taux(recharge(ligne)), 201)

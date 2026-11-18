@@ -8,6 +8,7 @@ brouillon --approuver--> approuvé --(une révision est approuvée)--> clos
   approuvée, l'ancienne passe à « clos » dans la même transaction. Aucune ligne n'est jamais perdue.
 """
 
+import datetime
 from decimal import ROUND_HALF_UP, Decimal
 
 from django.db import connection, transaction
@@ -21,6 +22,7 @@ from niveau1_socle.habilitations.permissions import est_habilite
 from niveau1_socle.habilitations.separation import exiger_separation_des_taches
 from niveau1_socle.organisations.models import Projet
 from niveau1_socle.referentiels.models import Devise, PlanDimension, ValeurDimension
+from niveau1_socle.referentiels.parametres_devises import exiger_devise_autorisee
 
 from .models import LigneBudget, StatutVersion, TypeVersion, VersionBudget
 
@@ -204,6 +206,8 @@ def ajouter_ligne(
     _habilite(utilisateur, "saisir", version.project_id)
     with transaction.atomic():
         courante = _exiger_brouillon(version)
+        # La liste de devises autorisées applicable est celle du début de la période budgétée.
+        exiger_devise_autorisee(courante.project_id, devise, datetime.date(annee, periode or 1, 1))
         champs = _champs_de_ligne(
             courante,
             annee=annee,

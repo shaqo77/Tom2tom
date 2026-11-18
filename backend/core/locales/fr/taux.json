@@ -1,3 +1,9 @@
 {
-  "taux.aucun_taux_date": "Aucun taux {type_taux!r} pour {devise} à la date du {v1}"
+  "taux.aucun_taux_date": "Aucun taux {type_taux!r} pour {devise} à la date du {v1}",
+  "taux.deja_enregistre": "Un taux « {type_taux} » existe déjà pour {devise} au {date} : un taux ne s'écrase pas, enregistrez-en un à une autre date",
+  "taux.devise_inconnue": "Devise inconnue : {devise}",
+  "taux.devise_non_autorisee": "La devise {devise} n'est pas autorisée par les réglages de l'organisation à cette date",
+  "taux.monnaie_de_tenue": "{devise} est la monnaie de tenue de l'organisation : son taux vaut 1 par définition, on n'en enregistre pas",
+  "taux.taux_invalide": "Le champ « {champ} » doit être un nombre exact strictement positif, écrit en chiffres (sans exposant)",
+  "taux.type_inconnu": "Type de taux inconnu : {type_taux}"
 }
