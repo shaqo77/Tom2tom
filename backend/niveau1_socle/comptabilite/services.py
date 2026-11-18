@@ -381,6 +381,17 @@ def _transition(
     return ecriture
 
 
+# Des contrôles que d'autres modules branchent sur la validation (le grand livre ne les importe
+# pas : il ne connaît que ce point d'accroche). Chacun reçoit `(écriture, utilisateur=…)`, peut
+# refuser en levant une erreur, et retourne des avertissements (texte).
+_CONTROLES_A_LA_VALIDATION: list = []
+
+
+def enregistrer_controle_a_la_validation(fonction) -> None:
+    if fonction not in _CONTROLES_A_LA_VALIDATION:
+        _CONTROLES_A_LA_VALIDATION.append(fonction)
+
+
 def valider_ecriture(ecriture: Ecriture, *, utilisateur) -> Ecriture:
     """Brouillon -> validée. L'auteur de la pièce ne la valide pas (séparation des tâches).
 
@@ -389,6 +400,18 @@ def valider_ecriture(ecriture: Ecriture, *, utilisateur) -> Ecriture:
     `ecriture.avertissements_budgetaires`.
     """
     avertissements: list[str] = []
+    avertissements_controles: list[str] = []
+
+    # Les contrôles branchés s'exécutent HORS de la transaction de validation : leurs évaluations
+    # (journal en ajout seul) survivent à un refus, sinon un contrôle « à vérifier » ne pourrait
+    # jamais être tranché. Les droits et la séparation des tâches sont donc vérifiés d'abord.
+    if _CONTROLES_A_LA_VALIDATION:
+        courante = Ecriture.objects.get(pk=ecriture.pk)
+        if courante.status == "draft":
+            _exiger_habilitation(utilisateur, "valider", courante.project_id)
+            exiger_separation_des_taches(utilisateur, courante.created_by)
+            for branche in _CONTROLES_A_LA_VALIDATION:
+                avertissements_controles += branche(courante, utilisateur=utilisateur)
 
     def controle(courante):
         exiger_separation_des_taches(utilisateur, courante.created_by)
@@ -415,6 +438,7 @@ def valider_ecriture(ecriture: Ecriture, *, utilisateur) -> Ecriture:
         controle_supplementaire=controle,
     )
     resultat.avertissements_budgetaires = avertissements
+    resultat.avertissements_controles = avertissements_controles
     return resultat
 
 

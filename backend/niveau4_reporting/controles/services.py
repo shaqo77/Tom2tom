@@ -331,8 +331,12 @@ def evaluer_tous(
     service: str | None = None,
     accord=None,
     ecrire: bool = True,
+    sauf: frozenset[str] = frozenset(),
 ) -> list[EvaluationControle]:
-    """Évalue tous les contrôles ACTIFS de ce type : le point d'entrée des autres modules."""
+    """Évalue tous les contrôles ACTIFS de ce type : le point d'entrée des autres modules.
+
+    `sauf` : des codes de contrôles à ne pas réévaluer (par exemple un contrôle « à vérifier » dont
+    la décision humaine est attendue ou rendue : une nouvelle évaluation l'effacerait)."""
     controles = (
         Controle.objects.filter(
             project_id=project_id,
@@ -341,6 +345,7 @@ def evaluer_tous(
             valid_from__lte=date_operation,
         )
         .exclude(valid_to__lte=date_operation)
+        .exclude(code__in=sauf)
         .order_by("code")
     )
     return [
