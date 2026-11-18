@@ -6,21 +6,26 @@ Seuls les champs techniques standard restent en anglais (`org_id`, `project_id`,
 
 Documents de référence, à lire avant de toucher à l'architecture :
 `01_SPECIFICATION_FONCTIONNELLE.md`, `02_ARCHITECTURE_TECHNIQUE.md`, `03_GUIDE_DEMARRAGE.md`
-(conventions, partie B ; règles, partie C), `04_PLAN_LOTS_L0_A_L4.md`, `05_PLAN_LOTS_L5_A_L10.md`.
+(conventions, partie B ; règles, partie C), `04_PLAN_LOTS_L0_A_L4.md`, `05_PLAN_LOTS_L5_A_L10.md`, `06_PLAN_LOT_L11_MOTEUR_MULTIBAILLEUR.md`.
 État actuel : lots **L0** à **L10** livrés, chacun avec son contrôle de sortie (fondations, configuration
 et registre des exigences, contrôles et rapports, dossier de conformité et accès auditeur, reprise et
 export, marchés et trésorerie, tableau de bord multi-projets et recette d'architecture T1 à T17). Restent
 **L2-T05/T06** (paquets réglementaires : il manque la source du plan comptable) et les chantiers de la
 version 2 du plan, dont **T14** (capture hors ligne), déclaré non livré. Les profils BAD, UE, FIDA, Fonds
 mondial, BID et Nations unies sont des **squelettes sourcés**, sans règle inventée : les remplir demande
-les documents des bailleurs. Le code vit dans `core/`, `niveau1_socle/` (organisations, habilitations,
+les documents des bailleurs. **L11 est en cours** (`06_PLAN_LOT_L11_MOTEUR_MULTIBAILLEUR.md`, issu d'un
+audit de 58 questions) : brancher ce qui existe (A1 à A6), puis administrer sans développeur, rapports par
+bailleur, IA. Écarts connus, à ne pas supposer comblés : la répartition entre bailleurs (`cles.py`) n'est
+appelée que par ses tests, `accounting_basis` n'est lu par aucun code, les réglages de devises ne contrôlent
+que écritures, accords, comptes bancaires et reprises, les contrôles de la bibliothèque s'exécutent à la
+revue et non à la génération, un seul modèle d'état est livré, aucune IA n'existe. Le code vit dans `core/`, `niveau1_socle/` (organisations, habilitations,
 exercices, référentiels, comptabilité, budget, financements, décaissements, avances, rapprochement,
 marchés, trésorerie), `niveau2_profils/` (bibliothèque de profils de bailleurs), `niveau3_config/` et
 `niveau4_reporting/` (moteur d'états, publication, contrôles, tableau de bord). L'API HTTP (`/api/v1/`,
-JSON strict, montants en chaînes, erreurs `{code, message}`) couvre les marchés, la trésorerie et le
-tableau de bord ; elle n'a ni pagination ni jeton d'API.
-Chaque tâche a sa note « Réalisation » dans `04_PLAN_LOTS_L0_A_L4.md` ou `05_PLAN_LOTS_L5_A_L10.md`,
-avec ses limites assumées : à lire avant de s'appuyer sur un comportement.
+JSON strict, montants en chaînes, erreurs `{code, message}`) couvre les marchés, la trésorerie, le
+tableau de bord et les réglages de devises ; elle n'a ni pagination ni jeton d'API.
+Chaque tâche a sa note « Réalisation » dans `04_PLAN_LOTS_L0_A_L4.md`, `05_PLAN_LOTS_L5_A_L10.md` ou
+`06_PLAN_LOT_L11_MOTEUR_MULTIBAILLEUR.md`, avec ses limites assumées : à lire avant de s'appuyer sur un comportement.
 
 ## Commandes (depuis `backend/`)
 
