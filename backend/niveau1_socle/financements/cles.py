@@ -160,3 +160,70 @@ def lignes_ventilees(
             }
         )
     return lignes
+
+
+# Les montants d'une ligne : (champ, devise du pas d'arrondi). `monnaie_tenue` pour les montants de
+# tenue, la devise de l'écriture pour les montants en devise : chacun s'arrondit à SON pas.
+CHAMPS_VENTILES = (
+    ("debit", "tenue"),
+    ("credit", "tenue"),
+    ("debit_cur", "ecriture"),
+    ("credit_cur", "ecriture"),
+)
+
+
+def developper_cles(
+    lignes: list[dict], *, project_id, date_comptable: datetime.date, devise: str
+) -> list[dict]:
+    """Remplace chaque ligne portant `"cle": <code>` par une ligne PAR ACCORD de la version de la
+    clé en vigueur à `date_comptable`, chacune portant son accord et `cofunding_key_version_id`.
+
+    C'est le branchement de la répartition à la saisie : l'appelant dit « cette charge suit la clé
+    CHARGES », il ne calcule aucune part. Chaque montant de la ligne (tenue et devise) est ventilé
+    séparément, à son pas d'arrondi, par le même calcul que `ventiler_montant` : le total de chaque
+    montant est conservé. Les lignes de l'appelant ne sont pas modifiées ; sans clé, rien ne change.
+    """
+    if not any(ligne.get("cle") for ligne in lignes):
+        return lignes
+    from niveau1_socle.organisations.models import Organisation
+
+    tenue = Organisation.objects.values_list("monnaie_tenue", flat=True).get()
+    resultat: list[dict] = []
+    for ligne in lignes:
+        code = ligne.get("cle")
+        if not code:
+            resultat.append(ligne)
+            continue
+        if ligne.get("agreement_id"):
+            raise CleInvalide(msg("cles.ligne_cle_et_accord", compte=ligne.get("compte", "")))
+        cle = CleCofinancement.objects.filter(project_id=project_id, code=code).first()
+        if cle is None:
+            raise CleInvalide(msg("cles.cle_inconnue", code=code))
+        version = version_en_vigueur(cle, date_comptable)
+        if version is None:
+            raise CleInvalide(
+                msg("cles.aucune_version_en_vigueur", code=code, jour=date_comptable.isoformat())
+            )
+        par_accord: dict = {}
+        for champ, pas_de in CHAMPS_VENTILES:
+            montant = Decimal(str(ligne.get(champ, 0)))
+            if montant == 0:
+                continue
+            monnaie = tenue if pas_de == "tenue" else devise
+            for accord, part in ventiler_montant(version, montant, monnaie):
+                par_accord.setdefault(accord.pk, {})[champ] = part
+        base = {
+            k: v for k, v in ligne.items() if k not in ("cle", *(c for c, _ in CHAMPS_VENTILES))
+        }
+        for accord_id, montants in par_accord.items():
+            if all(m == 0 for m in montants.values()):
+                continue  # une part nulle ne produit pas de ligne
+            resultat.append(
+                {
+                    **base,
+                    **{champ: str(m) for champ, m in montants.items()},
+                    "agreement_id": accord_id,
+                    "cofunding_key_version_id": version.pk,
+                }
+            )
+    return resultat

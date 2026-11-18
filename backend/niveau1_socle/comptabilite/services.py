@@ -23,6 +23,7 @@ from core.audit import journaliser
 from core.i18n import Liste, msg
 from niveau1_socle.exercices.models import Periode
 from niveau1_socle.exercices.services import TransitionInterdite
+from niveau1_socle.financements.cles import developper_cles
 from niveau1_socle.financements.models import Accord
 from niveau1_socle.financements.services import exiger_accord_actif
 from niveau1_socle.habilitations.permissions import est_habilite
@@ -180,6 +181,10 @@ def saisir_ecriture(
             return deja
     devise = devise or monnaie_de_base(project_id)
     exiger_devise_autorisee(project_id, devise, date_comptable)
+    # Une ligne qui porte une clé de cofinancement est ventilée ici, par accord (L11-A2).
+    lignes = developper_cles(
+        lignes, project_id=project_id, date_comptable=date_comptable, devise=devise
+    )
 
     # Un accord qui n'est pas actif (suspendu, clos…) ne reçoit aucune nouvelle imputation (L4-T04).
     for agreement_id in {ligne["agreement_id"] for ligne in lignes if ligne.get("agreement_id")}:
