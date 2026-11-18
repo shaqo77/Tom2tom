@@ -180,3 +180,17 @@ def test_sans_liste_parametree_le_budget_n_est_pas_restreint(cadre):
         ).devise_id
         == "EUR"
     )
+
+
+def test_une_periode_invalide_garde_son_propre_message_meme_avec_une_liste_de_devises(cadre):
+    """Le contrôle de devise ne doit pas masquer la validation de la ligne par une erreur de date."""
+    _, _, p2, profils = cadre
+    dora = profils["dora"]
+    parametrer_devises(
+        utilisateur=dora, devises_autorisees=["DJF", "USD"], date_effet=J(2026, 1, 1)
+    )
+    version = creer_version(utilisateur=dora, project_id=p2.id, type="initial")
+    from niveau1_socle.budget.services import BudgetInvalide
+
+    with pytest.raises(BudgetInvalide, match="période"):
+        ajouter_ligne(version, utilisateur=dora, annee=2026, periode=13, montant="1", devise="USD")

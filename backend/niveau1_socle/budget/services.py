@@ -206,8 +206,6 @@ def ajouter_ligne(
     _habilite(utilisateur, "saisir", version.project_id)
     with transaction.atomic():
         courante = _exiger_brouillon(version)
-        # La liste de devises autorisées applicable est celle du début de la période budgétée.
-        exiger_devise_autorisee(courante.project_id, devise, datetime.date(annee, periode or 1, 1))
         champs = _champs_de_ligne(
             courante,
             annee=annee,
@@ -218,6 +216,15 @@ def ajouter_ligne(
             axes=axes,
             identifiants=identifiants,
         )
+        # La liste de devises autorisées applicable est celle du début de la période budgétée.
+        # Elle se vérifie APRÈS la validation de la ligne : une période ou une année invalide est
+        # refusée avec son propre message, jamais par une erreur de date brute.
+        try:
+            debut_de_periode = datetime.date(annee, periode or 1, 1)
+        except (ValueError, TypeError):  # année hors bornes : la base refusera (1900 à 2200)
+            debut_de_periode = None
+        if debut_de_periode is not None:
+            exiger_devise_autorisee(courante.project_id, devise, debut_de_periode)
         return LigneBudget.objects.create(org_id=courante.org_id, version=courante, **champs)
 
 
