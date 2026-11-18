@@ -77,7 +77,8 @@ def test_un_visiteur_non_connecte_n_a_rien(parc):
 
 def test_la_consolidation_dit_qu_elle_est_impossible_sans_taux_puis_donne_methode_et_taux(parc):
     organisation = parc[0]
-    chemin = f"tableau-de-bord/soldes_comptables/consolidation/?{Q}&devise_reference=DJF"
+    base = f"tableau-de-bord/soldes_comptables/consolidation/?{Q}"
+    chemin = f"{base}&devise_reference=DJF&type_taux=officiel"
     sans = _get(parc, chemin).json()
     assert sans["consolide"] is False and sans["montant"] is None and "USD" in sans["raison"]
     _poser(organisation)
@@ -93,7 +94,7 @@ def test_la_consolidation_dit_qu_elle_est_impossible_sans_taux_puis_donne_method
         _get(parc, f"tableau-de-bord/inconnu/consolidation/?{Q}&devise_reference=DJF").status_code
         == 422
     )
-    assert _get(parc, f"tableau-de-bord/soldes_comptables/consolidation/?{Q}").status_code == 422
+    # (sans devise_reference : voir plus bas, la valeur vient des réglages)
 
 
 def test_la_descente_va_de_l_indicateur_au_detail_puis_a_l_ecriture(parc):
@@ -138,3 +139,136 @@ def test_le_taux_d_acceptation_est_vide_sans_issue_puis_donne_le_taux_des_sommes
     corps = _get(parc, f"tableau-de-bord/?{Q}").json()["conformite"]
     assert Decimal(corps["taux_acceptation"]) == Decimal(2) / Decimal(3)
     assert corps["totaux"]["premiers_envois_decides"] == 3
+
+
+# --- la devise de référence et le type de taux viennent des RÉGLAGES (L11-A1) ---------------------
+
+
+def _regler(organisation, *, projet=None, version=1, de=None, **champs):
+    """Pose un réglage de devises directement en base (le service de pose est testé ailleurs)."""
+    from niveau1_socle.referentiels.models import ParametreDevises
+
+    _poser(organisation)
+    return ParametreDevises.objects.create(
+        org_id=organisation.id,
+        project_id=projet.id if projet else None,
+        version=version,
+        valid_from=de or J(2026, 1, 1),
+        **champs,
+    )
+
+
+def _taux(organisation, devise, valeur, type_taux="officiel"):
+    _poser(organisation)
+    Taux.objects.create(
+        org_id=organisation.id, devise_id=devise, date=J(2026, 6, 1), taux=Decimal(valeur),
+        type_taux=type_taux,
+    )  # fmt: skip
+
+
+CONSO = f"tableau-de-bord/financements_accordes/consolidation/?{Q}"
+
+
+def test_sans_reglage_ni_parametre_la_consolidation_dit_non_parametre_au_lieu_de_deviner(parc):
+    r = _get(parc, CONSO)
+    assert r.status_code == 200  # avant : 422 « devise_reference obligatoire »
+    corps = r.json()
+    assert corps["consolide"] is False and corps["montant"] is None
+    assert "paramétr" in corps["raison"]  # la raison dit POURQUOI, dans la langue de la requête
+
+
+def test_la_devise_de_reference_et_le_type_de_taux_reglés_pilotent_la_consolidation(parc):
+    organisation = parc[0]
+    _taux(organisation, "EUR", "200")
+    _regler(organisation, devise_reference_id="DJF", type_taux="officiel")
+    corps = _get(parc, CONSO).json()
+    assert corps["consolide"] is True and corps["devise_reference"] == "DJF"
+    assert corps["origine"] == {"devise_reference": "organisation", "type_taux": "organisation"}
+    # 1 000 DJF (P1) + 500 000 EUR × 200 (P2)
+    assert Decimal(corps["montant"]) == Decimal("100001000")
+
+
+def test_un_parametre_explicite_l_emporte_sur_le_reglage(parc):
+    organisation = parc[0]
+    _taux(organisation, "EUR", "200")
+    _taux(organisation, "EUR", "300", type_taux="bailleur")
+    _regler(organisation, devise_reference_id="DJF", type_taux="officiel")
+    corps = _get(parc, CONSO + "&type_taux=bailleur").json()
+    assert corps["origine"]["type_taux"] == "demande"
+    assert Decimal(corps["montant"]) == Decimal("150001000")  # 1 000 + 500 000 × 300
+
+
+def test_une_devise_de_reference_differente_de_la_monnaie_de_tenue_passe_par_la_monnaie_de_tenue(
+    parc,
+):
+    """Les taux sont des unités de la monnaie de TENUE (DJF) par unité de devise : convertir vers
+    USD se fait par croisement EUR → DJF → USD, jamais par le taux d'une autre devise.
+    """
+    organisation = parc[0]
+    _taux(organisation, "EUR", "200")
+    _taux(organisation, "USD", "177")
+    _regler(organisation, devise_reference_id="USD", type_taux="officiel")
+    corps = _get(parc, CONSO).json()
+    assert corps["consolide"] is True and corps["devise_reference"] == "USD"
+    # P1 : 1 000 DJF / 177 = 5,6497 → 5,65 ; P2 : 500 000 EUR × 200 / 177 = 564 971,75 (2 décimales)
+    assert {Decimal(m) for m in corps["par_projet"].values()} == {
+        Decimal("5.65"),
+        Decimal("564971.75"),
+    }
+    assert Decimal(corps["montant"]) == Decimal("564977.40")
+
+
+def test_sans_taux_de_la_devise_de_reference_la_consolidation_le_dit(parc):
+    organisation = parc[0]
+    _taux(organisation, "EUR", "200")  # pas de taux USD alors que USD est la référence
+    _regler(organisation, devise_reference_id="USD", type_taux="officiel")
+    corps = _get(parc, CONSO).json()
+    assert corps["consolide"] is False and "USD" in corps["raison"]
+
+
+def test_le_reglage_d_un_projet_pilote_la_consolidation_de_ce_projet(parc):
+    organisation, p2 = parc[0], parc[2]
+    _taux(organisation, "EUR", "200")
+    _regler(organisation, devise_reference_id="DJF", type_taux="officiel")
+    _regler(organisation, projet=p2, devise_reference_id="EUR", type_taux="officiel")
+    seul = _get(parc, CONSO + f"&projets={p2.id}").json()
+    assert seul["devise_reference"] == "EUR"
+    assert seul["origine"]["devise_reference"] == "projet"
+    assert Decimal(seul["montant"]) == Decimal("500000")
+
+
+def test_des_references_differentes_entre_projets_empechent_un_total_unique_et_sont_nommees(parc):
+    organisation, p2 = parc[0], parc[2]
+    _taux(organisation, "EUR", "200")
+    _regler(organisation, devise_reference_id="DJF", type_taux="officiel")
+    _regler(organisation, projet=p2, devise_reference_id="EUR")
+    corps = _get(parc, CONSO).json()  # P1 hérite de DJF, P2 règle EUR
+    assert corps["consolide"] is False and corps["montant"] is None
+    assert "DJF" in corps["raison"] and "EUR" in corps["raison"] and "P2" in corps["raison"]
+    # Le choix explicite reste possible : c'est la personne qui tranche, pas le système.
+    explicite = _get(parc, CONSO + "&devise_reference=DJF").json()
+    assert explicite["consolide"] is True and explicite["origine"]["devise_reference"] == "demande"
+
+
+def test_un_type_de_taux_inconnu_ou_une_devise_de_reference_inconnue_sont_refuses(parc):
+    assert _get(parc, CONSO + "&type_taux=magique").status_code == 422
+    corps = _get(parc, CONSO + "&devise_reference=XXX&type_taux=officiel").json()
+    assert corps["consolide"] is False and "XXX" in corps["raison"]
+
+
+def test_un_projet_sans_reglage_dans_le_perimetre_empeche_la_consolidation(parc):
+    organisation, p2 = parc[0], parc[2]
+    _taux(organisation, "EUR", "200")
+    _regler(organisation, projet=p2, devise_reference_id="EUR", type_taux="officiel")  # P1 : rien
+    sans = _get(parc, CONSO).json()
+    assert sans["consolide"] is False and "aucune devise de référence" in sans["raison"]
+    seul = _get(parc, CONSO + f"&projets={p2.id}").json()
+    assert seul["consolide"] is True and seul["origine"]["devise_reference"] == "projet"
+
+
+def test_une_reference_reglee_sans_type_de_taux_regle_le_dit(parc):
+    organisation = parc[0]
+    _regler(organisation, devise_reference_id="DJF")  # aucun type de taux
+    corps = _get(parc, CONSO).json()
+    assert corps["consolide"] is False and "type de taux" in corps["raison"]
+    assert corps["devise_reference"] == "DJF" and corps["type_taux"] is None

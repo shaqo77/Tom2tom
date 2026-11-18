@@ -121,11 +121,11 @@ class Consolidation(VueMetier):
         if code not in CODES:
             refuser_champ("api.champ_invalide", champ="indicateur", attendu="indicateur connu")
         jour = parametre_date(requete, "jour")
-        devise_reference = requete.query_params.get("devise_reference")
-        if not devise_reference:
-            refuser_champ("api.champ_obligatoire", champ="devise_reference")
-        type_taux = requete.query_params.get("type_taux", TypeTaux.OFFICIEL)
-        if type_taux not in TypeTaux.values:
+        # Devise de référence et type de taux : le paramètre, sinon le RÉGLAGE de l'organisation
+        # ou du projet ; sans l'un ni l'autre, la réponse dit « non paramétré » (rien n'est deviné).
+        devise_reference = requete.query_params.get("devise_reference") or None
+        type_taux = requete.query_params.get("type_taux") or None
+        if type_taux is not None and type_taux not in TypeTaux.values:
             refuser_champ("api.champ_invalide", champ="type_taux", attendu="type de taux connu")
         tdb = tableau_de_bord(utilisateur=requete.user, jour=jour, filtres=_filtres(requete))
         c = consolider(
@@ -138,6 +138,8 @@ class Consolidation(VueMetier):
             {
                 "indicateur": code,
                 "devise_reference": c.devise_reference,
+                "type_taux": c.type_taux,
+                "origine": c.origine,
                 "jour": c.jour,
                 "consolide": c.montant is not None,
                 "montant": c.montant,

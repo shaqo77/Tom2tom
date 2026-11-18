@@ -3,5 +3,10 @@
   "tableau_de_bord.execution_recouvrement": "Le consommé global additionne les lignes de la version approuvée : une dépense couverte par deux lignes qui se recouvrent y compte deux fois (voir le disponible par ligne)",
   "tableau_de_bord.methode_consolidation": "Taux « {type_taux} » le plus récent au {jour}, en {reference} ; chaque montant (projet, devise) converti puis arrondi à la devise de référence avant addition",
   "tableau_de_bord.taux_manquant": "Indicateur non consolidé : aucun taux « {type_taux} » au {jour} pour {devises}",
-  "tableau_de_bord.execution_etat_courant": "L'exécution budgétaire (budget courant, engagé, consommé) est celle d'aujourd'hui, pas celle de la date demandée ; les autres indicateurs sont à la date demandée"
+  "tableau_de_bord.execution_etat_courant": "L'exécution budgétaire (budget courant, engagé, consommé) est celle d'aujourd'hui, pas celle de la date demandée ; les autres indicateurs sont à la date demandée",
+  "tableau_de_bord.reference_non_parametree": "Indicateur non consolidé : aucune devise de référence n'est paramétrée au {jour} (ni pour l'organisation, ni pour les projets concernés). Réglez-la dans les réglages de devises ou choisissez-en une.",
+  "tableau_de_bord.type_taux_non_parametre": "Indicateur non consolidé : aucun type de taux n'est paramétré au {jour} (ni pour l'organisation, ni pour les projets concernés). Réglez-le dans les réglages de devises ou choisissez-en un.",
+  "tableau_de_bord.references_differentes": "Indicateur non consolidé : les projets concernés règlent des devises de référence différentes ({detail}). Choisissez une devise de référence pour ce total.",
+  "tableau_de_bord.type_taux_differents": "Indicateur non consolidé : les projets concernés règlent des types de taux différents ({detail}). Choisissez un type de taux pour ce total.",
+  "tableau_de_bord.methode_consolidation_croisee": "Taux « {type_taux} » le plus récent au {jour}, exprimés en {tenue} (monnaie de tenue) ; chaque montant (projet, devise) converti en {reference} par croisement via {tenue}, puis arrondi à la devise de référence avant addition"
 }

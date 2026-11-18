@@ -3,5 +3,10 @@
   "tableau_de_bord.execution_recouvrement": "Overall consumption adds the lines of the approved version: an expense covered by two overlapping lines counts twice there (see availability per line)",
   "tableau_de_bord.methode_consolidation": "Latest “{type_taux}” rate on {jour}, in {reference}; each (project, currency) amount converted then rounded to the reference currency before addition",
   "tableau_de_bord.taux_manquant": "Indicator not consolidated: no “{type_taux}” rate on {jour} for {devises}",
-  "tableau_de_bord.execution_etat_courant": "Budget execution (current budget, committed, spent) is as of today, not as of the requested date; the other indicators are as of the requested date"
+  "tableau_de_bord.execution_etat_courant": "Budget execution (current budget, committed, spent) is as of today, not as of the requested date; the other indicators are as of the requested date",
+  "tableau_de_bord.reference_non_parametree": "Indicator not consolidated: no reference currency is set on {jour} (neither for the organisation nor for the projects concerned). Set it in the currency settings or choose one.",
+  "tableau_de_bord.type_taux_non_parametre": "Indicator not consolidated: no rate type is set on {jour} (neither for the organisation nor for the projects concerned). Set it in the currency settings or choose one.",
+  "tableau_de_bord.references_differentes": "Indicator not consolidated: the projects concerned set different reference currencies ({detail}). Choose a reference currency for this total.",
+  "tableau_de_bord.type_taux_differents": "Indicator not consolidated: the projects concerned set different rate types ({detail}). Choose a rate type for this total.",
+  "tableau_de_bord.methode_consolidation_croisee": "Latest “{type_taux}” rate on {jour}, expressed in {tenue} (book currency); each (project, currency) amount converted into {reference} by cross rate through {tenue}, then rounded to the reference currency before addition"
 }

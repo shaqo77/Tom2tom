@@ -272,7 +272,7 @@ def test_la_consolidation_affiche_methode_date_et_taux_et_arrondit_par_projet(pa
     )  # futur : ignoré
     tdb = _vue(parc)
     indicateur = tdb.indicateurs["soldes_comptables"]
-    c = consolider(indicateur, devise_reference="DJF", jour=JOUR)
+    c = consolider(indicateur, devise_reference="DJF", jour=JOUR, type_taux="officiel")
     assert c.raison is None and c.taux == {"USD": (D("177.5555"), J(2026, 6, 1))}
     assert c.par_projet[p2.id] == D("8878")  # 8877,775 arrondi à la devise DJF (0 décimale)
     assert c.montant == sum(
@@ -283,18 +283,31 @@ def test_la_consolidation_affiche_methode_date_et_taux_et_arrondit_par_projet(pa
 
 def test_sans_taux_l_indicateur_n_est_pas_consolide_et_le_dit(parc):
     tdb = _vue(parc)
-    c = consolider(tdb.indicateurs["financements_accordes"], devise_reference="DJF", jour=JOUR)
+    c = consolider(
+        tdb.indicateurs["financements_accordes"],
+        devise_reference="DJF",
+        jour=JOUR,
+        type_taux="officiel",
+    )
     assert c.montant is None and c.par_projet == {} and c.taux == {}
     assert "EUR" in c.raison and "2026-06-30" in c.raison
     inconnue = consolider(
-        tdb.indicateurs["financements_accordes"], devise_reference="XXX", jour=JOUR
+        tdb.indicateurs["financements_accordes"],
+        devise_reference="XXX",
+        jour=JOUR,
+        type_taux="officiel",
     )
     assert inconnue.montant is None and "XXX" in inconnue.raison
 
 
 def test_une_devise_deja_en_reference_ne_demande_aucun_taux(parc):
     tdb = _vue(parc, devise="DJF")
-    c = consolider(tdb.indicateurs["financements_accordes"], devise_reference="DJF", jour=JOUR)
+    c = consolider(
+        tdb.indicateurs["financements_accordes"],
+        devise_reference="DJF",
+        jour=JOUR,
+        type_taux="officiel",
+    )
     assert c.montant == D("1000") and c.taux == {}
 
 

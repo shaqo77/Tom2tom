@@ -48,6 +48,16 @@ rapport par bailleur, import Excel, IA documentaire) manque.
 | **A5** | **Éligibilité au grand livre** : à la validation d'une écriture imputée à un accord (dates, catégorie, dépense hors ligne de budget). Modes bloquant ou avertissement, réglables comme le budget. | Une dépense inéligible est refusée ou signalée à la saisie. | M |
 | **A6** | Version de convention portée par chaque écriture ; devises autorisées étendues aux taux et au budget. | Une opération se rattache à sa version de convention. | M |
 
+### Réalisation — A1a (consolidation pilotée par les réglages, côté serveur)
+
+`GET /api/v1/tableau-de-bord/<indicateur>/consolidation/` prend désormais sa **devise de référence** et son **type de taux** dans les réglages de l'organisation ou du projet (`resoudre_reference`, `niveau4_reporting/tableau_de_bord/devises.py`). Un paramètre explicite (`devise_reference`, `type_taux`) l'emporte toujours. La réponse dit d'où vient chaque valeur : `origine = {devise_reference, type_taux}` (`demande`, `projet` ou `organisation`).
+
+- **Rien n'est écrit dans le code** : le défaut « officiel » codé en dur a disparu. Sans réglage ni paramètre, la réponse est `200` avec `consolide: false` et une raison lisible (avant : `422`).
+- **Références différentes entre projets du périmètre** (P1 hérite de DJF, P2 règle EUR) : aucun total unique n'a de sens ; la raison nomme chaque projet et sa valeur, et la personne tranche en passant un paramètre.
+- **Correction d'un défaut latent** : les taux du référentiel sont exprimés en monnaie de *tenue*. Consolider vers une référence qui n'est pas la monnaie de tenue multipliait par le taux de la devise sans diviser par celui de la référence (résultat faux). La conversion passe maintenant par croisement `montant × taux(devise) / taux(référence)` et exige le taux de la référence.
+- Tests : 8 nouveaux dans `test_api_tableau_de_bord_bd.py` (19 en tout, plus 17 de `test_tableau_de_bord_bd.py`) ; les tests existants passent le type de taux explicitement. Mutations détectées : priorité du paramètre, croisement, taux de la référence, détection des références différentes, provenance, « un projet sans réglage », raison du type de taux, arrondi, périmètre, validation du type de taux.
+- **Limites** : l'interface (écran de consolidation) et la **descente cliquable** jusqu'à l'écriture (A1b) restent à faire ; le tableau de bord principal n'affiche toujours pas de total consolidé ; la suite complète n'a pas été relancée (suites touchant le tableau de bord, la recette d'architecture, les conventions et le catalogue de messages : vertes) ; CI GitHub toujours en panne.
+
 ## Phase B — Administrer sans développeur
 
 APIs et écrans (même méthode que les réglages de devises : API, écran, tests, vérification dans un vrai
