@@ -335,6 +335,9 @@ def evaluer_tous(
 ) -> list[EvaluationControle]:
     """Évalue tous les contrôles ACTIFS de ce type : le point d'entrée des autres modules.
 
+    `contexte` peut être une fonction sans argument : elle n'est appelée que s'il existe au moins
+    un contrôle actif à évaluer (le contexte d'une dépense coûte des requêtes).
+
     `sauf` : des codes de contrôles à ne pas réévaluer (par exemple un contrôle « à vérifier » dont
     la décision humaine est attendue ou rendue : une nouvelle évaluation l'effacerait)."""
     controles = (
@@ -348,6 +351,9 @@ def evaluer_tous(
         .exclude(code__in=sauf)
         .order_by("code")
     )
+    controles = list(controles)
+    if controles and callable(contexte):
+        contexte = contexte()  # construit seulement s'il y a quelque chose à évaluer
     return [
         evaluer_controle(
             c,

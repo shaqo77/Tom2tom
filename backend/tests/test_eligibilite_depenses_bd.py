@@ -214,3 +214,33 @@ def test_sans_controle_actif_l_eligibilite_n_est_pas_verifiee(pret):
     _profil(pret)  # le contrôle n'est pas activé : règle 9, jamais d'office
     assert _valider(pret, _depense_du(pret, 1, 4)).status == "validated"
     assert _evaluations().count() == 0
+
+
+def test_un_accord_illisible_n_empeche_pas_la_validation_et_rend_le_controle_non_applicable(pret):
+    import uuid
+
+    organisation, projet, _, accord, cat = pret
+    _controle_actif(pret)
+    ligne = _depense_du(pret, 10, 3)
+    LigneEcriture.objects.filter(pk=ligne.pk).update(agreement_id=uuid.uuid4())  # accord inconnu
+    assert _valider(pret, ligne).status == "validated"
+    assert [e.resultat for e in _evaluations()] == ["non_applicable"]
+
+
+def test_le_contexte_n_est_construit_que_s_il_existe_un_controle_actif(pret, monkeypatch):
+    """Le contexte d'une dépense coûte des requêtes : sans contrôle actif, on ne le construit pas."""
+    from niveau4_reporting.controles import depenses
+
+    appels = []
+    reel = depenses.contexte_depense
+    monkeypatch.setattr(
+        depenses, "contexte_depense", lambda *a, **k: appels.append(1) or reel(*a, **k)
+    )
+    assert _valider(pret, _depense_du(pret, 10, 3)).status == "validated"
+    assert appels == []
+    _controle_actif(pret)
+    from tests.test_controles_depenses_bd import _actif
+
+    _actif(pret, "COD-CATEGORIE")  # un second type de règle : le contexte est partagé, pas refait
+    _valider(pret, _depense_du(pret, 11, 3))
+    assert len(appels) == 1  # une fois par charge

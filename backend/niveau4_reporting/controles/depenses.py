@@ -58,7 +58,15 @@ def _contexte_eligibilite(ligne, base: dict) -> dict:
     debut = fin = dans = None
     if ligne.agreement_id is not None:
         jour = ligne.entry.accounting_date
-        accord = Accord.objects.get(pk=ligne.agreement_id)
+        accord = Accord.objects.filter(pk=ligne.agreement_id).first()
+        if accord is None:  # l'accord n'est pas lisible ici : sa fenêtre est inconnue
+            return contexte(
+                "eligibilite",
+                **base,
+                date_debut_eligibilite=None,
+                date_fin_eligibilite=None,
+                dans_periode_eligibilite=None,
+            )
         profil = profil_en_vigueur(accord, jour)
         regle = None
         if profil is not None and ligne.category_id is not None:
@@ -96,14 +104,24 @@ def controler_ecriture(ecriture, *, utilisateur) -> list[str]:
     langue = langue_courante()
     avertissements: list[str] = []
     for ligne in _lignes_de_charge(ecriture):
-        contexte_de_base = contexte_depense(ligne, pieces=pieces)
+        base: dict = {}
+
+        def contexte_de_base(ligne=ligne, base=base):
+            if not base:
+                base.update(contexte_depense(ligne, pieces=pieces))
+            return base
+
         for type_regle in TYPES_DE_REGLE:
+            if type_regle == "eligibilite":
+
+                def contexte_du_type(ligne=ligne, fournir=contexte_de_base):
+                    return _contexte_eligibilite(ligne, fournir())
+            else:
+                contexte_du_type = contexte_de_base
             evaluations = evaluer_tous(
                 ecriture.project_id,
                 type_regle,
-                _contexte_eligibilite(ligne, contexte_de_base)
-                if type_regle == "eligibilite"
-                else contexte_de_base,
+                contexte_du_type,
                 date_operation=ecriture.accounting_date,
                 objet_type=OBJET,
                 objet_id=ligne.pk,

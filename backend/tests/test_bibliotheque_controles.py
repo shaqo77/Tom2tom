@@ -74,6 +74,11 @@ CAS = {
     "COH-ETATS": ({"ecart_entre_etats": D("0.01")}, {"ecart_entre_etats": D("0")}, None),
     "COH-PERIODES": ({"ecart_entre_periodes": D("-0.01")}, {"ecart_entre_periodes": D("0")}, None),
     "COH-CUMUL": ({"rupture_de_cumul": D("100")}, {"rupture_de_cumul": D("0")}, None),
+    "ELIG-PERIODE-ACCORD": (
+        {"dans_periode_eligibilite": False},
+        {"dans_periode_eligibilite": True},
+        {},  # sans accord, la fenêtre est inconnue : le contrôle n'est pas applicable
+    ),
     "RIS-CATEGORIE-SEUIL": (
         {"taux_consommation_categorie": D("80.01")},
         {"taux_consommation_categorie": D("80")},
@@ -111,8 +116,9 @@ def test_un_controle_conditionnel_non_applicable_n_est_ni_reussi_ni_en_echec(cod
 
 
 def test_les_huit_familles_du_plan_et_le_risque_sont_representes():
-    """L'éligibilité n'a aucune valeur livrée en dur : ce sont des règles configurées par le projet,
-    donc ses quatre fabriques."""
+    """L'éligibilité n'a aucune DATE livrée en dur : ses règles de nature, zone et bénéficiaires sont
+    configurées par le projet (quatre fabriques) ; seule la fenêtre de dates se lit dans les
+    données de l'accord (`ELIG-PERIODE-ACCORD`), sans valeur écrite dans le code."""
     par_fabrique = {
         lib.eligibilite_nature("N", ["x"]).famille,
         lib.eligibilite_zone("Z", ["x"]).famille,
@@ -309,6 +315,7 @@ SEVERITES = {
     "AVA-NON-JUSTIFIEE": "avertissement", "AVA-DELAI": "bloquant",
     "RAP-RUBRIQUE-VIDE": "bloquant", "RAP-COMPTE-NON-MAPPE": "bloquant", "RAP-ASSERTION": "bloquant",
     "COH-ETATS": "bloquant", "COH-PERIODES": "bloquant", "COH-CUMUL": "bloquant",
+    "ELIG-PERIODE-ACCORD": "bloquant",
     "RIS-CATEGORIE-SEUIL": "avertissement", "RIS-AVANCE-NON-APUREE": "information",
     "RIS-REJETS-REPETES": "information",
 }  # fmt: skip
