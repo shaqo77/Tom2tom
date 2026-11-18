@@ -102,3 +102,8 @@ export async function appeler<T = unknown>(chemin: string, options: OptionsAppel
   if (reponse.status === 401 && code === "NON_AUTHENTIFIE" && !options.sansAlerteSession) sessionPerdue?.();
   throw new ErreurApi(reponse.status, code, message);
 }
+
+/** Le message du serveur (déjà dans la langue de la requête) pour un refus métier ; `null` pour une panne. */
+export function messageDuServeur(erreur: unknown): string | null {
+  return erreur instanceof ErreurApi && erreur.statut < 500 ? erreur.message : null;
+}

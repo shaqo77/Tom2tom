@@ -21,6 +21,11 @@ export interface FauxServeur {
   tableau: ((recherche: URLSearchParams) => unknown) | null;
   /** Quand défini, le serveur attend cette promesse avant de répondre au tableau de bord et à l'historique des devises. */
   retard: Promise<void> | null;
+  /**
+   * Des routes GET ajoutées par un test (consolidation, descente…) : consultées avant les routes de base,
+   * seulement pour une personne connectée. Renvoie le corps JSON.
+   */
+  routes: { motif: RegExp; reponse: (trouve: RegExpExecArray, recherche: URLSearchParams) => unknown }[];
   /** Les réglages de devises posés (par niveau : `org` ou l'identifiant du projet), plus récent en dernier. */
   reglages: Record<string, ReglageFaux[]>;
   /** Ouvre directement une session (comme si la personne s'était déjà connectée). */
@@ -58,6 +63,7 @@ export function demarrerServeur(comptes: Compte[]): FauxServeur {
     tableau: null,
     retard: null,
     reglages: {},
+    routes: [],
     connecte: () => connecte,
     ouvrirSession: (identifiant) => {
       connecte = comptes.find((c) => c.identifiant === identifiant) ?? null;
@@ -88,6 +94,15 @@ export function demarrerServeur(comptes: Compte[]): FauxServeur {
       }
       if (methode !== "GET" && entetes.get("X-CSRFToken") !== "jeton-de-test") {
         return json({ code: "CSRF_INVALIDE", message: "La page a expiré" }, 403);
+      }
+      if (methode === "GET" && serveur.routes.length > 0) {
+        const [sansRecherche = "", recherche = ""] = chemin.split("?");
+        for (const route of serveur.routes) {
+          const trouve = route.motif.exec(sansRecherche);
+          if (!trouve) continue;
+          if (!connecte) return json({ code: "NON_AUTHENTIFIE", message: "Connexion requise" }, 401);
+          return json(route.reponse(trouve, new URLSearchParams(recherche)));
+        }
       }
       if (chemin.startsWith("/tableau-de-bord/") && methode === "GET") {
         if (!connecte) return json({ code: "NON_AUTHENTIFIE", message: "Connexion requise" }, 401);

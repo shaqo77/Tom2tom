@@ -83,7 +83,7 @@ const valeurs = (carte: HTMLElement) =>
   [...carte.querySelectorAll(".montant__valeur")].map((e) => (e.textContent ?? "").replace(/\s/g, " "));
 
 const demandes = (m: Awaited<ReturnType<typeof ouvrir>>) =>
-  m.serveur.appels.filter((a) => a.url.includes("/tableau-de-bord/")).map((a) => new URLSearchParams(a.url.split("?")[1]));
+  m.serveur.appels.filter((a) => a.url.includes("/tableau-de-bord/?")).map((a) => new URLSearchParams(a.url.split("?")[1]));
 
 describe("le tableau de bord", () => {
   it("affiche chaque indicateur, par devise, exactement comme le serveur le donne", async () => {

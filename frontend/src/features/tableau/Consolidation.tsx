@@ -2,7 +2,8 @@ import { useQuery } from "@tanstack/react-query";
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
 
-import { ErreurApi } from "../../shared/api/client";
+import { messageDuServeur } from "../../shared/api/client";
+import { lire } from "../../shared/money/montant";
 import { Carte } from "../../shared/ui/Carte";
 import { Chargement } from "../../shared/ui/Chargement";
 import { Message } from "../../shared/ui/Message";
@@ -91,7 +92,7 @@ export function Consolidation({
         {isPending && <Chargement />}
         {error && (
           <Message variante="danger">
-            {error instanceof ErreurApi && error.statut < 500 ? error.message : t("erreur.inconnue")}
+            {messageDuServeur(error) ?? t("erreur.inconnue")}
           </Message>
         )}
         {data && !data.consolide && (
@@ -117,7 +118,7 @@ export function Consolidation({
                   .map(([devise, { taux, date }]) => (
                     <li key={devise}>
                       <Pastille>
-                        {devise} · {taux} · {date}
+                        {devise} · {lire(taux).toFixed()} · {date}
                       </Pastille>
                     </li>
                   ))}

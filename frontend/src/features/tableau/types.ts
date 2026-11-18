@@ -121,6 +121,8 @@ export interface EcritureDto {
   journal: string;
   date: string;
   libelle: string;
+  /** La monnaie des lignes : la monnaie de base du projet. */
+  devise: string;
   lignes: { id: string; compte: string; montant: string }[];
   pieces: { id: string; type: string; nom: string; taille: number }[];
 }

@@ -6,9 +6,10 @@ import { Conception } from "../features/accueil/Conception";
 import { Connexion } from "../features/connexion/Connexion";
 import { ReglagesDevises } from "../features/devises/ReglagesDevises";
 import { ProjetPage } from "../features/projets/ProjetPage";
+import { Descente } from "../features/tableau/Descente";
 import { TableauDeBord } from "../features/tableau/TableauDeBord";
-import { dateIsoValide } from "../features/tableau/api";
-import type { RechercheTableau } from "../features/tableau/types";
+import { aujourdhui, dateIsoValide } from "../features/tableau/api";
+import type { CodeIndicateur, RechercheTableau } from "../features/tableau/types";
 import { moiQuery } from "../shared/session/moi";
 import { MiseEnPage } from "./MiseEnPage";
 import { PageErreur, PageIntrouvable } from "./PagesSpeciales";
@@ -67,6 +68,47 @@ const tableau = createRoute({
   component: TableauDeBord,
 });
 
+const INDICATEURS_DESCENDABLES: CodeIndicateur[] = [
+  "budget_approuve",
+  "budget_initial",
+  "financements_accordes",
+  "financements_recus",
+  "execution_budget",
+  "execution_engage",
+  "execution_consomme",
+  "soldes_comptables",
+  "soldes_releves",
+  "engagements_ouverts",
+  "avances_non_justifiees",
+];
+const texteNonVide = (v: unknown): v is string => typeof v === "string" && v !== "";
+
+/** La descente : l'adresse porte tout (projet, indicateur, jour, objet, écriture) pour être partageable. */
+const descente = createRoute({
+  getParentRoute: () => protege,
+  path: "/tableau-de-bord/descente",
+  validateSearch: (
+    recherche: Record<string, unknown>,
+  ): {
+    projet: string;
+    indicateur: CodeIndicateur;
+    jour: string;
+    devise?: string | undefined;
+    detail?: string | undefined;
+    ecriture?: string | undefined;
+  } => ({
+    projet: texteNonVide(recherche.projet) ? recherche.projet : "",
+    indicateur: INDICATEURS_DESCENDABLES.includes(recherche.indicateur as CodeIndicateur)
+      ? (recherche.indicateur as CodeIndicateur)
+      : "budget_approuve",
+    jour: dateIsoValide(recherche.jour) ? recherche.jour : aujourdhui(),
+    devise: typeof recherche.devise === "string" && /^[A-Z]{3}$/.test(recherche.devise) ? recherche.devise : undefined,
+    detail: texteNonVide(recherche.detail) ? recherche.detail : undefined,
+    ecriture: texteNonVide(recherche.ecriture) ? recherche.ecriture : undefined,
+  }),
+  component: Descente,
+});
+
 const reglagesDevises = createRoute({
   getParentRoute: () => protege,
   path: "/parametres-devises",
@@ -82,7 +124,7 @@ const conception = createRoute({ getParentRoute: () => racine, path: "/conceptio
 
 export const arbre = racine.addChildren([
   connexion,
-  protege.addChildren([accueil, tableau, reglagesDevises, projet]),
+  protege.addChildren([accueil, tableau, descente, reglagesDevises, projet]),
   ...(import.meta.env.DEV ? [conception] : []),
 ]);
 

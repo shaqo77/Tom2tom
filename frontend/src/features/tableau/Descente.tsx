@@ -2,7 +2,7 @@ import { useQuery } from "@tanstack/react-query";
 import { Link, useNavigate, useSearch } from "@tanstack/react-router";
 import { useTranslation } from "react-i18next";
 
-import { ErreurApi } from "../../shared/api/client";
+import { messageDuServeur } from "../../shared/api/client";
 import { additionner } from "../../shared/money/montant";
 import { projetParId } from "../../shared/session/droits";
 import { useMoi } from "../../shared/session/moi";
@@ -11,6 +11,7 @@ import { Carte } from "../../shared/ui/Carte";
 import { Chargement } from "../../shared/ui/Chargement";
 import { Message } from "../../shared/ui/Message";
 import { Montant } from "../../shared/ui/Montant";
+import { lireCatalogue } from "../devises/api";
 import { libelleProjet } from "../projets/libelle";
 import { lireDetail, lireEcriture, lireEcrituresDuDetail } from "./api";
 import type { DetailDto } from "./types";
@@ -51,12 +52,20 @@ export function Descente() {
   function aller(modifs: { detail?: string | undefined; ecriture?: string | undefined }) {
     void navigate({
       to: "/tableau-de-bord/descente",
-      search: (precedent) => ({ ...precedent, ...modifs }),
+      search: {
+        projet: projetId,
+        indicateur,
+        jour,
+        devise,
+        detail: "detail" in modifs ? modifs.detail : detailId,
+        ecriture: "ecriture" in modifs ? modifs.ecriture : ecritureId,
+      },
     });
   }
-  const decimales = (d: string) => (d in decimalesConnues ? decimalesConnues[d] : DECIMALES_PAR_DEFAUT) ?? DECIMALES_PAR_DEFAUT;
-  const decimalesConnues: Record<string, number> = { DJF: 0 };
-  const erreur = (e: unknown) => (e instanceof ErreurApi && e.statut < 500 ? e.message : t("erreur.inconnue"));
+  // Le nombre de décimales d'une devise vient du catalogue du serveur, jamais d'une liste écrite ici.
+  const catalogue = useQuery({ queryKey: ["devises"], queryFn: lireCatalogue, staleTime: Infinity });
+  const decimales = (d: string) => catalogue.data?.find((x) => x.code === d)?.decimales ?? DECIMALES_PAR_DEFAUT;
+  const erreur = (e: unknown) => messageDuServeur(e) ?? t("erreur.inconnue");
 
   const totaux: Record<string, string> = {};
   for (const d of details.data ?? []) totaux[d.devise] = additionner(totaux[d.devise] ?? "0", d.montant);
@@ -190,7 +199,7 @@ export function Descente() {
                           {l.compte}
                         </th>
                         <td>
-                          <Montant valeur={l.montant} decimales={decimales(ecritures.data?.detail.devise ?? "")} />
+                          <Montant valeur={l.montant} decimales={decimales(ecriture.data.devise)} devise={ecriture.data.devise} />
                         </td>
                       </tr>
                     ))}

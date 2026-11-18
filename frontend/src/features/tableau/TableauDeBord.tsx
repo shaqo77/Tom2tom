@@ -14,8 +14,9 @@ import { Selecteur } from "../../shared/ui/Selecteur";
 import { enPourcentage } from "../../shared/money/montant";
 import { libelleProjet } from "../projets/libelle";
 import { aujourdhui, lireTableau } from "./api";
+import { Consolidation } from "./Consolidation";
 import { IndicateurMontants, IndicateurTaux } from "./Indicateur";
-import type { FiltresTableau, MontantsParDevise, TableauDto } from "./types";
+import type { CodeIndicateur, FiltresTableau, MontantsParDevise, TableauDto } from "./types";
 import "./tableau.css";
 
 const DECIMALES_PAR_DEFAUT = 2;
@@ -143,14 +144,13 @@ export function TableauDeBord() {
         )}
       </div>
 
-      {tableau && (
-        <Contenu tableau={tableau} langue={langue} />
-      )}
+      {tableau && tableau.projets.length > 0 && <Consolidation filtres={filtres} devises={tableau.devises} />}
+      {tableau && <Contenu tableau={tableau} langue={langue} filtres={filtres} />}
     </>
   );
 }
 
-function Contenu({ tableau, langue }: { tableau: TableauDto; langue: string }) {
+function Contenu({ tableau, langue, filtres }: { tableau: TableauDto; langue: string; filtres: FiltresTableau & { jour: string } }) {
   const { t, i18n } = useTranslation();
   const { indicateurs: ind, devises, conformite, projets } = tableau;
 
@@ -269,13 +269,13 @@ function Contenu({ tableau, langue }: { tableau: TableauDto; langue: string }) {
                     </th>
                     <td>{p.bailleurs.join(", ") || "—"}</td>
                     <td>
-                      <Montants montants={ind.budget_approuve.par_projet[p.id]} devises={devises} />
+                      <Cellule montants={ind.budget_approuve.par_projet[p.id]} devises={devises} projetId={p.id} projetCode={p.code} indicateur="budget_approuve" filtres={filtres} />
                     </td>
                     <td>
-                      <Montants montants={ind.execution_consomme.par_projet[p.id]} devises={devises} />
+                      <Cellule montants={ind.execution_consomme.par_projet[p.id]} devises={devises} projetId={p.id} projetCode={p.code} indicateur="execution_consomme" filtres={filtres} />
                     </td>
                     <td>
-                      <Montants montants={ind.soldes_comptables.par_projet[p.id]} devises={devises} />
+                      <Cellule montants={ind.soldes_comptables.par_projet[p.id]} devises={devises} projetId={p.id} projetCode={p.code} indicateur="soldes_comptables" filtres={filtres} />
                     </td>
                     <td>
                       {c && (c.echeances_en_retard + c.echeances_en_escalade > 0 || c.anomalies_ouvertes > 0) ? (
@@ -381,4 +381,41 @@ function nettoyer(f: Modifs): FiltresTableau {
   if (f.devise) propre.devise = f.devise;
   if (f.projets && f.projets.length > 0) propre.projets = f.projets;
   return propre;
+}
+
+/** Les montants d'un projet pour un indicateur, et le lien qui descend vers ce qui les compose. */
+function Cellule({
+  montants,
+  devises,
+  projetId,
+  projetCode,
+  indicateur,
+  filtres,
+}: {
+  montants: MontantsParDevise | undefined;
+  devises: Record<string, number>;
+  projetId: string;
+  projetCode: string;
+  indicateur: CodeIndicateur;
+  filtres: FiltresTableau & { jour: string };
+}) {
+  const { t } = useTranslation();
+  return (
+    <>
+      <Montants montants={montants} devises={devises} />
+      {montants && Object.keys(montants).length > 0 && (
+        <Link
+          to="/tableau-de-bord/descente"
+          search={{ projet: projetId, indicateur, jour: filtres.jour, ...(filtres.devise ? { devise: filtres.devise } : {}) }}
+          className="cellule__detail"
+        >
+          {t("tableau.descente.voir_detail")}
+          <span className="visuellement-cache">
+            {" "}
+            — {t(`tableau.i.${indicateur}`)} · {projetCode}
+          </span>
+        </Link>
+      )}
+    </>
+  );
 }

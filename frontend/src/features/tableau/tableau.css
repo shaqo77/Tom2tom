@@ -148,3 +148,20 @@
 .table .indicateur__lignes {
   font-size: var(--texte-s);
 }
+.cellule__detail {
+  display: inline-block;
+  margin-block-start: var(--esp-1);
+  font-size: var(--texte-s);
+}
+.fil {
+  margin-block-end: var(--esp-3);
+  color: var(--texte-2);
+}
+.consolidation__resultat {
+  display: grid;
+  gap: var(--esp-2);
+  margin-block-start: var(--esp-3);
+}
+.consolidation__origines {
+  margin: 0;
+}
