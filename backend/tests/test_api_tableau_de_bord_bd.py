@@ -272,3 +272,71 @@ def test_une_reference_reglee_sans_type_de_taux_regle_le_dit(parc):
     corps = _get(parc, CONSO).json()
     assert corps["consolide"] is False and "type de taux" in corps["raison"]
     assert corps["devise_reference"] == "DJF" and corps["type_taux"] is None
+
+
+# --- le dernier pas de la descente : l'écriture, ses lignes et ses pièces (L11-A1b) ---------------
+
+
+def _une_ecriture_de_p2(parc):
+    p2 = parc[2]
+    detail = _get(parc, f"projets/{p2.id}/tableau-de-bord/soldes_comptables/detail/?{Q}").json()
+    chemin = (
+        f"projets/{p2.id}/tableau-de-bord/soldes_comptables/detail/{detail[0]['id']}/ecritures/"
+    )
+    return _get(parc, f"{chemin}?{Q}").json()["ecritures"][0]["ecriture_id"]
+
+
+def test_une_ecriture_de_la_descente_se_lit_avec_ses_lignes_et_ses_pieces(parc):
+    p2 = parc[2]
+    ecriture_id = _une_ecriture_de_p2(parc)
+    r = _get(parc, f"projets/{p2.id}/tableau-de-bord/ecritures/{ecriture_id}/")
+    assert r.status_code == 200
+    corps = r.json()
+    assert corps["id"] == ecriture_id and corps["numero"] and corps["journal"]
+    assert corps["lignes"] and all({"compte", "montant"} <= set(ligne) for ligne in corps["lignes"])
+    assert sum(Decimal(ligne["montant"]) for ligne in corps["lignes"]) == Decimal(0)  # équilibrée
+    assert all(isinstance(ligne["montant"], str) for ligne in corps["lignes"])
+    assert corps["pieces"] == []  # ici aucune pièce : la liste est vide, pas absente
+
+
+def test_une_ecriture_d_un_autre_projet_ou_inconnue_est_introuvable(parc):
+    p1, p2 = parc[1], parc[2]
+    ecriture_id = _une_ecriture_de_p2(parc)
+    # Une écriture de P2 demandée « au nom » de P1 : introuvable (elle n'appartient pas à P1).
+    assert (
+        _get(parc, f"projets/{p1.id}/tableau-de-bord/ecritures/{ecriture_id}/").status_code == 404
+    )
+    inconnue = "00000000-0000-0000-0000-000000000001"
+    assert _get(parc, f"projets/{p2.id}/tableau-de-bord/ecritures/{inconnue}/").status_code == 404
+
+
+def test_une_ecriture_d_un_projet_non_consultable_est_refusee(parc):
+    p2, p4 = parc[2], parc[4]
+    ecriture_id = _une_ecriture_de_p2(parc)
+    assert (
+        _get(parc, f"projets/{p4.id}/tableau-de-bord/ecritures/{ecriture_id}/").status_code == 403
+    )
+    assert Client().get(
+        f"{RACINE}/projets/{p2.id}/tableau-de-bord/ecritures/{ecriture_id}/"
+    ).status_code in (401, 403)
+
+
+def test_les_pieces_de_l_ecriture_sont_listees_sans_leurs_octets(parc):
+    from niveau1_socle.comptabilite.models import Ecriture
+    from niveau1_socle.comptabilite.pieces import joindre_piece
+
+    organisation, p2, profils = parc[0], parc[2], parc[5]
+    ecriture_id = _une_ecriture_de_p2(parc)
+    _poser(organisation)
+    joindre_piece(
+        utilisateur=profils["amina"],
+        ecriture=Ecriture.objects.get(pk=ecriture_id),
+        type_piece="facture",
+        nom="facture-001.pdf",
+        contenu=b"%PDF-scan",
+    )
+    corps = _get(parc, f"projets/{p2.id}/tableau-de-bord/ecritures/{ecriture_id}/").json()
+    assert len(corps["pieces"]) == 1
+    piece = corps["pieces"][0]
+    assert (piece["type"], piece["nom"], piece["taille"]) == ("facture", "facture-001.pdf", 9)
+    assert set(piece) == {"id", "type", "nom", "taille"}  # ni octets ni empreinte

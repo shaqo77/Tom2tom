@@ -16,8 +16,10 @@ from core.api import (
     reponse,
 )
 from core.i18n import msg
+from core.metier import habilite
 from core.metier import refuser as refuser_champ
 from niveau1_socle.referentiels.models import Devise, TypeTaux
+from niveau4_reporting.publication.descente import detail_ecriture
 from niveau4_reporting.tableau_de_bord import (
     Filtres,
     consolider,
@@ -203,6 +205,44 @@ class DetailEcritures(VueMetier):
                         "montant": e.montant,
                     }
                     for e in ecritures
+                ],
+            }
+        )
+
+
+class EcritureDuTableau(VueMetier):
+    """Le dernier pas de la descente : l'écriture comptabilisée, ses lignes et ses pièces (sans les
+    octets des pièces). Habilitation « consulter » sur le projet ; une écriture qui n'appartient pas
+    à ce projet est introuvable."""
+
+    def get(self, requete, project_id, ecriture_id):
+        habilite(requete.user, "consulter", project_id)
+        detail = detail_ecriture(project_id, ecriture_id)
+        if detail is None:
+            raise NotFound
+        return reponse(
+            {
+                "id": detail.id,
+                "numero": detail.numero,
+                "journal": detail.journal,
+                "date": detail.date,
+                "libelle": detail.libelle,
+                "lignes": [
+                    {
+                        "id": ligne.id,
+                        "compte": ligne.compte,
+                        "montant": ligne.montant,
+                    }
+                    for ligne in detail.lignes
+                ],
+                "pieces": [
+                    {
+                        "id": piece.id,
+                        "type": piece.type_piece,
+                        "nom": piece.nom,
+                        "taille": piece.taille,
+                    }
+                    for piece in detail.pieces
                 ],
             }
         )

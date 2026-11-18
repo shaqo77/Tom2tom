@@ -10,4 +10,8 @@ urlpatterns = [
         "projets/<uuid:project_id>/tableau-de-bord/<str:code>/detail/<uuid:detail_id>/ecritures/",
         api.DetailEcritures.as_view(),
     ),
+    path(
+        "projets/<uuid:project_id>/tableau-de-bord/ecritures/<uuid:ecriture_id>/",
+        api.EcritureDuTableau.as_view(),
+    ),
 ]
