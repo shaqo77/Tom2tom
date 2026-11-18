@@ -126,6 +126,34 @@ def verifier_eligibilite(profil: ProfilDecaissement, regle, date_depense: dateti
         )
 
 
+def fenetre_d_eligibilite(
+    profil, regle, accord
+) -> tuple[datetime.date | None, datetime.date | None]:
+    """La fenêtre `(début, fin)` dans laquelle une dépense est finançable, bornes INCLUSES.
+
+    Début : le plus tardif des débuts connus (date d'éligibilité du profil, début de la catégorie).
+    Fin : la plus précoce des fins connues (fin d'éligibilité de l'accord, fin de la catégorie).
+    Une borne inconnue n'en est pas une : on n'invente aucune date.
+    """
+    debuts = [
+        d
+        for d in (
+            getattr(profil, "eligibility_date", None),
+            getattr(regle, "eligibility_from", None),
+        )
+        if d
+    ]
+    fins = [
+        d
+        for d in (
+            getattr(accord, "date_fin_eligibilite", None),
+            getattr(regle, "eligibility_to", None),
+        )
+        if d
+    ]
+    return (max(debuts) if debuts else None, min(fins) if fins else None)
+
+
 def verifier_delai(profil: ProfilDecaissement, date_demande: datetime.date) -> None:
     if profil.disbursement_deadline and date_demande > profil.disbursement_deadline:
         raise ProfilViole(

@@ -18,12 +18,18 @@ from django.db import connection
 
 from core.i18n import langue_courante
 from niveau1_socle.comptabilite.models import LigneEcriture, PieceJustificative
+from niveau1_socle.financements.models import Accord, Categorie
+from niveau3_config.services.decaissement import (
+    fenetre_d_eligibilite,
+    profil_en_vigueur,
+    regle_pour,
+)
 
-from .contextes import contexte_depense
+from .contextes import contexte, contexte_depense
 from .models import EvaluationControle, Resultat
 from .services import evaluer_tous, exiger_controles_tranches
 
-TYPES_DE_REGLE = ("codification", "pieces")
+TYPES_DE_REGLE = ("codification", "pieces", "eligibilite")
 OBJET = "ligne_ecriture"
 
 
@@ -41,6 +47,31 @@ def _lignes_de_charge(ecriture) -> list[LigneEcriture]:
         ids = [rangee[0] for rangee in cur.fetchall()]
     lignes = LigneEcriture.objects.select_related("entry", "account").in_bulk(ids)
     return [lignes[i] for i in ids]
+
+
+def _contexte_eligibilite(ligne, base: dict) -> dict:
+    """Le contexte de la dépense, enrichi de sa fenêtre d'éligibilité (accord, profil, catégorie).
+
+    Sans accord, la fenêtre est inconnue : `dans_periode_eligibilite` reste vide et le contrôle
+    livré n'est pas applicable. Avec un accord mais aucune borne connue, rien ne restreint.
+    """
+    debut = fin = dans = None
+    if ligne.agreement_id is not None:
+        jour = ligne.entry.accounting_date
+        accord = Accord.objects.get(pk=ligne.agreement_id)
+        profil = profil_en_vigueur(accord, jour)
+        regle = None
+        if profil is not None and ligne.category_id is not None:
+            regle = regle_pour(profil, Categorie.objects.get(pk=ligne.category_id))
+        debut, fin = fenetre_d_eligibilite(profil, regle, accord)
+        dans = (debut is None or jour >= debut) and (fin is None or jour <= fin)
+    return contexte(
+        "eligibilite",
+        **base,
+        date_debut_eligibilite=debut,
+        date_fin_eligibilite=fin,
+        dans_periode_eligibilite=dans,
+    )
 
 
 def _en_attente_de_decision(ligne, type_regle: str) -> frozenset[str]:
@@ -65,12 +96,14 @@ def controler_ecriture(ecriture, *, utilisateur) -> list[str]:
     langue = langue_courante()
     avertissements: list[str] = []
     for ligne in _lignes_de_charge(ecriture):
-        contexte = contexte_depense(ligne, pieces=pieces)
+        contexte_de_base = contexte_depense(ligne, pieces=pieces)
         for type_regle in TYPES_DE_REGLE:
             evaluations = evaluer_tous(
                 ecriture.project_id,
                 type_regle,
-                contexte,
+                _contexte_eligibilite(ligne, contexte_de_base)
+                if type_regle == "eligibilite"
+                else contexte_de_base,
                 date_operation=ecriture.accounting_date,
                 objet_type=OBJET,
                 objet_id=ligne.pk,

@@ -510,6 +510,38 @@
           }
         ]
       }
+    },
+    {
+      "code": "ELIG-PERIODE-ACCORD",
+      "famille": "eligibilite",
+      "severity": "bloquant",
+      "type_regle": "eligibilite",
+      "label": {
+        "fr": "Dépense hors période d'éligibilité",
+        "en": "Expense outside the eligibility period"
+      },
+      "action_corrective": {
+        "fr": "Vérifier la date de la dépense et la période d'éligibilité de l'accord, du profil et de la catégorie",
+        "en": "Check the expense date and the eligibility period of the agreement, profile and category"
+      },
+      "expression": {
+        "type_regle": "eligibilite",
+        "conditions": [
+          {
+            "champ": "dans_periode_eligibilite",
+            "op": "est_vrai"
+          }
+        ]
+      },
+      "applicable_si": {
+        "type_regle": "eligibilite",
+        "conditions": [
+          {
+            "champ": "dans_periode_eligibilite",
+            "op": "est_renseigne"
+          }
+        ]
+      }
     }
   ],
   "modeles": {

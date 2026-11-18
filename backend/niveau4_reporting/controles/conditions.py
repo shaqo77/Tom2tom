@@ -137,7 +137,11 @@ SCHEMAS: dict[str, dict[str, Champ]] = {
     "pieces": _DEPENSE,
     "eligibilite": {
         **_DEPENSE,
-        **_champs(date_debut_eligibilite="date", date_fin_eligibilite="date"),
+        **_champs(
+            date_debut_eligibilite="date",
+            date_fin_eligibilite="date",
+            dans_periode_eligibilite="booleen",
+        ),
     },
     "budget": _champs(
         montant="decimal",
