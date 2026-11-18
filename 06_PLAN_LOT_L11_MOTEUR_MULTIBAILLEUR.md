@@ -129,6 +129,19 @@ Une dépense imputée à un accord doit tomber dans sa **fenêtre d'éligibilit�
 
 ## Phase B — Administrer sans développeur
 
+### Réalisation — B1 (API des clés de cofinancement)
+
+Un administrateur règle la répartition entre bailleurs **sans développeur**, puis la saisie s'en sert (A2). Avant, créer une clé et ses versions n'était possible que par appel de service Python.
+
+- `GET/POST /api/v1/projets/<id>/cles-cofinancement/` : liste des clés avec la **version en vigueur à `?jour=`** (début inclus, fin exclue ; `null` avant la première version) ; création d'une clé (code et libellés par langue obligatoires).
+- `GET /api/v1/projets/<id>/cles-cofinancement/<clé>/` : la clé et **toutes ses versions**, la plus récente d'abord, chacune avec ses parts.
+- `POST …/<clé>/versions/` : une version à partir de `parts` (`{"numéro d'accord": poids}`), `porteur` (l'accord qui absorbe le reliquat d'arrondi), `valid_from`, `motif`. Les accords se désignent par leur **numéro**, jamais par un identifiant interne. Les poids sont des nombres exacts strictement positifs écrits en chiffres (jamais un flottant, un exposant ou du texte) ; les parts rendues sont des chaînes décimales qui somment **exactement** à 1. La version en cours est close à la date d'effet, l'ancienne reste lisible (règle 7).
+- Lecture : habilitation `consulter` ; écriture : `parametrer`, contrôlée par les services (403 sinon). Une clé s'adresse par son projet : celle d'un autre projet est introuvable (404), même pour qui a des droits sur les deux.
+- **Refus lisibles au lieu de pannes** : un code de clé déjà pris (la base le refusait par une erreur d'intégrité brute, donc un 500) devient un 422 `{code, message}` ; les erreurs de clé et de ventilation du service sont désormais traduites en 422 par le gestionnaire commun.
+- Tests : 21 dans `test_api_cles_bd.py`, dont le **parcours complet** (la clé réglée par HTTP ventile la saisie d'une écriture). Mutations détectées (habilitations, cloisonnement par projet, ordres de tri, validation des libellés et des poids, accord inconnu, traduction des erreurs, statut 201, parts en flottant, repli du doublon) ; une survivante équivalente a été retirée (le contrôle du porteur est refait par le service). Suite complète relancée avant la PR.
+- **Limites** : pas d'écran (API seulement) ; une version ne se corrige pas, on en ouvre une autre (règle 7) ; la clé ne se supprime pas ; l'API ne vérifie pas que les accords de la clé couvrent la catégorie de la dépense (la saisie le fait à l'usage : accord actif) ; accords, profils de décaissement et contrôles restent à exposer (B2 et suivantes).
+
+
 APIs et écrans (même méthode que les réglages de devises : API, écran, tests, vérification dans un vrai
 navigateur) pour : bailleurs et accords, profils de décaissement, clés de cofinancement, mappings,
 contrôles, exigences. Ordre : accords, profils, clés, contrôles.

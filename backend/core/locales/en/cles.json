@@ -1,9 +1,11 @@
 {
   "cles.accord": "Agreement {numero} is {status}",
   "cles.accord_appartient_projet_cle": "Agreement {numero} does not belong to the key's project",
+  "cles.accord_inconnu": "No agreement has number “{numero}” in this project",
   "cles.aucune_version_en_vigueur": "Key “{code}” has no version in force on {jour}",
   "cles.cle_inconnue": "The cofunding key “{code}” does not exist for this project",
   "cles.cle_moins_part": "A key has at least one share",
+  "cles.code_deja_utilise": "A key “{code}” already exists for this project",
   "cles.ligne_cle_et_accord": "The line on account {compte} carries a cofunding key: it cannot also name an agreement",
   "cles.nouvelle_version_doit_prendre_effet": "The new version must take effect after {valid_from}",
   "cles.porteur_arrondi_doit_etre_accords": "The rounding holder must be one of the key's agreements",

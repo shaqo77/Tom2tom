@@ -184,6 +184,8 @@ def gestionnaire_exceptions(exc, contexte):
     from niveau1_socle.budget.services import BudgetInvalide
     from niveau1_socle.comptabilite.services import EcritureInvalide, JournalIntrouvable
     from niveau1_socle.exercices.services import TransitionInterdite
+    from niveau1_socle.financements.cles import CleInvalide
+    from niveau1_socle.financements.cofinancement import VentilationImpossible
     from niveau1_socle.rapprochement.services import ReleveInvalide
     from niveau4_reporting.moteur.assertions import AssertionsViolees
     from niveau4_reporting.moteur.compilateur import ModeleEtatInvalide
@@ -200,6 +202,8 @@ def gestionnaire_exceptions(exc, contexte):
     if isinstance(
         exc,
         BudgetInvalide
+        | CleInvalide
+        | VentilationImpossible
         | EcritureInvalide
         | JournalIntrouvable
         | ReleveInvalide

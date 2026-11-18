@@ -8,7 +8,7 @@ version de clé qui les a produites.
 import datetime
 from decimal import Decimal
 
-from django.db import transaction
+from django.db import IntegrityError, transaction
 from rest_framework.exceptions import PermissionDenied
 
 from core.audit import journaliser
@@ -31,23 +31,26 @@ def _habilite(utilisateur, project_id) -> None:
 
 def creer_cle(*, utilisateur, project_id, code: str, label: dict) -> CleCofinancement:
     _habilite(utilisateur, project_id)
-    with transaction.atomic():
-        cle = CleCofinancement.objects.create(
-            org_id=utilisateur.org_id,
-            project_id=project_id,
-            code=code.strip(),
-            label=label,
-            created_by=utilisateur.id,
-        )
-        journaliser(
-            org_id=cle.org_id,
-            actor_id=utilisateur.id,
-            action="cofunding_key_created",
-            object_type="cle_cofinancement",
-            object_id=cle.id,
-            project_id=project_id,
-            after={"code": cle.code},
-        )
+    try:
+        with transaction.atomic():  # la clé et sa trace d'audit : ensemble, ou rien
+            cle = CleCofinancement.objects.create(
+                org_id=utilisateur.org_id,
+                project_id=project_id,
+                code=code.strip(),
+                label=label,
+                created_by=utilisateur.id,
+            )
+            journaliser(
+                org_id=cle.org_id,
+                actor_id=utilisateur.id,
+                action="cofunding_key_created",
+                object_type="cle_cofinancement",
+                object_id=cle.id,
+                project_id=project_id,
+                after={"code": cle.code},
+            )
+    except IntegrityError:
+        raise CleInvalide(msg("cles.code_deja_utilise", code=code.strip())) from None
     return cle
 
 

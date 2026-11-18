@@ -1,9 +1,11 @@
 {
   "cles.accord": "L'accord {numero} est {status}",
   "cles.accord_appartient_projet_cle": "L'accord {numero} n'appartient pas au projet de la clé",
+  "cles.accord_inconnu": "Aucun accord ne porte le numéro « {numero} » dans ce projet",
   "cles.aucune_version_en_vigueur": "La clé « {code} » n'a aucune version en vigueur au {jour}",
   "cles.cle_inconnue": "La clé de cofinancement « {code} » n'existe pas pour ce projet",
   "cles.cle_moins_part": "Une clé a au moins une part",
+  "cles.code_deja_utilise": "Une clé « {code} » existe déjà pour ce projet",
   "cles.ligne_cle_et_accord": "La ligne du compte {compte} porte une clé de cofinancement : elle ne peut pas désigner aussi un accord",
   "cles.nouvelle_version_doit_prendre_effet": "La nouvelle version doit prendre effet après le {valid_from}",
   "cles.porteur_arrondi_doit_etre_accords": "Le porteur d'arrondi doit être l'un des accords de la clé",
