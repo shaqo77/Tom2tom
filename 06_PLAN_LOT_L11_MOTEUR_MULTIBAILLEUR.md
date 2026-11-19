@@ -160,6 +160,18 @@ Un administrateur configure un financement **de bout en bout sans développeur**
 - Tests : 38 dans `test_api_accords_bd.py`, dont le **parcours complet** (accord configuré par HTTP : refusé à l'imputation tant qu'il n'est pas actif, accepté ensuite). Mutations détectées (vérifications de bailleur, nature, devise, pays, parent, habilitations, cloisonnement par projet, traduction de chaque contrainte, ordre des catégories, réponse 201, rechargement des montants) ; une survivante équivalente : l'inexistence d'un document d'avenant est aussi refusée par le service.
 - **Limites** : pas d'écran ; **aucune API de dépôt de document** : un avenant désigne un `document_id` déjà enregistré (l'enregistrement d'un document se fait par service) : c'est la prochaine brique (B3) ; l'avenant n'ouvre pas encore la version du profil de décaissement correspondante (service `enregistrer_avenant` du niveau 3, non exposé) ; pas de modification d'un accord brouillon ni de suppression ; comptes bancaires non exposés.
 
+### Réalisation — B3 (API des documents de référence)
+
+Un administrateur dépose lui-même les documents que les avenants et les exigences citent (accord de financement, lettre de décaissement, manuel…), **sans développeur**. Avant, un avenant ne pouvait désigner qu'un document déjà déposé par un appel de service.
+
+- `GET/POST /api/v1/projets/<id>/documents/` : liste ; dépôt avec les octets en **base64**. Le dépôt est **idempotent** (mêmes octets, même type, titre et version : le même document, **200** au lieu de **201**) ; des octets différents sous les mêmes type, titre et version sont **refusés** (« un document modifié est une nouvelle version »).
+- `POST …/<doc>/remplacement/` : la nouvelle version chaîne l'ancienne (`remplace_par`), qui n'est jamais touchée ; la réponse liste les **exigences qui citaient l'ancien texte**, à revérifier.
+- `GET …/<doc>/integrite/` : relit le fichier stocké et le compare à l'empreinte. Un fichier **altéré ou disparu n'est pas une erreur de requête** mais la réponse (`integre: false` et le problème) : le service journalise le constat avant de lever, et une réponse d'erreur l'aurait **annulé avec la transaction** de la requête (un test vérifie que la trace reste dans le journal d'audit).
+- **La référence de stockage est interne** : jamais rendue, seule l'empreinte SHA-256 l'est.
+- Lecture et intégrité : `consulter` ; dépôt et remplacement : `parametrer` ; un document s'adresse par son projet (404 sinon). Le gestionnaire commun traduit `DocumentInvalide` en 422.
+- Tests : 23 dans `test_api_documents_bd.py`, dont le **parcours complet** (un document déposé par HTTP sert de pièce à un avenant, B2). Mutations détectées (référence de stockage non exposée, chaînage, 200/201, cloisonnement, habilitation de lecture, tri, exigences à revérifier, intégrité en réponse normale, dates, traduction des erreurs) ; une première survivante (la liste des exigences à revérifier, sans exigence dans les tests) a été comblée.
+- **Limites** : le corps d'une requête ne dépasse pas **10 Mo** (`DATA_UPLOAD_MAX_MEMORY_SIZE`), donc un fichier d'environ 7 Mo en base64 : un manuel volumineux demandera un dépôt par morceaux ou par envoi de fichier (multipart), non fait ; pas de téléchargement du fichier (seulement ses métadonnées et son empreinte) ; pas d'écran ; pas de suppression (un document ne se supprime pas, on le remplace) ; les types de document sont ceux du modèle (six) ; CI GitHub toujours en panne.
+
 ## Phase C — Rapports par bailleur
 
 | Tâche | Contenu | Dépend de |

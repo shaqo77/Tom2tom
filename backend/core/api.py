@@ -188,6 +188,7 @@ def gestionnaire_exceptions(exc, contexte):
     from niveau1_socle.financements.cofinancement import VentilationImpossible
     from niveau1_socle.financements.services import AccordNonActif, FinancementInvalide
     from niveau1_socle.rapprochement.services import ReleveInvalide
+    from niveau3_config.services.documents import DocumentInvalide
     from niveau4_reporting.moteur.assertions import AssertionsViolees
     from niveau4_reporting.moteur.compilateur import ModeleEtatInvalide
     from niveau4_reporting.moteur.sources_externes import SourceIncomplete
@@ -205,6 +206,7 @@ def gestionnaire_exceptions(exc, contexte):
         AccordNonActif
         | BudgetInvalide
         | CleInvalide
+        | DocumentInvalide
         | FinancementInvalide
         | VentilationImpossible
         | EcritureInvalide
