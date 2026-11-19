@@ -9,6 +9,10 @@ urlpatterns = [
         api.DocumentRemplacement.as_view(),
     ),
     path(
+        "projets/<uuid:project_id>/documents/<uuid:document_id>/contenu/",
+        api.DocumentContenu.as_view(),
+    ),
+    path(
         "projets/<uuid:project_id>/documents/<uuid:document_id>/integrite/",
         api.DocumentIntegrite.as_view(),
     ),

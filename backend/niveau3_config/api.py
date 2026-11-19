@@ -1,12 +1,18 @@
 """L'API HTTP des documents de référence : dépôt (base64), liste, remplacement, intégrité.
 
-Un document se dépose avec ses octets en base64 (le JSON ne porte pas d'octets) ; le corps d'une
-requête ne dépasse pas 10 Mo (`DATA_UPLOAD_MAX_MEMORY_SIZE`), donc un fichier d'environ 7 Mo.
+Un document se dépose de DEUX façons : en JSON avec ses octets en base64 (le corps d'une requête ne
+dépasse pas 10 Mo, donc un fichier d'environ 7 Mo), ou en MULTIPART (champs `kind`, `title`,
+`version`, `issued_on` et le fichier `fichier`) jusqu'à la taille maximale du service, 50 Mio. Il se
+télécharge (`contenu/`) après vérification de son empreinte ; un fichier altéré n'est jamais servi.
 La référence de stockage est INTERNE : elle n'est jamais rendue, seule l'empreinte SHA-256 l'est.
 Lecture et intégrité : habilitation `consulter` ; dépôt et remplacement : `parametrer`.
 """
 
+import re
+
 from django.db import IntegrityError
+from django.http import HttpResponse
+from rest_framework.parsers import FormParser, JSONParser, MultiPartParser
 
 from core.api import (
     VueMetier,
@@ -20,11 +26,13 @@ from core.api import (
     recharge,
     reponse,
 )
+from core.audit import journaliser
 from core.metier import decimal as decimal_exact
 from core.metier import habilite, refuser, traduire_integrite
 from niveau1_socle.financements.models import Accord
 from niveau1_socle.referentiels.models import Devise
 
+from . import stockage
 from .models import (
     PIECES_EXIGEES,
     AssietteTaxes,
@@ -65,7 +73,17 @@ def _du_projet(project_id, document_id) -> DocumentReference:
     return objet_ou_404(DocumentReference, pk=document_id, project_id=project_id)
 
 
+def _contenu_du_depot(requete, d: dict) -> bytes:
+    """Les octets du dépôt : le fichier d'un envoi multipart, ou le base64 d'un corps JSON."""
+    fichier = requete.FILES.get("fichier")
+    if fichier is not None:
+        return fichier.read()
+    return champ_octets(d, "contenu_base64")
+
+
 class Documents(VueMetier):
+    parser_classes = [JSONParser, MultiPartParser, FormParser]
+
     def get(self, requete, project_id):
         habilite(requete.user, "consulter", project_id)
         documents = DocumentReference.objects.filter(project_id=project_id).order_by(
@@ -88,26 +106,77 @@ class Documents(VueMetier):
             kind=kind,
             title=titre,
             version=version,
-            contenu=champ_octets(d, "contenu_base64"),
+            contenu=_contenu_du_depot(requete, d),
             issued_on=champ_date(d, "issued_on", obligatoire=False),
         )
         return reponse(_document(document), 200 if existait else 201)
 
 
 class DocumentRemplacement(VueMetier):
+    parser_classes = [JSONParser, MultiPartParser, FormParser]
+
     def post(self, requete, project_id, document_id):
         ancien = _du_projet(project_id, document_id)
         d = corps(requete)
         nouveau = remplacer_document(
             utilisateur=requete.user,
             ancien=ancien,
-            contenu=champ_octets(d, "contenu_base64"),
+            contenu=_contenu_du_depot(requete, d),
             version=champ_texte(d, "version", obligatoire=False, defaut=""),
             issued_on=champ_date(d, "issued_on", obligatoire=False),
         )
         ancien.refresh_from_db()
         a_reverifier = sorted(e.code for e in exigences_a_reverifier(ancien))
         return reponse(_document(nouveau) | {"exigences_a_reverifier": a_reverifier}, 201)
+
+
+# Le contenu ne se fie pas à ce que le fichier prétend être : on le sert TOUJOURS en pièce jointe,
+# sans interprétation par le navigateur (un document déposé reste une donnée non fiable).
+EXTENSIONS = ((b"%PDF-", ".pdf", "application/pdf"), (b"PK\x03\x04", ".zip", "application/zip"))
+
+
+def _nom_de_fichier(titre: str, version: str, octets: bytes) -> tuple[str, str]:
+    extension, genre = ".bin", "application/octet-stream"
+    for signature, ext, mime in EXTENSIONS:
+        if octets.startswith(signature):
+            extension, genre = ext, mime
+    base = (
+        re.sub(r"[^A-Za-z0-9._-]+", "_", f"{titre}_{version}".strip("_")).strip("._") or "document"
+    )
+    return f"{base[:80]}{extension}", genre
+
+
+class DocumentContenu(VueMetier):
+    """Télécharge le fichier d'un document, après vérification de son empreinte.
+
+    Habilitation `consulter` ; chaque téléchargement est journalisé. Un fichier altéré ou disparu
+    n'est PAS servi : la réponse (409) dit pourquoi, et le constat est journalisé (une exception
+    annulerait cette trace avec la transaction de la requête, voir `DocumentIntegrite`).
+    """
+
+    def get(self, requete, project_id, document_id):
+        document = _du_projet(project_id, document_id)
+        try:
+            verifier_integrite(requete.user, document)
+        except IntegriteDocument as probleme:
+            return reponse({"code": "DOCUMENT_ALTERE", "message": str(probleme)}, 409)
+        octets = stockage.lire(document.file_ref)
+        nom, genre = _nom_de_fichier(document.title, document.version, octets)
+        journaliser(
+            org_id=document.org_id,
+            actor_id=requete.user.id,
+            action="document_downloaded",
+            object_type="document_reference",
+            object_id=document.id,
+            project_id=project_id,
+            after={"sha256": bytes(document.sha256).hex()},
+        )
+        reponse_http = HttpResponse(octets, content_type=genre)
+        reponse_http["Content-Disposition"] = f'attachment; filename="{nom}"'
+        reponse_http["X-Content-Type-Options"] = "nosniff"
+        reponse_http["Content-Security-Policy"] = "sandbox"
+        reponse_http["Digest"] = f"sha-256={bytes(document.sha256).hex()}"
+        return reponse_http
 
 
 class DocumentIntegrite(VueMetier):
