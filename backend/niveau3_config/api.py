@@ -53,7 +53,12 @@ from .services.documents import (
     remplacer_document,
     verifier_integrite,
 )
-from .services.profils_decaissement import JALONS, creer_profil_decaissement
+from .services.profils_decaissement import (
+    JALONS,
+    creer_profil_decaissement,
+    remplacer_brouillon,
+    supprimer_brouillon,
+)
 from .services.versions import DATES_MODIFIABLES, nouvelle_version
 
 
@@ -283,7 +288,7 @@ def _profil(p: ProfilDecaissement, *, detail: bool = False) -> dict:
 
 def _liste(donnees: dict, nom: str, *, obligatoire: bool = True) -> list[dict]:
     valeur = donnees.get(nom)
-    if valeur is None and not obligatoire:
+    if not obligatoire and valeur in (None, []):  # facultative : absente ou vide, c'est « aucune »
         return []
     if not isinstance(valeur, list) or not valeur or not all(isinstance(x, dict) for x in valeur):
         refuser("api.champ_invalide", champ=nom, attendu="liste d'objets non vide")
@@ -391,6 +396,22 @@ def _traduire_profil(erreur: IntegrityError):
     return traduire_integrite(erreur, connues)
 
 
+def _lire_profil(d: dict) -> dict:
+    """Le corps d'un profil (création ou remplacement), validé : mêmes règles dans les deux cas."""
+    regime = champ_texte(d, "regime")
+    if regime not in RegimeDecaissement.values:
+        refuser("profils_decaissement.regime_inconnu", regime=regime)
+    return {
+        "valid_from": champ_date(d, "valid_from"),
+        "regime": regime,
+        "jalons": {j: champ_date(d, j, obligatoire=False) for j in JALONS},
+        "methodes": _methodes(d),
+        "regles": _regles(d),
+        "comptes": _comptes(d),
+        "exigence": champ_texte(d, "exigence", obligatoire=False),
+    }
+
+
 class ProfilsDecaissement(VueMetier):
     def get(self, requete, project_id, accord_id):
         habilite(requete.user, "consulter", project_id)
@@ -402,23 +423,9 @@ class ProfilsDecaissement(VueMetier):
 
     def post(self, requete, project_id, accord_id):
         accord = _accord_du_projet(project_id, accord_id)
-        d = corps(requete)
-        regime = champ_texte(d, "regime")
-        if regime not in RegimeDecaissement.values:
-            refuser("profils_decaissement.regime_inconnu", regime=regime)
-        jalons = {j: champ_date(d, j, obligatoire=False) for j in JALONS}
+        contenu = _lire_profil(corps(requete))
         try:
-            profil = creer_profil_decaissement(
-                utilisateur=requete.user,
-                accord=accord,
-                valid_from=champ_date(d, "valid_from"),
-                regime=regime,
-                jalons=jalons,
-                methodes=_methodes(d),
-                regles=_regles(d),
-                comptes=_comptes(d),
-                exigence=champ_texte(d, "exigence", obligatoire=False),
-            )
+            profil = creer_profil_decaissement(utilisateur=requete.user, accord=accord, **contenu)
         except IntegrityError as erreur:
             raise _traduire_profil(erreur) from erreur
         return reponse(_profil(recharge(profil), detail=True), 201)
@@ -428,6 +435,22 @@ class ProfilDecaissementDetail(VueMetier):
     def get(self, requete, project_id, accord_id, profil_id):
         habilite(requete.user, "consulter", project_id)
         return reponse(_profil(_profil_de_l_accord(project_id, accord_id, profil_id), detail=True))
+
+    def put(self, requete, project_id, accord_id, profil_id):
+        """Remplace le contenu d'un BROUILLON, d'un bloc : tout est accepté ou rien ne change."""
+        profil = _profil_de_l_accord(project_id, accord_id, profil_id)
+        contenu = _lire_profil(corps(requete))
+        try:
+            profil = remplacer_brouillon(utilisateur=requete.user, profil=profil, **contenu)
+        except IntegrityError as erreur:
+            raise _traduire_profil(erreur) from erreur
+        return reponse(_profil(recharge(profil), detail=True))
+
+    def delete(self, requete, project_id, accord_id, profil_id):
+        """Abandonne un brouillon ; tout autre profil ne se supprime jamais."""
+        profil = _profil_de_l_accord(project_id, accord_id, profil_id)
+        supprimer_brouillon(utilisateur=requete.user, profil=profil)
+        return reponse({"supprime": True})
 
 
 class ProfilValider(VueMetier):

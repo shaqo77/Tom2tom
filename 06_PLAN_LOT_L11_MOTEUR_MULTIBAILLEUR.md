@@ -339,6 +339,29 @@ qui en sortirait serait faux dès que le compte a un solde d'ouverture. On ne l'
   d'éligibilité et de pièces de la bibliothèque (période, nature, zone, bénéficiaires exclus) s'écrivent
   toujours par la création d'un contrôle avec son expression, pas par un formulaire dédié.
 
+### Réalisation — D8 : un brouillon de profil de décaissement se modifie et s'abandonne
+
+`niveau3_config/{api.py,services/profils_decaissement.py}`, tests ajoutés à
+`tests/test_api_profils_decaissement_bd.py` (58). Limite de B4 : « une règle ou un compte d'un brouillon ne
+se modifie pas individuellement ».
+
+- **Choix** : `PUT …/profils-decaissement/<id>/` remplace TOUT le contenu d'un brouillon, d'un bloc, avec
+  les mêmes règles et les mêmes refus qu'à la création. Corriger une règle ou un compte à l'unité aurait
+  exigé des états intermédiaires invalides (allocations dépassant l'accord, compte sans catégorie…) ; le
+  remplacement est ATOMIQUE : une erreur au milieu laisse l'ancien brouillon intact. L'identifiant, la
+  version et l'accord ne changent pas.
+- `DELETE` abandonne un brouillon ; la version suivante reprend le numéro (aucune version fantôme). Un
+  profil validé, actif, remplacé ou rejeté ne se modifie ni ne se supprime : 422 qui renvoie à la nouvelle
+  version, en plus du refus de la base. Habilitation `parametrer`, les deux actes sont journalisés.
+- Une liste facultative (`comptes`) vide ou absente veut dire « aucun » : un remplacement peut retirer tous
+  les comptes.
+- **Exigence source** : désormais couverte par des tests (la plus récente version validée ou active d'un
+  code ; une exigence seulement proposée ne justifie rien ; le remplacement peut la changer ou la retirer).
+- **Mutations** : treize détectées ; une survivante au départ (l'exigence non reportée) a donné les tests
+  ci-dessus.
+- **Reste** : la désignation de l'exigence par son code reste voulue (c'est ce que voit un administrateur) ;
+  pas d'écran.
+
 ### Réalisation — D2 : branchement des contrôles BAD
 
 `niveau2_profils/{services/gabarit.py,api.py,urls.py}`, `bad.json` (champ `branchement` sur les douze
