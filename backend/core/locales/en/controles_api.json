@@ -1,5 +1,7 @@
 {
+  "controles_api.resultat_inconnu": "Unknown evaluation result: “{resultat}”",
+  "controles_api.severite_inconnue": "Unknown severity: “{severity}” (bloquant, avertissement or information)",
+  "controles_api.statut_derogation_inconnu": "Unknown waiver status: “{statut}”",
   "controles_api.statut_inconnu": "Unknown control status: “{status}”",
-  "controles_api.type_regle_inconnu": "Unknown rule type: “{type_regle}”",
-  "controles_api.severite_inconnue": "Unknown severity: “{severity}” (bloquant, avertissement or information)"
+  "controles_api.type_regle_inconnu": "Unknown rule type: “{type_regle}”"
 }
