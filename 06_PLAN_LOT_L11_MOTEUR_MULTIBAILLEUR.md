@@ -172,6 +172,29 @@ Un administrateur dépose lui-même les documents que les avenants et les exigen
 - Tests : 23 dans `test_api_documents_bd.py`, dont le **parcours complet** (un document déposé par HTTP sert de pièce à un avenant, B2). Mutations détectées (référence de stockage non exposée, chaînage, 200/201, cloisonnement, habilitation de lecture, tri, exigences à revérifier, intégrité en réponse normale, dates, traduction des erreurs) ; une première survivante (la liste des exigences à revérifier, sans exigence dans les tests) a été comblée.
 - **Limites** : le corps d'une requête ne dépasse pas **10 Mo** (`DATA_UPLOAD_MAX_MEMORY_SIZE`), donc un fichier d'environ 7 Mo en base64 : un manuel volumineux demandera un dépôt par morceaux ou par envoi de fichier (multipart), non fait ; pas de téléchargement du fichier (seulement ses métadonnées et son empreinte) ; pas d'écran ; pas de suppression (un document ne se supprime pas, on le remplace) ; les types de document sont ceux du modèle (six) ; CI GitHub toujours en panne.
 
+### Réalisation — B4 : API des profils de décaissement
+
+`niveau3_config/api.py` (+ `urls.py`), `niveau3_config/services/profils_decaissement.py`, catalogue
+`profils_decaissement.json`, `tests/test_api_profils_decaissement_bd.py` (42 tests). Sous
+`/api/v1/projets/<projet>/accords/<accord>/profils-decaissement/` : liste et création, lecture
+(méthodes, règles par catégorie, comptes désignés, complétude du brouillon), `valider`, `activer`,
+`rejeter`, `nouvelle-version` (allocations et jalons changés), `comparaison?avec=<version>`.
+
+- **Même profil que les services** : le profil créé par l'API pilote la règle de calcul existante
+  (`profil_en_vigueur`, `montant_a_retirer`) ; un test le prouve de bout en bout.
+- **Cycle inchangé** : brouillon → validé (`valider`) → actif (`parametrer`), jamais de saut d'étape ;
+  un profil actif ne se modifie pas, on crée une version. Catégories et comptes se désignent par leur
+  CODE, résolus dans l'accord et le projet.
+- **Refus précis** : chaque contrainte de la base (taux dans ]0, 1], deux minimums, plafond incohérent,
+  jalons dans le désordre, doublons) sort en 422 `{code, message}` nommant la règle, jamais en 500.
+- **Test corrigé en cours de route** : après un appel HTTP, `app.org_id` est remis à zéro ; mes premières
+  assertions « rien n'est créé » comptaient 0 *parce que la RLS cachait tout*. Elles lisent maintenant la
+  base avec l'organisation reposée (`_nb`), et six mutations (habilitations, correspondance des erreurs,
+  traduction d'une contrainte, validation d'une méthode, complétude) sont détectées.
+- **Limites assumées** : pas d'écran ; une règle ou un compte d'un brouillon ne se modifie pas
+  individuellement (on rejette ou on recrée) ; `exigence` ne se désigne que par code, version validée ou
+  active la plus récente ; les pièces exigées et les méthodes restent des ensembles fermés (migration).
+
 ### Réalisation — D1 : profil BAD d'après les documents de la Banque
 
 Cinq documents de la BAD ont été lus (manuel des décaissements 03/2020, lignes directrices de rapports et
