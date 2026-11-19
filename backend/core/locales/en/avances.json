@@ -1,0 +1,14 @@
+{
+  "avances.aucun_delai_justification_parametre_date": "No justification period is set on {date_versement}: set one or specify the period for this advance",
+  "avances.avance_justifier_avant": "Advance {reference} ({code}): {reste} to justify before {echeance}",
+  "avances.avance_montant_strictement_positif": "An advance has a strictly positive amount",
+  "avances.avance_non_justifie_echue_depuis": "Advance {reference} ({code}): {reste} unjustified, overdue for {jours_de_retard} day(s) (due {echeance})",
+  "avances.delai_nombre_entier_jours_strictement": "The period is a strictly positive whole number of days",
+  "avances.depense_justifie_piece_indiquez_reference": "An expense is justified by a supporting document: give its reference",
+  "avances.justification_montant_strictement_positif": "A justification has a strictly positive amount",
+  "avances.nouvelle_version_doit_prendre_effet": "The new version must take effect after {valid_from}",
+  "avances.on_justifie_plus_avance_reste": "One cannot justify more than the advance: {v1} remaining, {montant} requested",
+  "avances.reference_avance_obligatoire": "The advance reference is required",
+  "avances.type_justification_inconnu": "unknown justification type: {type}",
+  "avances.vous_etes_habilite_projet": "You are not authorised to “{operation}” on this project."
+}

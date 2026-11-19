@@ -48,3 +48,26 @@ jobs:
       - name: Tests
         working-directory: backend
         run: ./.venv/bin/pytest -q --cov=. --cov-report=term-missing
+
+  frontend:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: frontend
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+      - name: Dépendances
+        run: npm ci
+      - name: Types
+        run: npm run typecheck
+      - name: Style
+        run: npm run lint
+      - name: Tests
+        run: npm test
+      - name: Construction
+        run: npm run build

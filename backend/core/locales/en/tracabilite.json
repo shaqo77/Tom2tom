@@ -1,0 +1,4 @@
+{
+  "tracabilite.colonne_inconnue": "unknown column: {colonne!r}",
+  "tracabilite.rubrique_agregat_cet_etat": "{rubrique!r} is not an aggregate line item of this statement"
+}

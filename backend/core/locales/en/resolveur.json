@@ -1,0 +1,15 @@
+{
+  "resolveur.accounts_doit_contenir_moins_fourchette": "accounts must contain at least one account range",
+  "resolveur.aucun_mapping_actif_date_effet": "No active mapping {code!r} on effective date {v1}",
+  "resolveur.cle_filtre_inconnue": "unknown filter key: {v1!r}",
+  "resolveur.condition_expr_executable_utilisez_filtres": "condition_expr is not executable: use the declared match filters",
+  "resolveur.doit_contenir_moins_valeur_textuelle": "{champ} must contain at least one text value",
+  "resolveur.exercice_plage_periodes_invalide": "invalid fiscal year or period range",
+  "resolveur.fourchette_comptes_invalide_debut_fin": "invalid account range: [start, end] expected",
+  "resolveur.fourchette_inversee": "reversed range: {debut} > {fin}",
+  "resolveur.match_doit_etre_objet_json": "match must be a JSON object",
+  "resolveur.parametre_periode_manquant": "period parameter missing: {v1}",
+  "resolveur.regle_doit_contenir_moins_critere": "a rule must contain at least one criterion",
+  "resolveur.target_code_doit_etre_rubrique": "target_code must be a non-empty line item",
+  "resolveur.version_active": "Version {version} is not active on {date_effet}"
+}

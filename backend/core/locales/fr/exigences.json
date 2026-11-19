@@ -1,0 +1,21 @@
+{
+  "exigences.citation_designe_paragraphe_page": "La citation désigne un paragraphe ou une page",
+  "exigences.citation_doit_contenir_extrait_exact": "La citation doit contenir l'extrait exact (« quote »)",
+  "exigences.citation_figure_document_mais_page": "La citation figure dans le document, mais pas à la page indiquée ({page})",
+  "exigences.citation_inverifiable": "Citation invérifiable : {erreur}",
+  "exigences.citation_objet_extrait_paragraphe_page": "La citation est un objet : extrait, paragraphe ou page",
+  "exigences.code_rubrique_exigence_obligatoires": "Le code et la rubrique de l'exigence sont obligatoires",
+  "exigences.confiance_existe_exigence_proposee_assistant": "La confiance n'existe que pour une exigence proposée par l'assistant",
+  "exigences.document_reference_appartient_projet": "Le document référencé n'appartient pas au projet",
+  "exigences.document_remplace_citez_version_vigueur": "Le document « {title} » est remplacé : citez la version en vigueur",
+  "exigences.exigence_assistee_porte_confiance_entre": "Une exigence assistée porte une confiance entre 0 et 1",
+  "exigences.exigence_conditionnelle_precise_condition": "Une exigence conditionnelle précise sa condition",
+  "exigences.extrait_trop_court_designer_passage": "L'extrait est trop court pour désigner un passage ({LONGUEUR_MINIMALE} caractères au moins)",
+  "exigences.obligation_inconnue": "obligation inconnue : {obligation}",
+  "exigences.origine_inconnue": "origine inconnue : {source}",
+  "exigences.page_existe_document_compte": "La page {page} n'existe pas (le document en compte {v1})",
+  "exigences.periodicite_inconnue": "périodicité inconnue : {periodicity}",
+  "exigences.regle_objet": "La règle est un objet",
+  "exigences.seule_exigence_proposee_s_etaye": "Seule une exigence proposée s'étaye (celle-ci est « {status} »)",
+  "exigences.vous_etes_habilite_parametrer_projet": "Vous n'êtes pas habilité à « parametrer » sur ce projet."
+}

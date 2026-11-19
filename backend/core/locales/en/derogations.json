@@ -1,0 +1,12 @@
+{
+  "derogations.approbateur_distinct": "The requester of a waiver cannot approve it: another authorised person is required",
+  "derogations.decision_motivee": "The decision on a waiver requires a reason",
+  "derogations.deja_decidee": "This waiver has already been decided ({statut})",
+  "derogations.evaluation_depassee": "This result is no longer the latest for the control on this object: the waiver would target an outdated state",
+  "derogations.habilitation_requise": "You are not authorised to “{operation}” on this project",
+  "derogations.justification_textuelle": "A justification is a text: it cannot be empty",
+  "derogations.motif_et_justificatif": "A waiver requires a reason and the reference of a supporting document",
+  "derogations.periode_vide": "The waiver's validity period is empty: the end must come after the start",
+  "derogations.rien_a_justifier": "A “{resultat}” result needs no justification: there is no anomaly",
+  "derogations.seul_resultat_bloquant": "A waiver only targets a blocking result, not “{resultat}”"
+}

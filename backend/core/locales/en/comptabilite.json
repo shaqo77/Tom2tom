@@ -1,0 +1,19 @@
+{
+  "comptabilite.aucune_periode_projet_couvre": "No period of the project covers {v1}",
+  "comptabilite.contre_passation_contre_passe_saisissez": "A reversal cannot be reversed: enter a new entry",
+  "comptabilite.contre_passation_reproduit_ecriture_origine": "The reversal does not reproduce the original entry in the opposite direction",
+  "comptabilite.ecriture_compte_moins_deux_lignes": "An entry has at least two lines",
+  "comptabilite.ecriture_deja_contre_passee": "Entry {number} is already reversed ({v1})",
+  "comptabilite.ecriture_montant_nul_sens": "A zero-amount entry makes no sense",
+  "comptabilite.ecriture_on_contre_passe_ecriture": "The entry is {status}: only a posted entry can be reversed",
+  "comptabilite.ecriture_seule_ecriture_peut_passer": "The entry is {status}: only an entry that is {attendu} can move to {nouveau}",
+  "comptabilite.journal_existe": "Journal {journal} does not exist",
+  "comptabilite.ligne_accord_il_recoit_plus": "Line {line_no}: the agreement is {statut}, it no longer receives postings",
+  "comptabilite.ligne_compte_imputable": "Line {line_no}: account {code} cannot be posted to",
+  "comptabilite.ligne_compte_inactif": "Line {line_no}: account {code} is inactive",
+  "comptabilite.ligne_valeur_imputable": "Line {line_no}: value {code} cannot be posted to",
+  "comptabilite.ligne_valeur_inactive": "Line {line_no}: value {code} is inactive",
+  "comptabilite.periode_aucune_ecriture_peut_y": "Period {numero} is {status}: no entry can be entered or posted in it",
+  "comptabilite.precisez_date_comptable_periode_ouverte": "{erreur}. Specify an accounting date within an open period.",
+  "comptabilite.vous_etes_habilite_projet": "You are not authorised to “{operation}” on this project."
+}

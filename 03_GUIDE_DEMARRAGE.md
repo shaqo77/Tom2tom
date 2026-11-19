@@ -525,6 +525,12 @@ Tout objet de configuration — plan, axe, clé de répartition, mapping, modèl
 
 **On ne met jamais à jour un objet déjà utilisé : on crée une nouvelle version.** Sinon un état produit en 2026 cesse d'être reproductible en 2029.
 
+**Convention de dates : intervalle semi-ouvert `[valid_from, valid_to[`.** `valid_from` est inclus, `valid_to` est exclu, et `valid_to` nul signifie « sans fin ». Une configuration valable du 1ᵉʳ janvier 2026 au 1ᵉʳ janvier 2027 couvre toute l'année 2026, et la version suivante commence le 1ᵉʳ janvier 2027 sans trou ni chevauchement d'un jour. Cette convention vaut pour **toute** table versionnée ; les dates contractuelles d'un accord (signature, clôture, date limite de décaissement) restent des dates calendaires inclusives, nommées comme telles.
+
+**Pas de chevauchement, garanti par la base.** Pour toute configuration qui ne doit avoir qu'une version active à la fois, on pose une contrainte `EXCLUDE USING gist` (extension `btree_gist`) sur la clé fonctionnelle et `daterange(valid_from, valid_to, '[)')`. Le code applicatif s'oublie ; la base non.
+
+**Une version non modifiable l'est par déclencheur.** Les tables enfants d'une configuration (règles, méthodes, comptes, taux) portent un `BEFORE UPDATE OR DELETE` qui refuse la modification dès que la version parente n'est plus en `draft` — y compris par un accès direct à la base.
+
 ## B.7 Le nommage
 
 | Élément | Convention | Exemple |

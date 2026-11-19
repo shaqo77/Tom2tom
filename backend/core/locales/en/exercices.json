@@ -1,0 +1,8 @@
+{
+  "exercices.cloture_impossible": "Closing impossible: {details}",
+  "exercices.mois_debut_doit_etre_compris": "mois_debut must be between 1 and 12",
+  "exercices.periode_seule_periode_close_peut": "Period {numero} is {status}: only a closed period can be reopened",
+  "exercices.periode_seule_periode_peut_passer": "Period {numero} is {status}: only a period that is {attendu} can move to {nouveau}.",
+  "exercices.reouverture_periode_exige_motif": "Reopening a period requires a reason",
+  "exercices.vous_etes_habilite_parametrer_projet": "You are not authorised to “parametrer” on this project."
+}

@@ -1,0 +1,8 @@
+{
+  "restitutions.balance_desequilibree_debit_credit": "{nature} balance is unbalanced: debit {total_debit}, credit {total_credit}",
+  "restitutions.balance_ouverture_s_equilibre": "{nature} balance: the opening does not balance ({total_ouverture})",
+  "restitutions.compte_balance_balance_generale": "account {compte}: {nature} balance {obtenu} ≠ general balance {attendu}",
+  "restitutions.exercice_bornes_periode_invalides_1": "invalid fiscal year or period bounds (1 to 12, start ≤ end)",
+  "restitutions.nature_balance_inconnue": "unknown balance type: {nature}",
+  "restitutions.vous_etes_habilite_consulter_projet": "You are not authorised to “consulter” this project."
+}

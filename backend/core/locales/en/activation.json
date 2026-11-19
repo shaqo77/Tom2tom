@@ -1,0 +1,14 @@
+{
+  "activation.accord_profil_actif_couvre_deja": "Agreement {accord_id}: an active profile already covers this period",
+  "activation.citation_ete_verifiee_document": "The citation has not been verified against this document",
+  "activation.document_remplace_citez_version_vigueur": "The document “{title}” has been replaced: cite the version in force",
+  "activation.exigence_version_active_couvre_deja": "Requirement {code}: an active version already covers this period",
+  "activation.passage_impossible_etat_attendu": "Moving from “{status}” to “{vers}” is not possible: the expected state is {v1}",
+  "activation.profil_incomplet": "Incomplete profile: {details}",
+  "activation.rejet_exige_motif": "A rejection requires a reason",
+  "activation.seul_profil_valide_s_active": "Only a validated profile can be activated (this one is “{status}”)",
+  "activation.seule_exigence_validee_s_active": "Only a validated requirement can be activated (this one is “{status}”)",
+  "activation.version_debute_version_prend_effet": "{nom}: version {version} starts on {valid_from}; a version taking effect on {date_effet} would rewrite history",
+  "activation.version_programmee_jusqu_peut_etre": "{nom}: version {version} is scheduled until {valid_to} and cannot be shortened",
+  "activation.vous_etes_habilite_projet": "You are not authorised to “{operation}” on this project."
+}

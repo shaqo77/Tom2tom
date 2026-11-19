@@ -1,0 +1,22 @@
+{
+  "budget.aucune_version_approuvee_reviser_approuvez": "No approved version to revise: approve the initial budget first",
+  "budget.axe_inconnu": "unknown axis: {v1}",
+  "budget.depassement_bloquant": "Blocking budget overrun: {details}",
+  "budget.devise_inconnue": "Unknown currency: {devise}",
+  "budget.identifiant_inconnu": "unknown identifier: {v1}",
+  "budget.ligne_depassement": "line {axes}: available {disponible}, operation {impact}, overrun {depassement}",
+  "budget.ligne_projet_depassement": "project line: available {disponible}, operation {impact}, overrun {depassement}",
+  "budget.montant_budget_jamais_negatif": "A budget amount is never negative",
+  "budget.montant_negatif_taux_non_positif": "Negative amount or non-positive rate",
+  "budget.motif_obligatoire_revision_reallocation": "A reason is required for a revision or a reallocation",
+  "budget.periode_comprise_entre_1_12": "The period is between 1 and 12 (nothing for the whole year)",
+  "budget.projet_deja_budget_initial_creez": "This project already has an initial budget: create a revision or a reallocation",
+  "budget.taux_budget_doit_etre_strictement": "The budget rate must be strictly positive",
+  "budget.type_version_inconnu": "unknown version type: {type}",
+  "budget.valeur_existe_inactive_axe": "Value {code} does not exist (or is inactive) on axis {champ}",
+  "budget.version_budget_deja_preparation_projet": "A budget version is already being prepared for this project: approve or delete it before opening another",
+  "budget.version_ete_preparee_partir_version": "This version was prepared from a version that is no longer the current one: abandon it and start again from the version in force",
+  "budget.version_seul_brouillon_modifie": "Version {numero} is {status}: only a draft can be modified",
+  "budget.version_seul_brouillon_s_approuve": "Version {numero} is {status}: only a draft can be approved",
+  "budget.vous_etes_habilite_projet": "You are not authorised to “{operation}” on this project."
+}

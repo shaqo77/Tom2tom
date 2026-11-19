@@ -1,0 +1,12 @@
+{
+  "tresorerie.annulation_motivee": "Annuler un appariement exige un motif",
+  "tresorerie.appariement_deja_annule": "Cet appariement est déjà annulé",
+  "tresorerie.appariement_refuse": "Appariement refusé pour la demande {demande} : {detail}",
+  "tresorerie.cible_inconnue": "Cible d'écart inconnue : {cible}",
+  "tresorerie.compte_non_designe": "Le compte {code} n'est pas un compte désigné : pas d'état de reconstitution",
+  "tresorerie.explication_obligatoire": "Une justification d'écart exige une explication",
+  "tresorerie.mouvement_deja_apparie": "Le mouvement {reference} est déjà apparié à une demande",
+  "tresorerie.periode_invalide": "Période invalide",
+  "tresorerie.revision_motivee": "Réviser une prévision exige un motif",
+  "tresorerie.solde_existe": "Un solde de relevé existe déjà pour le {date}"
+}

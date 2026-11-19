@@ -1,0 +1,10 @@
+{
+  "revue.avance_en_retard": "Avance {reference} ({tiers}) non justifiée au-delà du délai : reste {reste}, {jours_de_retard} jour(s) de retard",
+  "revue.controle_inconnu": "Aucun contrôle « {code} » dans ce projet : un motif pointe le contrôle qui le détecte",
+  "revue.envoi_en_attente": "Un envoi précédent de ce rapport attend encore son issue",
+  "revue.habilitation_requise": "Vous n'êtes pas habilité à « {operation} » sur ce projet",
+  "revue.issue_deja_posee": "L'issue de cet envoi est déjà posée ({resultat})",
+  "revue.motif_code_obligatoire": "Un motif de rejet porte un code",
+  "revue.motif_toutes_langues": "Le libellé d'un motif de rejet est requis dans toutes les langues gérées",
+  "revue.rejet_motive": "Un rejet exige le motif donné par le bailleur"
+}

@@ -1,0 +1,5 @@
+{
+  "comptes.compte_existe_plan_comptable": "Le compte {code} n'existe pas dans le plan comptable",
+  "comptes.compte_imputable_c_total": "Le compte {code} n'est pas imputable : c'est un total",
+  "comptes.compte_inactif": "Le compte {code} est inactif"
+}

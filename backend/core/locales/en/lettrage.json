@@ -1,0 +1,12 @@
+{
+  "lettrage.chaque_ligne_lettrage_doit_porter": "Each line of a matching must carry a third party",
+  "lettrage.groupe_solde_devise_ecart": "The group is not balanced in foreign currency: difference of {solde_devise}",
+  "lettrage.groupe_solde_ecart": "The group is not balanced: difference of {solde}",
+  "lettrage.lettrage_compte_moins_deux_lignes": "A matching has at least two lines",
+  "lettrage.ligne_deja_lettree": "Line {number} / {line_no} is already matched",
+  "lettrage.ligne_moins_introuvable": "At least one line cannot be found",
+  "lettrage.lignes_doivent_appartenir_meme_projet": "The lines must belong to the same project",
+  "lettrage.lignes_doivent_concerner_meme_tiers": "The lines must concern the same third party",
+  "lettrage.lignes_doivent_porter_meme_compte": "The lines must be on the same account",
+  "lettrage.on_lettre_lignes_comptabilisees": "Only posted lines can be matched"
+}

@@ -1,0 +1,657 @@
+{
+  "version": 1,
+  "controles": [
+    {
+      "code": "COD-CATEGORIE",
+      "famille": "codification",
+      "severity": "bloquant",
+      "type_regle": "codification",
+      "label": {
+        "fr": "Dépense sans catégorie",
+        "en": "Expense without category"
+      },
+      "action_corrective": {
+        "fr": "Imputer la dépense à une catégorie de l'accord",
+        "en": "Assign the expense to a category of the agreement"
+      },
+      "expression": {
+        "type_regle": "codification",
+        "conditions": [
+          {
+            "champ": "categorie",
+            "op": "est_renseigne"
+          }
+        ]
+      }
+    },
+    {
+      "code": "COD-SOURCE",
+      "famille": "codification",
+      "severity": "bloquant",
+      "type_regle": "codification",
+      "label": {
+        "fr": "Dépense sans source de financement",
+        "en": "Expense without funding source"
+      },
+      "action_corrective": {
+        "fr": "Renseigner la source de financement de la dépense",
+        "en": "Fill in the funding source of the expense"
+      },
+      "expression": {
+        "type_regle": "codification",
+        "conditions": [
+          {
+            "champ": "source",
+            "op": "est_renseigne"
+          }
+        ]
+      }
+    },
+    {
+      "code": "COD-AXE-1",
+      "famille": "codification",
+      "severity": "bloquant",
+      "type_regle": "codification",
+      "label": {
+        "fr": "Dépense sans axe obligatoire (axe 1)",
+        "en": "Expense without mandatory axis (axis 1)"
+      },
+      "action_corrective": {
+        "fr": "Renseigner l'axe analytique obligatoire",
+        "en": "Fill in the mandatory analytical axis"
+      },
+      "expression": {
+        "type_regle": "codification",
+        "conditions": [
+          {
+            "champ": "axe_1",
+            "op": "est_renseigne"
+          }
+        ]
+      }
+    },
+    {
+      "code": "BUD-LIGNE",
+      "famille": "budget",
+      "severity": "bloquant",
+      "type_regle": "budget",
+      "label": {
+        "fr": "Dépassement de la ligne budgétaire",
+        "en": "Budget line overrun"
+      },
+      "action_corrective": {
+        "fr": "Demander un transfert budgétaire ou réduire la dépense",
+        "en": "Request a budget transfer or reduce the expense"
+      },
+      "expression": {
+        "type_regle": "budget",
+        "conditions": [
+          {
+            "champ": "disponible_ligne",
+            "op": "gte",
+            "valeur": "0"
+          }
+        ]
+      },
+      "applicable_si": {
+        "type_regle": "budget",
+        "conditions": [
+          {
+            "champ": "disponible_ligne",
+            "op": "est_renseigne"
+          }
+        ]
+      }
+    },
+    {
+      "code": "BUD-CATEGORIE",
+      "famille": "budget",
+      "severity": "bloquant",
+      "type_regle": "budget",
+      "label": {
+        "fr": "Dépassement du plafond de catégorie",
+        "en": "Category ceiling overrun"
+      },
+      "action_corrective": {
+        "fr": "Demander une réallocation entre catégories",
+        "en": "Request a reallocation between categories"
+      },
+      "expression": {
+        "type_regle": "budget",
+        "conditions": [
+          {
+            "champ": "disponible_categorie",
+            "op": "gte",
+            "valeur": "0"
+          }
+        ]
+      },
+      "applicable_si": {
+        "type_regle": "budget",
+        "conditions": [
+          {
+            "champ": "disponible_categorie",
+            "op": "est_renseigne"
+          }
+        ]
+      }
+    },
+    {
+      "code": "BUD-ALLOCATION",
+      "famille": "budget",
+      "severity": "bloquant",
+      "type_regle": "budget",
+      "label": {
+        "fr": "Dépassement de l'allocation de la catégorie",
+        "en": "Category allocation overrun"
+      },
+      "action_corrective": {
+        "fr": "Demander une réallocation entre catégories",
+        "en": "Request a reallocation between categories"
+      },
+      "expression": {
+        "type_regle": "budget",
+        "conditions": [
+          {
+            "champ": "disponible_allocation",
+            "op": "gte",
+            "valeur": "0"
+          }
+        ]
+      },
+      "applicable_si": {
+        "type_regle": "budget",
+        "conditions": [
+          {
+            "champ": "disponible_allocation",
+            "op": "est_renseigne"
+          }
+        ]
+      }
+    },
+    {
+      "code": "BUD-ACCORD",
+      "famille": "budget",
+      "severity": "bloquant",
+      "type_regle": "budget",
+      "label": {
+        "fr": "Dépassement du plafond de l'accord",
+        "en": "Agreement ceiling overrun"
+      },
+      "action_corrective": {
+        "fr": "Demander un avenant à l'accord de financement",
+        "en": "Request an amendment to the financing agreement"
+      },
+      "expression": {
+        "type_regle": "budget",
+        "conditions": [
+          {
+            "champ": "disponible_accord",
+            "op": "gte",
+            "valeur": "0"
+          }
+        ]
+      },
+      "applicable_si": {
+        "type_regle": "budget",
+        "conditions": [
+          {
+            "champ": "disponible_accord",
+            "op": "est_renseigne"
+          }
+        ]
+      }
+    },
+    {
+      "code": "PIE-DOUBLON",
+      "famille": "pieces",
+      "severity": "bloquant",
+      "type_regle": "pieces",
+      "label": {
+        "fr": "Doublon de facture",
+        "en": "Duplicate invoice"
+      },
+      "action_corrective": {
+        "fr": "Vérifier qu'il ne s'agit pas d'une même facture saisie deux fois",
+        "en": "Check that this is not the same invoice entered twice"
+      },
+      "expression": {
+        "type_regle": "pieces",
+        "conditions": [
+          {
+            "champ": "facture_en_double",
+            "op": "est_faux"
+          }
+        ]
+      }
+    },
+    {
+      "code": "PIE-ETAT-CERTIFIE",
+      "famille": "pieces",
+      "severity": "bloquant",
+      "type_regle": "pieces",
+      "label": {
+        "fr": "Pièce manquante pour une dépense destinée à un état certifié",
+        "en": "Missing supporting document for an expense meant for a certified statement"
+      },
+      "action_corrective": {
+        "fr": "Rattacher la pièce justificative à l'opération",
+        "en": "Attach the supporting document to the operation"
+      },
+      "expression": {
+        "type_regle": "pieces",
+        "conditions": [
+          {
+            "champ": "pieces",
+            "op": "est_renseigne"
+          }
+        ]
+      },
+      "applicable_si": {
+        "type_regle": "pieces",
+        "conditions": [
+          {
+            "champ": "destinee_etat_certifie",
+            "op": "est_vrai"
+          }
+        ]
+      }
+    },
+    {
+      "code": "TRE-ECART",
+      "famille": "tresorerie",
+      "severity": "bloquant",
+      "type_regle": "tresorerie",
+      "label": {
+        "fr": "Écart de rapprochement non justifié",
+        "en": "Unjustified reconciliation difference"
+      },
+      "action_corrective": {
+        "fr": "Justifier l'écart ou passer l'écriture de régularisation",
+        "en": "Justify the difference or post the adjusting entry"
+      },
+      "expression": {
+        "type_regle": "tresorerie",
+        "conditions": [
+          {
+            "champ": "ecart_rapprochement",
+            "op": "eq",
+            "valeur": "0"
+          }
+        ]
+      },
+      "applicable_si": {
+        "type_regle": "tresorerie",
+        "conditions": [
+          {
+            "champ": "ecart_justifie",
+            "op": "est_faux"
+          }
+        ]
+      }
+    },
+    {
+      "code": "TRE-SOLDE-DESIGNE",
+      "famille": "tresorerie",
+      "severity": "bloquant",
+      "type_regle": "tresorerie",
+      "label": {
+        "fr": "Solde du compte désigné incohérent",
+        "en": "Inconsistent designated account balance"
+      },
+      "action_corrective": {
+        "fr": "Rapprocher le solde bancaire du solde attendu",
+        "en": "Reconcile the bank balance with the expected balance"
+      },
+      "expression": {
+        "type_regle": "tresorerie",
+        "conditions": [
+          {
+            "champ": "ecart_solde",
+            "op": "eq",
+            "valeur": "0"
+          }
+        ]
+      }
+    },
+    {
+      "code": "AVA-NON-JUSTIFIEE",
+      "famille": "avances",
+      "severity": "avertissement",
+      "type_regle": "avances",
+      "label": {
+        "fr": "Avance non justifiée",
+        "en": "Unjustified advance"
+      },
+      "action_corrective": {
+        "fr": "Justifier l'avance par des dépenses ou un remboursement",
+        "en": "Justify the advance with expenses or a refund"
+      },
+      "expression": {
+        "type_regle": "avances",
+        "conditions": [
+          {
+            "champ": "justifiee",
+            "op": "est_vrai"
+          }
+        ]
+      }
+    },
+    {
+      "code": "AVA-DELAI",
+      "famille": "avances",
+      "severity": "bloquant",
+      "type_regle": "avances",
+      "label": {
+        "fr": "Avance au-delà du délai applicable",
+        "en": "Advance beyond the applicable deadline"
+      },
+      "action_corrective": {
+        "fr": "Justifier l'avance ou la rembourser sans délai",
+        "en": "Justify the advance or refund it without delay"
+      },
+      "expression": {
+        "type_regle": "avances",
+        "conditions": [
+          {
+            "champ": "jours_de_retard",
+            "op": "lte",
+            "valeur": 0
+          }
+        ]
+      }
+    },
+    {
+      "code": "RAP-RUBRIQUE-VIDE",
+      "famille": "rapport",
+      "severity": "bloquant",
+      "type_regle": "rapport",
+      "label": {
+        "fr": "Rubrique obligatoire vide",
+        "en": "Empty mandatory line"
+      },
+      "action_corrective": {
+        "fr": "Renseigner la rubrique ou en justifier l'absence",
+        "en": "Fill in the line item or justify its absence"
+      },
+      "expression": {
+        "type_regle": "rapport",
+        "conditions": [
+          {
+            "champ": "rubrique_vide",
+            "op": "est_faux"
+          }
+        ]
+      },
+      "applicable_si": {
+        "type_regle": "rapport",
+        "conditions": [
+          {
+            "champ": "rubrique_obligatoire",
+            "op": "est_vrai"
+          }
+        ]
+      }
+    },
+    {
+      "code": "RAP-COMPTE-NON-MAPPE",
+      "famille": "rapport",
+      "severity": "bloquant",
+      "type_regle": "rapport",
+      "label": {
+        "fr": "Compte non mappé",
+        "en": "Unmapped account"
+      },
+      "action_corrective": {
+        "fr": "Compléter le mapping des comptes cités (règle 8)",
+        "en": "Complete the mapping of the accounts concerned (rule 8)"
+      },
+      "expression": {
+        "type_regle": "rapport",
+        "conditions": [
+          {
+            "champ": "comptes_non_mappes",
+            "op": "est_absent"
+          }
+        ]
+      }
+    },
+    {
+      "code": "RAP-ASSERTION",
+      "famille": "rapport",
+      "severity": "bloquant",
+      "type_regle": "rapport",
+      "label": {
+        "fr": "Assertion non vérifiée",
+        "en": "Unverified assertion"
+      },
+      "action_corrective": {
+        "fr": "Corriger les données jusqu'à ce que l'assertion soit vérifiée",
+        "en": "Correct the data until the assertion is verified"
+      },
+      "expression": {
+        "type_regle": "rapport",
+        "conditions": [
+          {
+            "champ": "assertions_non_verifiees",
+            "op": "est_absent"
+          }
+        ]
+      }
+    },
+    {
+      "code": "COH-ETATS",
+      "famille": "coherence",
+      "severity": "bloquant",
+      "type_regle": "coherence",
+      "label": {
+        "fr": "Incohérence entre états d'une période",
+        "en": "Inconsistency between statements of a period"
+      },
+      "action_corrective": {
+        "fr": "Rapprocher les deux états et corriger l'écart",
+        "en": "Reconcile the two statements and correct the difference"
+      },
+      "expression": {
+        "type_regle": "coherence",
+        "conditions": [
+          {
+            "champ": "ecart_entre_etats",
+            "op": "eq",
+            "valeur": "0"
+          }
+        ]
+      }
+    },
+    {
+      "code": "COH-PERIODES",
+      "famille": "coherence",
+      "severity": "bloquant",
+      "type_regle": "coherence",
+      "label": {
+        "fr": "Incohérence entre deux périodes",
+        "en": "Inconsistency between two periods"
+      },
+      "action_corrective": {
+        "fr": "Rapprocher le solde de clôture et le solde d'ouverture",
+        "en": "Reconcile the closing balance with the opening balance"
+      },
+      "expression": {
+        "type_regle": "coherence",
+        "conditions": [
+          {
+            "champ": "ecart_entre_periodes",
+            "op": "eq",
+            "valeur": "0"
+          }
+        ]
+      }
+    },
+    {
+      "code": "COH-CUMUL",
+      "famille": "coherence",
+      "severity": "bloquant",
+      "type_regle": "coherence",
+      "label": {
+        "fr": "Rupture de cumul",
+        "en": "Cumulative break"
+      },
+      "action_corrective": {
+        "fr": "Corriger la période qui rompt le cumul",
+        "en": "Correct the period that breaks the cumulative total"
+      },
+      "expression": {
+        "type_regle": "coherence",
+        "conditions": [
+          {
+            "champ": "rupture_de_cumul",
+            "op": "eq",
+            "valeur": "0"
+          }
+        ]
+      }
+    },
+    {
+      "code": "ELIG-PERIODE-ACCORD",
+      "famille": "eligibilite",
+      "severity": "bloquant",
+      "type_regle": "eligibilite",
+      "label": {
+        "fr": "Dépense hors période d'éligibilité",
+        "en": "Expense outside the eligibility period"
+      },
+      "action_corrective": {
+        "fr": "Vérifier la date de la dépense et la période d'éligibilité de l'accord, du profil et de la catégorie",
+        "en": "Check the expense date and the eligibility period of the agreement, profile and category"
+      },
+      "expression": {
+        "type_regle": "eligibilite",
+        "conditions": [
+          {
+            "champ": "dans_periode_eligibilite",
+            "op": "est_vrai"
+          }
+        ]
+      },
+      "applicable_si": {
+        "type_regle": "eligibilite",
+        "conditions": [
+          {
+            "champ": "dans_periode_eligibilite",
+            "op": "est_renseigne"
+          }
+        ]
+      }
+    }
+  ],
+  "modeles": {
+    "regle_de_piece": {
+      "famille": "pieces",
+      "severity": "bloquant",
+      "label": {
+        "fr": "Pièce exigée : {type_piece}",
+        "en": "Required document: {type_piece}"
+      },
+      "action_corrective": {
+        "fr": "Rattacher une pièce de type « {type_piece} » à l'opération",
+        "en": "Attach a document of type “{type_piece}” to the operation"
+      }
+    },
+    "eligibilite_nature": {
+      "famille": "eligibilite",
+      "severity": "bloquant",
+      "label": {
+        "fr": "Nature de dépense non éligible",
+        "en": "Ineligible expense type"
+      },
+      "action_corrective": {
+        "fr": "Imputer la dépense à une nature éligible ou la retirer de l'état",
+        "en": "Assign the expense to an eligible type or remove it from the statement"
+      }
+    },
+    "eligibilite_zone": {
+      "famille": "eligibilite",
+      "severity": "bloquant",
+      "label": {
+        "fr": "Zone non éligible",
+        "en": "Ineligible area"
+      },
+      "action_corrective": {
+        "fr": "Vérifier la zone d'exécution de la dépense",
+        "en": "Check the area where the expense was incurred"
+      }
+    },
+    "eligibilite_periode": {
+      "famille": "eligibilite",
+      "severity": "bloquant",
+      "label": {
+        "fr": "Dépense hors de la période d'éligibilité",
+        "en": "Expense outside the eligibility period"
+      },
+      "action_corrective": {
+        "fr": "Vérifier la date de la dépense face à la période d'éligibilité",
+        "en": "Check the expense date against the eligibility period"
+      }
+    },
+    "eligibilite_beneficiaires_exclus": {
+      "famille": "eligibilite",
+      "severity": "bloquant",
+      "label": {
+        "fr": "Bénéficiaire exclu",
+        "en": "Excluded beneficiary"
+      },
+      "action_corrective": {
+        "fr": "Choisir un bénéficiaire éligible",
+        "en": "Choose an eligible beneficiary"
+      }
+    },
+    "risque_categorie_consommee": {
+      "famille": "risque",
+      "severity": "avertissement",
+      "code": "RIS-CATEGORIE-SEUIL",
+      "defaut": {
+        "seuil_pct": "80"
+      },
+      "label": {
+        "fr": "Catégorie consommée au-delà de {seuil_pct} %",
+        "en": "Category consumed beyond {seuil_pct}%"
+      },
+      "action_corrective": {
+        "fr": "Anticiper une réallocation ou ralentir les engagements",
+        "en": "Plan a reallocation or slow down commitments"
+      }
+    },
+    "risque_avance_non_apuree": {
+      "famille": "risque",
+      "severity": "information",
+      "code": "RIS-AVANCE-NON-APUREE",
+      "defaut": {
+        "delai_jours": 90
+      },
+      "label": {
+        "fr": "Avance non apurée depuis plus de {delai_jours} jours",
+        "en": "Advance not cleared for more than {delai_jours} days"
+      },
+      "action_corrective": {
+        "fr": "Relancer le bénéficiaire pour la justification",
+        "en": "Remind the beneficiary to provide the justification"
+      }
+    },
+    "risque_rejets_repetes": {
+      "famille": "risque",
+      "severity": "information",
+      "code": "RIS-REJETS-REPETES",
+      "defaut": {
+        "maximum": 3
+      },
+      "label": {
+        "fr": "Plus de {maximum} rejets sur une même catégorie",
+        "en": "More than {maximum} rejections on the same category"
+      },
+      "action_corrective": {
+        "fr": "Examiner la cause commune de ces rejets avant de redéposer",
+        "en": "Examine the common cause of these rejections before resubmitting"
+      }
+    }
+  }
+}

@@ -26,3 +26,11 @@ def poser_org():
             cur.execute("SET LOCAL app.org_id = %s", [str(org_id)])
 
     return _poser
+
+
+@pytest.fixture
+def devises_referentiel():
+    """Recharge le référentiel des devises (voir `tests.outils.assurer_devises`)."""
+    from tests.outils import assurer_devises
+
+    assurer_devises()

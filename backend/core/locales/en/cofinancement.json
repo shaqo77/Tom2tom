@@ -1,0 +1,7 @@
+{
+  "cofinancement.cle_cofinancement_moins_part": "A co-financing key has at least one share",
+  "cofinancement.cle_moins_part_chaque_poids": "A key has at least one share and each weight is positive",
+  "cofinancement.montant_multiple_devise": "Amount {montant} is not a multiple of the currency step ({pas})",
+  "cofinancement.parts_doivent_etre_positives_sommer": "Shares must be positive and sum to exactly 1",
+  "cofinancement.porteur_arrondi_doit_etre_accords": "The rounding holder must be one of the key's agreements"
+}

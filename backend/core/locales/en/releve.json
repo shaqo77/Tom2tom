@@ -1,0 +1,17 @@
+{
+  "releve.aucun_releve": "The file contains no statement",
+  "releve.autre_compte": "This statement is not the one of account {compte}",
+  "releve.autre_devise": "The statement is in {releve}, the account in {compte}",
+  "releve.champ_manquant": "The statement lacks the required field “{champ}”",
+  "releve.date_invalide": "Unreadable date in the statement: {valeur}",
+  "releve.devises_differentes": "The opening and closing balances are not in the same currency",
+  "releve.fichier_invalide": "Empty or oversized file (10 MiB at most)",
+  "releve.format_inconnu": "Unknown statement format: {format} (mt940 or camt053)",
+  "releve.incoherent": "Statement {reference} is inconsistent: opening {ouverture} + movements {mouvements} ≠ closing {cloture}",
+  "releve.montant_invalide": "Unreadable amount in the statement: {valeur}",
+  "releve.mouvement_illisible": "Unreadable entry in the statement: {valeur}",
+  "releve.solde_illisible": "Unreadable balance in the statement: {valeur}",
+  "releve.taux_obligatoire": "The account is in {devise}, which differs from the books currency: the conversion rate is required",
+  "releve.xml_dangereux": "XML file refused: it contains a DTD or an entity",
+  "releve.xml_illisible": "Unreadable XML file"
+}

@@ -1,0 +1,14 @@
+{
+  "schemas.aucune_version_schema_vigueur": "No version of schema {code} is in force on {v1}",
+  "schemas.compte_axe_inconnu": "Account {compte}: unknown axis {v1}",
+  "schemas.compte_contrepartie_automatique_sens_declare": "Account {compte}: an automatic counterpart has no declared direction, it is deduced from the balance",
+  "schemas.compte_regle_inconnue": "Account {compte}: unknown rule {regle!r}",
+  "schemas.compte_sens_inconnu": "Account {compte}: unknown direction {sens!r}",
+  "schemas.compte_sens_obligatoire": "Account {compte}: the direction is required",
+  "schemas.compte_seule_regle_taux_porte": "Account {compte}: only the rate rule carries a rate",
+  "schemas.compte_taux_doit_etre_strictement": "Account {compte}: the rate must be strictly positive",
+  "schemas.contrepartie_automatique_rien_equilibrer": "The automatic counterpart has nothing to balance",
+  "schemas.montant_nul_apres_arrondi_decimale": "The amount is zero after rounding to {decimales} decimal place(s): no entry to generate",
+  "schemas.schema_compte_seule_contrepartie_automatique": "A schema has only one automatic counterpart",
+  "schemas.schema_indique_journal": "Schema {code_schema} does not specify a journal"
+}

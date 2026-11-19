@@ -1,0 +1,9 @@
+{
+  "extraction.document_word_refuse_declaration_type": "Document Word refusé : déclaration de type non autorisée",
+  "extraction.document_word_trop_volumineux": "Le document Word est trop volumineux",
+  "extraction.fichier_correspond_plus_empreinte_enregistree": "Le fichier de « {title} » ne correspond plus à son empreinte enregistrée : on ne vérifie pas de citation sur un fichier modifié",
+  "extraction.format_fichier_non_pris_charge": "Format de fichier non pris en charge (PDF, DOCX ou texte)",
+  "extraction.pdf_chiffre_fournissez_version_non": "Le PDF est chiffré : fournissez une version non protégée",
+  "extraction.pdf_contient_aucun_texte_extractible": "Le PDF ne contient aucun texte extractible (document scanné ?) : océrisez-le d'abord",
+  "extraction.texte_illisible_encodage_inconnu": "Texte illisible : encodage inconnu"
+}

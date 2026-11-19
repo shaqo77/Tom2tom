@@ -1,0 +1,81 @@
+{
+  "code": "UNION_EUROPEENNE",
+  "version": 1,
+  "label": {
+    "fr": "Union européenne",
+    "en": "European Union"
+  },
+  "description": {
+    "fr": "Bibliothèque d'exigences POSSIBLES pour un projet financé par l'Union européenne. Ce n'est pas un modèle universel : l'accord de financement et les documents du bailleur applicables au projet décident de ce qui s'applique, avec quelle périodicité et selon quel modèle. Aucun délai ni aucune périodicité n'est livré tant qu'un document du bailleur ne les donne pas. Chaque élément se lit « lorsque requis ».",
+    "en": "Library of POSSIBLE requirements for a project financed by the European Union. This is not a universal template: the financing agreement and the donor documents that apply to the project decide what applies, with what periodicity and according to which template. No deadline or periodicity is shipped until a donor document gives it. Each element reads “when required”."
+  },
+  "elements": [
+    {
+      "kind": "document_reference",
+      "code": "REF-UE",
+      "label": {
+        "fr": "Convention de financement ou de subvention de l'Union européenne et ses annexes",
+        "en": "European Union financing or grant agreement and its annexes"
+      },
+      "contenu": {
+        "note": {
+          "fr": "Les mécanismes historiques du FED ne s'appliquent pas automatiquement à tous les instruments actuels de l'Union européenne : le document applicable est à identifier au projet.",
+          "en": "The historical EDF mechanisms do not automatically apply to every current European Union instrument: the applicable document is to be identified for the project."
+        },
+        "source": "07_APPORTS_DOSSIERS_CONVENTIONS.md"
+      }
+    },
+    {
+      "kind": "report_family",
+      "code": "UE-DEVIS-PROGRAMMES",
+      "label": {
+        "fr": "Devis-programmes (mécanisme du FED) (intitulé et contenu à préciser)",
+        "en": "Programme estimates (EDF mechanism) (title and content to be confirmed)"
+      },
+      "contenu": {
+        "note": {
+          "fr": "Nom relevé au sommaire du manuel de l'éditeur ; le contenu du formulaire n'a pas été lu : le profil n'en affirme rien.",
+          "en": "Name taken from the vendor manual's table of contents; the form's content has not been read: the profile asserts nothing about it."
+        },
+        "source": "SRC:manuel:601 (sommaire du manuel, chapitre 5 « Suivi des conventions ») ; 07_APPORTS_DOSSIERS_CONVENTIONS.md"
+      },
+      "exigence": {
+        "subject": {
+          "fr": "Devis-programmes (mécanisme du FED)",
+          "en": "Programme estimates (EDF mechanism)"
+        },
+        "rule": {
+          "kind": "report",
+          "template": "UE_DEVIS_PROGRAMMES"
+        },
+        "obligation": "optional"
+      }
+    },
+    {
+      "kind": "report_family",
+      "code": "UE-MEMOIRES",
+      "label": {
+        "fr": "Mémoires (mécanisme du FED) (intitulé et contenu à préciser)",
+        "en": "Memoranda (EDF mechanism) (title and content to be confirmed)"
+      },
+      "contenu": {
+        "note": {
+          "fr": "Nom relevé au sommaire du manuel de l'éditeur ; le contenu du formulaire n'a pas été lu : le profil n'en affirme rien.",
+          "en": "Name taken from the vendor manual's table of contents; the form's content has not been read: the profile asserts nothing about it."
+        },
+        "source": "SRC:manuel:601 (sommaire du manuel, chapitre 5 « Suivi des conventions ») ; 07_APPORTS_DOSSIERS_CONVENTIONS.md"
+      },
+      "exigence": {
+        "subject": {
+          "fr": "Mémoires (mécanisme du FED)",
+          "en": "Memoranda (EDF mechanism)"
+        },
+        "rule": {
+          "kind": "report",
+          "template": "UE_MEMOIRES"
+        },
+        "obligation": "optional"
+      }
+    }
+  ]
+}

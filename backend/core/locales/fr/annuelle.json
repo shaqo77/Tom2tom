@@ -1,0 +1,7 @@
+{
+  "annuelle.aucun_exercice_suivant_commence_lendemain": "Aucun exercice suivant ne commence le lendemain de la fin de cet exercice : créez-le avant de clôturer",
+  "annuelle.classes_8_9_soldent_entre": "Les classes 8 et 9 ne se soldent pas entre elles : écart de {ecart_89}",
+  "annuelle.exercice_verrouille_nouveaux_regenerent_plus": "L'exercice {annee} est verrouillé : ses à-nouveaux ne se régénèrent plus",
+  "annuelle.periodes_non_closes": "Périodes non closes : {liste}",
+  "annuelle.premiere_periode_exercice_suivant_doit": "La première période de l'exercice suivant ({annee}) doit être ouverte pour recevoir les à-nouveaux"
+}

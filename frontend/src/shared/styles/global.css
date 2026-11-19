@@ -1,0 +1,96 @@
+@import "./tokens.css";
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html {
+  -webkit-text-size-adjust: 100%;
+  text-size-adjust: 100%;
+}
+
+body {
+  margin: 0;
+  min-block-size: 100vh;
+  background: var(--fond);
+  color: var(--texte);
+  font-family: var(--police);
+  font-size: var(--texte-m);
+  line-height: 1.5;
+  -webkit-font-smoothing: antialiased;
+}
+
+h1,
+h2,
+h3,
+h4 {
+  margin: 0;
+  font-weight: 650;
+  line-height: 1.25;
+  letter-spacing: -0.01em;
+}
+h1 {
+  font-size: var(--texte-xl);
+}
+h2 {
+  font-size: var(--texte-l);
+}
+h3 {
+  font-size: var(--texte-m);
+}
+p {
+  margin: 0;
+}
+
+a {
+  color: var(--accent-texte);
+  text-underline-offset: 0.18em;
+}
+
+:focus-visible {
+  outline: none;
+  box-shadow: var(--focus);
+  border-radius: var(--rayon-s);
+}
+
+/* Les chiffres s'alignent en colonnes : chasse fixe des chiffres, jamais de saut de largeur */
+.chiffres,
+.montant {
+  font-variant-numeric: tabular-nums;
+  font-feature-settings: "tnum" 1;
+}
+
+/* Un identifiant technique (nom de variable, code) reste lisible de gauche à droite, même dans
+   une page en écriture droite-à-gauche, et n'altère pas le sens de lecture autour de lui. */
+code,
+kbd,
+.technique {
+  direction: ltr;
+  unicode-bidi: isolate;
+  text-align: start;
+}
+
+.visuellement-cache {
+  position: absolute;
+  inline-size: 1px;
+  block-size: 1px;
+  margin: -1px;
+  padding: 0;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+  border: 0;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}

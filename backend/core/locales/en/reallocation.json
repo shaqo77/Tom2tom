@@ -1,0 +1,18 @@
+{
+  "reallocation.approbateur_doit_etre_distinct_demandeur": "The approver must be different from the requester",
+  "reallocation.aucun_profil_decaissement_vigueur": "No disbursement profile is in force on {date_effet}",
+  "reallocation.categorie_regle_profil_vigueur": "Category {code} has no rule in the profile in force",
+  "reallocation.categorie_solde_transfert_demande": "Category {code}: balance {disponible}, transfer requested {montant}",
+  "reallocation.categorie_source_categorie_cible_distinctes": "The source category and the target category are different",
+  "reallocation.deux_categories_appartiennent_accord": "Both categories belong to the agreement",
+  "reallocation.deux_categories_ont_meme_devise": "The two categories do not have the same currency",
+  "reallocation.justificatif_appartient_projet": "The supporting document does not belong to the project",
+  "reallocation.montant_transferer_strictement_positif": "The amount to transfer is strictly positive",
+  "reallocation.nouvelle_version_profil_refusee": "The new profile version is refused: {erreur}",
+  "reallocation.reallocation_deja": "This reallocation is already “{status}”",
+  "reallocation.reallocation_motivee": "A reallocation has a reason",
+  "reallocation.reallocation_vient_etre_decidee": "This reallocation has just been decided",
+  "reallocation.rejet_exige_motif": "A rejection requires a reason",
+  "reallocation.version_profil_prend_deja_effet": "A profile version already takes effect on {valid_from}: choose a later effective date",
+  "reallocation.vous_etes_habilite_projet": "You are not authorised to “{operation}” on this project."
+}

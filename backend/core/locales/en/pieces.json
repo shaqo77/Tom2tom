@@ -1,0 +1,6 @@
+{
+  "pieces.fichier_invalide": "The document file is empty or exceeds 25 MiB",
+  "pieces.nom_obligatoire": "A document has a name",
+  "pieces.scan_altere": "The scan “{nom}” no longer matches its fingerprint: it has been tampered with",
+  "pieces.type_inconnu": "Unknown document type: “{type}”"
+}

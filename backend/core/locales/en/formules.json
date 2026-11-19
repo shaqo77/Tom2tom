@@ -1,0 +1,12 @@
+{
+  "formules.constante_non_numerique": "non-numeric constant",
+  "formules.construction_interdite": "Forbidden construct: {nom}",
+  "formules.division_zero": "division by zero",
+  "formules.fonction_non_autorisee": "function not allowed: {nom}",
+  "formules.fonction_non_autorisee_2": "function not allowed",
+  "formules.plage_inversee": "reversed range {debut}:{fin}",
+  "formules.rubrique_inconnue": "unknown line item: {id}",
+  "formules.rubrique_inconnue_plage": "unknown line item in range {debut}:{fin}",
+  "formules.syntaxe_invalide": "invalid syntax: {e}",
+  "formules.ud_non_gere": "unhandled node: {__name__}"
+}

@@ -1,0 +1,29 @@
+{
+  "code": "BID",
+  "version": 1,
+  "label": {
+    "fr": "Banque interaméricaine de développement (BID)",
+    "en": "Inter-American Development Bank (IDB)"
+  },
+  "description": {
+    "fr": "Bibliothèque d'exigences POSSIBLES pour un projet financé par la Banque interaméricaine de développement. Ce n'est pas un modèle universel : l'accord de financement et les documents du bailleur applicables au projet décident de ce qui s'applique, avec quelle périodicité et selon quel modèle. Aucun délai ni aucune périodicité n'est livré tant qu'un document du bailleur ne les donne pas. Chaque élément se lit « lorsque requis ».",
+    "en": "Library of POSSIBLE requirements for a project financed by the Inter-American Development Bank. This is not a universal template: the financing agreement and the donor documents that apply to the project decide what applies, with what periodicity and according to which template. No deadline or periodicity is shipped until a donor document gives it. Each element reads “when required”."
+  },
+  "elements": [
+    {
+      "kind": "document_reference",
+      "code": "REF-BID",
+      "label": {
+        "fr": "Contrat de prêt ou de don de la BID et documents du bailleur applicables au projet",
+        "en": "IDB loan or grant agreement and donor documents applicable to the project"
+      },
+      "contenu": {
+        "note": {
+          "fr": "Profil d'attente : aucun état n'est livré tant qu'un document de la BID n'a pas été lu. Le dépôt ne connaît que la mention de la BID parmi les bailleurs revendiqués par l'éditeur.",
+          "en": "Placeholder profile: no statement is shipped until an IDB document has been read. The repository only knows the IDB is among the donors the vendor claims."
+        },
+        "source": "SRC:editeur:004"
+      }
+    }
+  ]
+}

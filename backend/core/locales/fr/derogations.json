@@ -1,0 +1,12 @@
+{
+  "derogations.approbateur_distinct": "Le demandeur d'une dérogation ne peut pas l'approuver : il faut une autre personne habilitée",
+  "derogations.decision_motivee": "La décision sur une dérogation exige un motif",
+  "derogations.deja_decidee": "Cette dérogation est déjà décidée ({statut})",
+  "derogations.evaluation_depassee": "Ce résultat n'est plus le dernier du contrôle sur cet objet : la dérogation viserait un état dépassé",
+  "derogations.habilitation_requise": "Vous n'êtes pas habilité à « {operation} » sur ce projet",
+  "derogations.justification_textuelle": "Une justification est un texte : elle ne peut pas être vide",
+  "derogations.motif_et_justificatif": "Une dérogation exige un motif et la référence d'un document justificatif",
+  "derogations.periode_vide": "La période de validité de la dérogation est vide : la fin doit suivre le début",
+  "derogations.rien_a_justifier": "Un résultat « {resultat} » ne se justifie pas : il n'y a pas d'anomalie",
+  "derogations.seul_resultat_bloquant": "Une dérogation ne vise qu'un résultat bloquant, pas « {resultat} »"
+}

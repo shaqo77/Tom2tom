@@ -1,0 +1,5 @@
+{
+  "axes.valeur_existe_plan": "Value {code} does not exist in plan {code_plan}",
+  "axes.valeur_imputable_c_regroupement": "Value {code} cannot be posted to: it is a grouping",
+  "axes.valeur_inactive": "Value {code} is inactive"
+}

@@ -1,0 +1,19 @@
+{
+  "comptabilite.aucune_periode_projet_couvre": "Aucune période du projet ne couvre le {v1}",
+  "comptabilite.contre_passation_contre_passe_saisissez": "Une contre-passation ne se contre-passe pas : saisissez une nouvelle écriture",
+  "comptabilite.contre_passation_reproduit_ecriture_origine": "La contre-passation ne reproduit pas l'écriture d'origine en sens inverse",
+  "comptabilite.ecriture_compte_moins_deux_lignes": "Une écriture compte au moins deux lignes",
+  "comptabilite.ecriture_deja_contre_passee": "L'écriture {number} est déjà contre-passée ({v1})",
+  "comptabilite.ecriture_montant_nul_sens": "Une écriture à montant nul n'a pas de sens",
+  "comptabilite.ecriture_on_contre_passe_ecriture": "L'écriture est {status} : on ne contre-passe qu'une écriture comptabilisée",
+  "comptabilite.ecriture_seule_ecriture_peut_passer": "L'écriture est {status} : seule une écriture {attendu} peut passer à {nouveau}",
+  "comptabilite.journal_existe": "Le journal {journal} n'existe pas",
+  "comptabilite.ligne_accord_il_recoit_plus": "Ligne {line_no} : l'accord est {statut}, il ne reçoit plus d'imputation",
+  "comptabilite.ligne_compte_imputable": "Ligne {line_no} : le compte {code} n'est pas imputable",
+  "comptabilite.ligne_compte_inactif": "Ligne {line_no} : le compte {code} est inactif",
+  "comptabilite.ligne_valeur_imputable": "Ligne {line_no} : la valeur {code} n'est pas imputable",
+  "comptabilite.ligne_valeur_inactive": "Ligne {line_no} : la valeur {code} est inactive",
+  "comptabilite.periode_aucune_ecriture_peut_y": "La période {numero} est {status} : aucune écriture ne peut y être saisie ni comptabilisée",
+  "comptabilite.precisez_date_comptable_periode_ouverte": "{erreur}. Précisez une date comptable dans une période ouverte.",
+  "comptabilite.vous_etes_habilite_projet": "Vous n'êtes pas habilité à « {operation} » sur ce projet."
+}

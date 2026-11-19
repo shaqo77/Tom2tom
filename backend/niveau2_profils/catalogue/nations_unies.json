@@ -1,0 +1,29 @@
+{
+  "code": "NATIONS_UNIES",
+  "version": 1,
+  "label": {
+    "fr": "Système des Nations unies",
+    "en": "United Nations system"
+  },
+  "description": {
+    "fr": "Bibliothèque d'exigences POSSIBLES pour un projet financé par une agence du système des Nations unies. Ce n'est pas un modèle universel : l'accord de financement et les documents du bailleur applicables au projet décident de ce qui s'applique, avec quelle périodicité et selon quel modèle. Aucun délai ni aucune périodicité n'est livré tant qu'un document du bailleur ne les donne pas. Chaque élément se lit « lorsque requis ».",
+    "en": "Library of POSSIBLE requirements for a project financed by a United Nations system agency. This is not a universal template: the financing agreement and the donor documents that apply to the project decide what applies, with what periodicity and according to which template. No deadline or periodicity is shipped until a donor document gives it. Each element reads “when required”."
+  },
+  "elements": [
+    {
+      "kind": "document_reference",
+      "code": "REF-SNU",
+      "label": {
+        "fr": "Accord ou document de projet de l'agence des Nations unies et documents du bailleur applicables",
+        "en": "United Nations agency agreement or project document and donor documents applicable"
+      },
+      "contenu": {
+        "note": {
+          "fr": "Profil d'attente : aucun état n'est livré tant qu'un document de l'agence n'a pas été lu. Le dépôt ne connaît que la mention du PNUD parmi les bailleurs revendiqués par l'éditeur (et un rapport CAFI / Gabon).",
+          "en": "Placeholder profile: no statement is shipped until an agency document has been read. The repository only knows UNDP is among the donors the vendor claims (and a CAFI / Gabon report)."
+        },
+        "source": "SRC:editeur:004 ; SRC:projet:206"
+      }
+    }
+  ]
+}

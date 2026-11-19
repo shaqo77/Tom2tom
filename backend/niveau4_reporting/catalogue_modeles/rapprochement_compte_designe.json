@@ -1,0 +1,82 @@
+{
+  "code": "RCD",
+  "version": 1,
+  "columns": [
+    {
+      "code": "PER",
+      "period": "year_to_date"
+    }
+  ],
+  "rows": [
+    {
+      "code": "H100",
+      "type": "heading"
+    },
+    {
+      "code": "R110",
+      "item": "ouverture",
+      "type": "external",
+      "source": "compte_designe"
+    },
+    {
+      "code": "R120",
+      "item": "avances_recues",
+      "type": "external",
+      "source": "compte_designe"
+    },
+    {
+      "code": "R130",
+      "item": "autres_encaissements",
+      "type": "external",
+      "source": "compte_designe"
+    },
+    {
+      "code": "R140",
+      "item": "decaissements",
+      "type": "external",
+      "source": "compte_designe"
+    },
+    {
+      "code": "R150",
+      "type": "computed",
+      "formula": "R110 + R120 + R130 - R140"
+    },
+    {
+      "code": "R160",
+      "item": "cloture_releve",
+      "type": "external",
+      "source": "compte_designe"
+    },
+    {
+      "code": "R170",
+      "type": "computed",
+      "formula": "R160 - R150"
+    },
+    {
+      "code": "R180",
+      "item": "non_justifie_releve",
+      "assert": "R180 == 0",
+      "type": "external",
+      "source": "compte_designe"
+    },
+    {
+      "code": "R190",
+      "item": "solde_comptable",
+      "type": "external",
+      "source": "compte_designe"
+    },
+    {
+      "code": "R200",
+      "item": "ecart_comptable",
+      "type": "external",
+      "source": "compte_designe"
+    },
+    {
+      "code": "R210",
+      "item": "non_justifie_comptable",
+      "assert": "R210 == 0",
+      "type": "external",
+      "source": "compte_designe"
+    }
+  ]
+}

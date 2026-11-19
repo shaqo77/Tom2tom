@@ -1,0 +1,22 @@
+{
+  "budget.aucune_version_approuvee_reviser_approuvez": "Aucune version approuvée à réviser : approuvez d'abord le budget initial",
+  "budget.axe_inconnu": "axe inconnu : {v1}",
+  "budget.depassement_bloquant": "Dépassement budgétaire bloquant : {details}",
+  "budget.devise_inconnue": "Devise inconnue : {devise}",
+  "budget.identifiant_inconnu": "identifiant inconnu : {v1}",
+  "budget.ligne_depassement": "ligne {axes} : disponible {disponible}, opération {impact}, dépassement {depassement}",
+  "budget.ligne_projet_depassement": "ligne projet : disponible {disponible}, opération {impact}, dépassement {depassement}",
+  "budget.montant_budget_jamais_negatif": "Un montant de budget n'est jamais négatif",
+  "budget.montant_negatif_taux_non_positif": "Montant négatif ou taux non positif",
+  "budget.motif_obligatoire_revision_reallocation": "Le motif est obligatoire pour une révision ou une réallocation",
+  "budget.periode_comprise_entre_1_12": "La période est comprise entre 1 et 12 (rien pour l'année entière)",
+  "budget.projet_deja_budget_initial_creez": "Ce projet a déjà un budget initial : créez une révision ou une réallocation",
+  "budget.taux_budget_doit_etre_strictement": "Le taux de budget doit être strictement positif",
+  "budget.type_version_inconnu": "type de version inconnu : {type}",
+  "budget.valeur_existe_inactive_axe": "La valeur {code} n'existe pas (ou est inactive) sur l'axe {champ}",
+  "budget.version_budget_deja_preparation_projet": "Une version de budget est déjà en préparation pour ce projet : approuvez-la ou supprimez-la avant d'en ouvrir une autre",
+  "budget.version_ete_preparee_partir_version": "Cette version a été préparée à partir d'une version qui n'est plus la courante : abandonnez-la et reprenez depuis la version en vigueur",
+  "budget.version_seul_brouillon_modifie": "La version {numero} est {status} : seul un brouillon se modifie",
+  "budget.version_seul_brouillon_s_approuve": "La version {numero} est {status} : seul un brouillon s'approuve",
+  "budget.vous_etes_habilite_projet": "Vous n'êtes pas habilité à « {operation} » sur ce projet."
+}

@@ -89,7 +89,10 @@ L'application ouvre chaque transaction par `SET LOCAL app.org_id = '…'`, déri
 | **Toute table porte sa trace** | `created_at`, `created_by`, `updated_at`, `updated_by`. |
 | **Les référentiels et configurations sont versionnés** | `version`, `valid_from`, `valid_to`. Jamais de mise à jour destructive d'un objet déjà utilisé. |
 | **Les libellés sont multilingues** | `label` JSONB : `{"fr": …, "en": …, "ar": …}`. Jamais de colonne `label_fr`. |
-| **Rien n'est supprimé** | Désactivation sur les référentiels, contre-passation sur les écritures, archivage sur les configurations. |
+| **Rien n'est supprimé** | Désactivation sur les référentiels, contre-passation sur les écritures, archivage sur les configurations. Un accord portant des opérations ne se supprime jamais. |
+| **Validité : intervalle semi-ouvert** | `[valid_from, valid_to[` : début inclus, fin exclue, `valid_to` nul = sans fin. Voir guide §B.6. |
+| **Pas de chevauchement de versions** | Contrainte `EXCLUDE USING gist` (`btree_gist`) sur la clé fonctionnelle et `daterange(valid_from, valid_to, '[)')`, pour les versions actives. |
+| **Version non modifiable** | Déclencheur `BEFORE UPDATE OR DELETE` sur les tables enfants d'une configuration dès que la version parente n'est plus `draft`. |
 
 ### 3.2 Projets et référentiel analytique
 
@@ -370,6 +373,56 @@ retrait**, exactement comme `cofunding_key_version_id` l'est sur une ligne
 d'écriture (§3.5). Sans cela, une réallocation ultérieure rend inexplicable
 le montant d'une demande déjà soumise — et l'auditeur ne peut plus la vérifier.
 
+**Compléments au modèle (réallocations, avenants, dérogations, version sur l'opération).**
+
+```sql
+ALTER TABLE disbursement_profile
+  DROP CONSTRAINT disbursement_profile_status_check,
+  ADD  CONSTRAINT disbursement_profile_status_check
+       CHECK (status IN ('draft','validated','active','superseded','rejected')),
+  ADD COLUMN rejection_reason text,
+  ADD CONSTRAINT disbursement_profile_no_overlap
+      EXCLUDE USING gist (org_id WITH =, agreement_id WITH =,
+                          daterange(valid_from, valid_to, '[)') WITH &&)
+      WHERE (status = 'active');
+
+CREATE TABLE category_reallocation (        -- l'événement, pas la modification
+  id uuid PRIMARY KEY, org_id uuid NOT NULL, project_id uuid NOT NULL,
+  agreement_id uuid NOT NULL REFERENCES funding_agreement,
+  source_category_id uuid NOT NULL REFERENCES funding_category,
+  target_category_id uuid NOT NULL REFERENCES funding_category,
+  amount numeric(20,4) NOT NULL CHECK (amount > 0),
+  currency_id uuid NOT NULL,
+  requested_by uuid NOT NULL, approved_by uuid, approved_at timestamptz,
+  reason text NOT NULL, document_id uuid REFERENCES reference_document,
+  status text NOT NULL CHECK (status IN ('requested','approved','rejected')),
+  resulting_profile_id uuid UNIQUE REFERENCES disbursement_profile,  -- une version, une fois
+  CHECK (source_category_id <> target_category_id),
+  CHECK (approved_by IS NULL OR approved_by <> requested_by)
+);
+
+CREATE TABLE agreement_amendment (
+  id uuid PRIMARY KEY, org_id uuid NOT NULL,
+  agreement_id uuid NOT NULL REFERENCES funding_agreement,
+  reference text NOT NULL, signed_on date,
+  document_id uuid REFERENCES reference_document,
+  revised_amount numeric(20,4),
+  resulting_profile_id uuid REFERENCES disbursement_profile,
+  UNIQUE (org_id, agreement_id, reference)
+);
+
+CREATE TABLE control_waiver (               -- dérogation : le résultat initial reste intact
+  id uuid PRIMARY KEY, org_id uuid NOT NULL,
+  control_result_id uuid NOT NULL REFERENCES control_result,
+  reason text NOT NULL, valid_from date NOT NULL, valid_to date NOT NULL,
+  requested_by uuid NOT NULL, approved_by uuid NOT NULL,
+  document_id uuid REFERENCES reference_document,
+  CHECK (approved_by <> requested_by), CHECK (valid_to > valid_from)
+);
+```
+
+Le `profile_version_id` — le profil résolu à la date de l'opération — est persisté sur la dépense, la ligne de demande de retrait et chaque `control_result`, à côté de `category_funding_rule_id`. Les tables `funding_agreement` gagnent le statut `suspended` et un `revised_amount`. Une demande de retrait contestée porte `reprise_de uuid REFERENCES …` vers la précédente.
+
 **Ce que ce modèle n'autorise pas, délibérément :** `method` et
 `supporting_docs` sont des ensembles fermés, contraints en base. Ajouter une
 méthode de décaissement est une migration, pas un paramétrage client. C'est la
@@ -559,6 +612,8 @@ Poste en antenne, sans réseau
 ### 9.2 Sauvegarde et restauration
 
 PostgreSQL managé avec **restauration à un instant donné**, rétention 30 jours minimum · **export logique quotidien par organisation**, chiffré, conservé séparément · **restauration testée chaque trimestre** sur environnement distinct, chronométrée et consignée.
+
+**Les fichiers suivent la base.** Les pièces et documents du stockage objet sont sauvegardés **avec la même cohérence que la base** (même point de restauration, ou inventaire par empreinte `sha256` rapproché de `reference_document` après restauration). Une sauvegarde de la base seule ne restaure pas une citation « DFIL §4.2 ». Les clés d'objet sont préfixées par `org_id`, et ce préfixe est revérifié par le serveur à chaque accès (lien signé à durée limitée).
 
 > Une sauvegarde jamais restaurée n'est pas une sauvegarde.
 

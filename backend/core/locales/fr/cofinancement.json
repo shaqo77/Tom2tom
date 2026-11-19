@@ -1,0 +1,7 @@
+{
+  "cofinancement.cle_cofinancement_moins_part": "Une clé de cofinancement a au moins une part",
+  "cofinancement.cle_moins_part_chaque_poids": "Une clé a au moins une part et chaque poids est positif",
+  "cofinancement.montant_multiple_devise": "Le montant {montant} n'est pas un multiple du pas de la devise ({pas})",
+  "cofinancement.parts_doivent_etre_positives_sommer": "Les parts doivent être positives et sommer exactement à 1",
+  "cofinancement.porteur_arrondi_doit_etre_accords": "Le porteur d'arrondi doit être l'un des accords de la clé"
+}

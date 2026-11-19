@@ -1,0 +1,9 @@
+{
+  "taux.aucun_taux_date": "No {type_taux!r} rate for {devise} on {v1}",
+  "taux.deja_enregistre": "A “{type_taux}” rate already exists for {devise} on {date}: a rate is never overwritten, record one on another date",
+  "taux.devise_inconnue": "Unknown currency: {devise}",
+  "taux.devise_non_autorisee": "Currency {devise} is not allowed by the organisation's settings on this date",
+  "taux.monnaie_de_tenue": "{devise} is the organisation's book currency: its rate is 1 by definition, none is recorded",
+  "taux.taux_invalide": "Field “{champ}” must be an exact, strictly positive number written in digits (no exponent)",
+  "taux.type_inconnu": "Unknown rate type: {type_taux}"
+}

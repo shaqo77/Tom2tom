@@ -1,0 +1,10 @@
+{
+  "rattachement.configuration_sans_exigence_source": "Configuration without a source requirement: {details}",
+  "rattachement.exigence_v_elle_justifie_plus": "Requirement {code} v{version} is {status}: it no longer justifies any object",
+  "rattachement.objet_existe_projet_exigence": "Object {target_id} ({target_type}) does not exist in the requirement's project",
+  "rattachement.orphelin": "{type} {libelle} ({raison})",
+  "rattachement.raison_aucun_rattachement": "no link",
+  "rattachement.raison_exigences_non_actives": "linked only to requirements that are inactive or outside their validity",
+  "rattachement.type_cible_inconnu": "unknown target type: {target_type}",
+  "rattachement.vous_etes_habilite_parametrer_projet": "You are not authorised to “parametrer” on this project."
+}

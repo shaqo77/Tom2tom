@@ -1,0 +1,9 @@
+{
+  "decaissement.delai_decaissement_depasse_date_limite": "The disbursement period has expired: deadline {disbursement_deadline}, application of {date_demande}",
+  "decaissement.depense_anterieure_date_eligibilite_profil": "The expense of {date_depense} predates the profile's eligibility date ({eligibility_date}): it cannot be financed",
+  "decaissement.depense_anterieure_debut_eligibilite_categorie": "The expense of {date_depense} predates the start of the category's eligibility ({eligibility_from})",
+  "decaissement.depense_posterieure_fin_eligibilite_categorie": "The expense of {date_depense} is after the end of the category's eligibility ({eligibility_to})",
+  "decaissement.depense_taxes_positives_taxes_depassant": "An expense and its taxes are positive, and the taxes do not exceed the expense",
+  "decaissement.montant_minimum_pourcentage_plafond_compte": "The minimum amount is a percentage of the designated account's ceiling, but no fixed ceiling is set in the profile",
+  "decaissement.taux_financement_0_1": "A funding rate is in ]0 ; 1]"
+}

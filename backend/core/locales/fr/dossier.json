@@ -1,0 +1,19 @@
+{
+  "dossier.annexe": "annexe {valeur}",
+  "dossier.citation": "Passage cité : « {extrait} »",
+  "dossier.couverture": "Rubriques couvertes par une exigence : {couvertes} sur {total}",
+  "dossier.dependance_introuvable": "Rubriques calculées dont une dépendance est introuvable : {v1}",
+  "dossier.document_version": "{titre} (version {version})",
+  "dossier.exigence": "Exigence {code} (version {version})",
+  "dossier.ligne_sans_source": "- {code} {libelle} — {regle}",
+  "dossier.page": "page {valeur}",
+  "dossier.paragraphe": "§ {valeur}",
+  "dossier.periode": "Période du {du} au {au}",
+  "dossier.pied": "Dossier de conformité — {rapport}",
+  "dossier.regle": "Règle appliquée : {regle}",
+  "dossier.scelle": "Scellé du rapport (SHA-256) : {empreinte}",
+  "dossier.section_sans_source": "Rubriques SANS exigence source ({n})",
+  "dossier.source": "Source : {document}, {reperes}",
+  "dossier.titre": "Dossier de conformité du rapport {rapport}",
+  "dossier.validation": "Validée par {nom} le {date}"
+}

@@ -1,0 +1,5 @@
+{
+  "api.champ_invalide": "The field “{champ}” is invalid: {attendu} expected",
+  "api.champ_obligatoire": "The field “{champ}” is required",
+  "api.corps_objet": "The request body must be a JSON object"
+}

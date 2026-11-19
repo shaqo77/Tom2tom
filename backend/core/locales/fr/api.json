@@ -1,0 +1,5 @@
+{
+  "api.champ_invalide": "Le champ « {champ} » est invalide : {attendu} attendu",
+  "api.champ_obligatoire": "Le champ « {champ} » est obligatoire",
+  "api.corps_objet": "Le corps de la requête doit être un objet JSON"
+}

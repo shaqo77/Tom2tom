@@ -1,0 +1,4 @@
+{
+  "citations_profil.dossier_introuvable": "Folder not found: {dossier}",
+  "citations_profil.verification_echouee": "Citation check failed: {echecs} citation(s) not found, {absentes} unverifiable for lack of a document"
+}

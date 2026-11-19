@@ -1,0 +1,10 @@
+{
+  "cloture.compte_cite": "{code} ({n})",
+  "cloture.ecriture_non_comptabilisee": "{nombre} entry not posted (draft or validated) in period {numero}",
+  "cloture.ecritures_non_comptabilisees": "{nombre} entries not posted (draft or validated) in period {numero}",
+  "cloture.groupe_cite": "{compte} / {tiers} ({n} lines)",
+  "cloture.groupes_non_lettres": "Balanced groups not matched: {cites}",
+  "cloture.groupes_non_lettres_et_autres": "Balanced groups not matched: {cites} and {reste} other(s)",
+  "cloture.mouvements_non_rapproches": "Statement movements not reconciled: {cites}",
+  "cloture.mouvements_non_rapproches_et_autres": "Statement movements not reconciled: {cites} and {reste} other(s)"
+}

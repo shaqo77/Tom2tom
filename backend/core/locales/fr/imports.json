@@ -1,0 +1,11 @@
+{
+  "imports.code_double_fichier_premiere_fois": "code {code} en double dans le fichier (première fois ligne {v1})",
+  "imports.code_invalide": "code invalide : {code!r}",
+  "imports.compte_declare_imputable_mais_enfants": "le compte {code} est déclaré imputable mais a des enfants",
+  "imports.correspondance_ete_validee_responsable": "La correspondance « {nom} » n'a pas été validée par un responsable",
+  "imports.francais_libelle_absent": "libellé français absent",
+  "imports.parent_existe_deja_imputable_il": "le parent {parent} existe déjà et est imputable : il n'a pas d'enfant",
+  "imports.parent_introuvable": "parent {parent} introuvable",
+  "imports.sens_inconnu": "sens inconnu : {v1!r}",
+  "imports.valeur_booleenne_inconnue": "valeur booléenne inconnue : {valeur!r}"
+}

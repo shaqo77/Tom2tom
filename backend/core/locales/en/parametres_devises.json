@@ -1,0 +1,12 @@
+{
+  "parametres_devises.rien_a_parametrer": "Nothing to configure: give at least a reference currency, a list of allowed currencies or a rate type.",
+  "parametres_devises.devise_inconnue": "The currency {code} does not exist in the currency reference list.",
+  "parametres_devises.liste_vide": "The list of allowed currencies cannot be empty.",
+  "parametres_devises.type_taux_inconnu": "Unknown rate type: {type_taux}.",
+  "parametres_devises.reference_hors_liste": "The reference currency {code} must be one of the allowed currencies.",
+  "parametres_devises.sans_monnaie_de_tenue": "The list of allowed currencies must contain the organisation's accounting currency ({code}).",
+  "parametres_devises.sans_monnaie_du_projet": "The list of allowed currencies excludes the base currency of project {projet} ({code}).",
+  "parametres_devises.date_effet_posterieure": "The new version must take effect after {valid_from}.",
+  "parametres_devises.habilitation_requise": "The \"{operation}\" permission is required to configure currencies.",
+  "parametres_devises.devise_non_autorisee": "The currency {code} is not allowed for this project on that date."
+}

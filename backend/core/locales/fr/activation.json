@@ -1,0 +1,14 @@
+{
+  "activation.accord_profil_actif_couvre_deja": "Accord {accord_id} : un profil actif couvre déjà cette période",
+  "activation.citation_ete_verifiee_document": "La citation n'a pas été vérifiée sur ce document",
+  "activation.document_remplace_citez_version_vigueur": "Le document « {title} » est remplacé : citez la version en vigueur",
+  "activation.exigence_version_active_couvre_deja": "Exigence {code} : une version active couvre déjà cette période",
+  "activation.passage_impossible_etat_attendu": "Passage de « {status} » à « {vers} » impossible : l'état attendu est {v1}",
+  "activation.profil_incomplet": "Profil incomplet : {details}",
+  "activation.rejet_exige_motif": "Un rejet exige un motif",
+  "activation.seul_profil_valide_s_active": "Seul un profil validé s'active (celui-ci est « {status} »)",
+  "activation.seule_exigence_validee_s_active": "Seule une exigence validée s'active (celle-ci est « {status} »)",
+  "activation.version_debute_version_prend_effet": "{nom} : la version {version} débute le {valid_from} ; une version qui prend effet le {date_effet} réécrirait l'histoire",
+  "activation.version_programmee_jusqu_peut_etre": "{nom} : la version {version} est programmée jusqu'au {valid_to} et ne peut pas être raccourcie",
+  "activation.vous_etes_habilite_projet": "Vous n'êtes pas habilité à « {operation} » sur ce projet."
+}

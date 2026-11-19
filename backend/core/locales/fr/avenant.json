@@ -1,0 +1,4 @@
+{
+  "avenant.aucun_profil_decaissement_vigueur_avenant": "Aucun profil de décaissement n'est en vigueur le {date_avenant} : l'avenant ne peut pas être appliqué",
+  "avenant.vous_etes_habilite_projet": "Vous n'êtes pas habilité à « {operation} » sur ce projet."
+}

@@ -1,0 +1,10 @@
+{
+  "rattachement.configuration_sans_exigence_source": "Configuration sans exigence source : {details}",
+  "rattachement.exigence_v_elle_justifie_plus": "L'exigence {code} v{version} est {status} : elle ne justifie plus aucun objet",
+  "rattachement.objet_existe_projet_exigence": "L'objet {target_id} ({target_type}) n'existe pas dans le projet de l'exigence",
+  "rattachement.orphelin": "{type} {libelle} ({raison})",
+  "rattachement.raison_aucun_rattachement": "aucun rattachement",
+  "rattachement.raison_exigences_non_actives": "rattaché seulement à des exigences non actives ou hors validité",
+  "rattachement.type_cible_inconnu": "type de cible inconnu : {target_type}",
+  "rattachement.vous_etes_habilite_parametrer_projet": "Vous n'êtes pas habilité à « parametrer » sur ce projet."
+}

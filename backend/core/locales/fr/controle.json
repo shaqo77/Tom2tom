@@ -1,0 +1,5 @@
+{
+  "controle.axe_controle_inconnu": "axe de contrôle inconnu : {axe}",
+  "controle.mode_controle_inconnu": "mode de contrôle inconnu : {mode}",
+  "controle.nouvelle_version_doit_prendre_effet": "La nouvelle version doit prendre effet après le {valid_from} (début de la version en cours)"
+}

@@ -27,6 +27,8 @@ Cette version intègre le cahier des charges de l'UGP et tranche les arbitrages 
 | **D-05** | Mode d'entrée commercial | **Deux profils de déploiement pris en charge dès la v1** : plateforme complète, ou **couche reporting seule** au-dessus d'un grand livre existant | Le cahier des charges prévoit déjà « l'intégration avec un logiciel comptable existant ». L'import d'écritures est de toute façon requis pour la reprise : le profil « couche reporting » coûte peu de plus et réduit fortement la friction d'adoption. |
 | **D-06** | Assistant d'extraction des exigences | **Retenu, en module optionnel, avec garde-fous stricts** (§5.3) | Le cahier des charges le prévoit déjà en substance (§7.3 : « soumettre les exigences extraites automatiquement à la validation d'un responsable financier »). Il fait passer la configuration d'un projet de plusieurs semaines à quelques jours. |
 | **D-07** | Périmètre exclu | Paie, RH, stocks, suivi-évaluation des indicateurs : **hors produit**, intégrés par interface | La prolifération de modules satellites chez le produit de référence est une faiblesse, pas un modèle. |
+| **D-08** | Garanties de configuration par la base | Pas de chevauchement de versions actives (`EXCLUDE` sur `daterange`), immutabilité des tables enfants d'une version approuvée par déclencheur, intervalle de validité semi-ouvert `[du, au[` | Examen des dossiers « bailleurs et conventions » : ce qui n'est garanti que par le code applicatif finit par être contourné. Voir [`07_APPORTS_DOSSIERS_CONVENTIONS.md`](07_APPORTS_DOSSIERS_CONVENTIONS.md). |
+| **D-09** | Réallocations et avenants | Objets propres (`Reallocation`, `AvenantAccord`), chacun créant une **version** du profil ; approbateur distinct du demandeur ; dérogations formelles qui ne réécrivent jamais le résultat d'un contrôle | Même source. La trace du transfert et de son approbation manquait ; le principe « une réallocation crée une version » est inchangé. |
 
 ---
 
@@ -352,6 +354,8 @@ Montant à retirer = Dépense éligible × Taux de financement de la catégorie
 
 **Une réallocation modifie allocations et taux : elle crée une nouvelle version du profil, avec date d'effet.** Les demandes antérieures restent calculées aux taux alors en vigueur.
 
+La réallocation est elle-même un **événement tracé** (catégorie source, catégorie cible, montant, demandeur, approbateur distinct, motif, document) qui produit cette version ; l'**avenant** à l'accord est de même un objet daté, lié au document signé et à la version qu'il crée. On peut ainsi afficher la situation d'un accord avant et après un avenant. Un accord peut être **suspendu** : il bloque alors toute nouvelle demande sans être clos.
+
 #### F — Dates et bornes
 
 Date de signature · date d'entrée en vigueur · date d'éligibilité des dépenses · date de clôture · **date limite de décaissement** (période de grâce après clôture, au-delà de laquelle plus aucune demande n'est recevable).
@@ -502,6 +506,8 @@ Configurables, rattachés à une exigence, et classés en **trois niveaux : bloq
 | **Cohérence** | Incohérence entre états d'une même période ; incohérence entre deux périodes successives ; rupture de cumul |
 | **Éligibilité** | Dépense ne respectant pas les règles d'éligibilité configurées (nature, date, zone, bénéficiaire) |
 
+**Résultats et dérogations.** Un contrôle rend `réussi`, `bloquant`, `avertissement`, `information` ou `à vérifier` (vérification humaine). Une **dérogation** est distincte d'une justification : elle autorise à poursuivre malgré un contrôle bloquant, pour un objet et une durée donnés, par un approbateur habilité autre que le demandeur, et **le résultat initial n'est jamais effacé**. Les conditions des contrôles sont structurées, à jeu d'opérateurs fermé (plan L6-T01) : jamais de SQL ni de script.
+
 ### 7.1 La simulation de revue bailleur
 
 Au-delà des contrôles unitaires, un mode **pré-soumission** rejoue sur le rapport en préparation les **motifs de rejet connus du bailleur**, et rend un **avis go / no-go assorti d'une liste d'actions**.
@@ -546,6 +552,8 @@ Le métier réel d'un responsable administratif et financier est de ne jamais ra
 Projets actifs et bailleurs associés · budgets approuvés et révisés · financements reçus · dépenses et taux d'exécution, global et par composante · soldes bancaires et disponibilités · engagements et **avances non justifiées** · **échéances de reporting, rapports en attente, anomalies ouvertes** · taux d'acceptation au premier envoi.
 
 Filtrage par projet, bailleur, période, organisation et unité d'exécution. Chaque indicateur est **cliquable jusqu'au détail**, puis jusqu'à l'écriture.
+
+**Les devises ne se mélangent jamais en silence.** Les montants sont ventilés par devise ; une consolidation dans une devise de référence affiche la méthode, la date et le taux, ou n'est pas produite faute de taux.
 
 ---
 
@@ -707,6 +715,8 @@ Les sept premiers sont repris du cahier des charges de l'UGP : ils testent **l'a
 | **T14** | **Connectivité dégradée** | Saisir une journée complète sans réseau, synchroniser sans doublon ni trou de séquence |
 | **T15** | **Méthodes de décaissement variables** | Configurer trois projets du **même bailleur** avec des régimes, méthodes, seuils et taux de financement **différents**, sans développement spécifique |
 | **T16** | **Changement en cours de projet** | Changer le régime de décaissement et réallouer entre catégories à une date d'effet : les demandes antérieures restent calculées aux règles alors en vigueur |
+
+| **T17** | **Deux accords, un projet** | Un projet financé par deux bailleurs par deux accords indépendants : chaque dépense est contrôlée par les règles de **son** accord ; un avenant sur l'un crée une version sans effet sur l'autre ; une dépense antérieure à l'avenant conserve sa version ; un accès croisé d'une autre organisation est refusé |
 
 ### Critère d'acceptation d'architecture
 

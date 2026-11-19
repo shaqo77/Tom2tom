@@ -1,0 +1,5 @@
+{
+  "axes.valeur_existe_plan": "La valeur {code} n'existe pas dans le plan {code_plan}",
+  "axes.valeur_imputable_c_regroupement": "La valeur {code} n'est pas imputable : c'est un regroupement",
+  "axes.valeur_inactive": "La valeur {code} est inactive"
+}

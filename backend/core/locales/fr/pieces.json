@@ -1,0 +1,6 @@
+{
+  "pieces.fichier_invalide": "Le fichier de la pièce est vide ou dépasse 25 Mio",
+  "pieces.nom_obligatoire": "Une pièce porte un nom",
+  "pieces.scan_altere": "Le scan « {nom} » ne correspond plus à son empreinte : il a été altéré",
+  "pieces.type_inconnu": "Type de pièce inconnu : « {type} »"
+}

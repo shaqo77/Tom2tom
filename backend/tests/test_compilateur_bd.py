@@ -12,7 +12,7 @@ from django.utils import timezone
 from niveau4_reporting.mapping.models import RegleMapping, TableMapping
 from niveau4_reporting.mapping.resolveur import MappingIncomplet
 from niveau4_reporting.moteur.compilateur import generer
-from niveau4_reporting.moteur.models import LigneEcriture
+from tests.outils import creer_ligne, id_objet
 
 pytestmark = pytest.mark.django_db(transaction=True)
 PROJECT_ID = uuid.UUID("aaaaaaaa-0000-0000-0000-000000000001")
@@ -25,21 +25,17 @@ def _poser_org(org_id):
 
 
 def _ligne(org_id, compte, annee, periode, *, debit="0", credit="0", accord="IDA-6789"):
-    return LigneEcriture.objects.create(
-        org_id=org_id,
-        project_id=PROJECT_ID,
-        fiscal_year=annee,
-        period=periode,
-        accounting_date=datetime.date(annee, periode, 15),
-        compte=compte,
+    return creer_ligne(
+        org_id,
+        compte,
+        annee,
+        periode,
         debit=debit,
         credit=credit,
-        dim1="COMP-A",
         accord=accord,
         categorie="CAT-1",
         site="SIEGE",
-        devise="DJF",
-        taux="1",
+        dim1="COMP-A",
     )
 
 
@@ -70,6 +66,13 @@ def jeu(org_a):
         priority=20,
         match={"accounts": [["5200", "5299"]]},
         target_code="TRESORERIE",
+    )
+    RegleMapping.objects.create(
+        org_id=org_a,
+        table=table,
+        priority=90,
+        match={"accounts": [["8999", "8999"]]},  # contrepartie technique des pièces de test
+        target_code="CONTREPARTIE",
     )
     _ligne(org_a, "6011", 2024, 12, debit="10")
     _ligne(org_a, "6011", 2026, 2, debit="100")
@@ -107,7 +110,7 @@ def jeu(org_a):
         "project_id": PROJECT_ID,
         "fiscal_year": 2026,
         "current_period": 5,
-        "agreement": "IDA-6789",
+        "agreement": str(id_objet("IDA-6789")),
     }
     return org_a, table, modele, params
 
@@ -238,6 +241,13 @@ def test_deux_mappings_sont_agreges_et_controles_dans_une_seule_requete(jeu):
         priority=10,
         match={"accounts": [["5000", "6999"]]},
         target_code="EMPLOIS",
+    )
+    RegleMapping.objects.create(
+        org_id=org_a,
+        table=autre,
+        priority=90,
+        match={"accounts": [["8999", "8999"]]},  # contrepartie technique des pièces de test
+        target_code="CONTREPARTIE",
     )
     modele["rows"].insert(
         2,

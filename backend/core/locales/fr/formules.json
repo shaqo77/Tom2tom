@@ -1,0 +1,12 @@
+{
+  "formules.constante_non_numerique": "constante non numérique",
+  "formules.construction_interdite": "Construction interdite : {nom}",
+  "formules.division_zero": "division par zéro",
+  "formules.fonction_non_autorisee": "fonction non autorisée : {nom}",
+  "formules.fonction_non_autorisee_2": "fonction non autorisée",
+  "formules.plage_inversee": "plage inversée {debut}:{fin}",
+  "formules.rubrique_inconnue": "rubrique inconnue : {id}",
+  "formules.rubrique_inconnue_plage": "rubrique inconnue dans la plage {debut}:{fin}",
+  "formules.syntaxe_invalide": "syntaxe invalide : {e}",
+  "formules.ud_non_gere": "nœud non géré : {__name__}"
+}

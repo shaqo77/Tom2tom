@@ -1,0 +1,29 @@
+{
+  "code": "FONDS_MONDIAL",
+  "version": 1,
+  "label": {
+    "fr": "Fonds mondial",
+    "en": "Global Fund"
+  },
+  "description": {
+    "fr": "Bibliothèque d'exigences POSSIBLES pour un projet financé par le Fonds mondial. Ce n'est pas un modèle universel : l'accord de financement et les documents du bailleur applicables au projet décident de ce qui s'applique, avec quelle périodicité et selon quel modèle. Aucun délai ni aucune périodicité n'est livré tant qu'un document du bailleur ne les donne pas. Chaque élément se lit « lorsque requis ».",
+    "en": "Library of POSSIBLE requirements for a project financed by the Global Fund. This is not a universal template: the financing agreement and the donor documents that apply to the project decide what applies, with what periodicity and according to which template. No deadline or periodicity is shipped until a donor document gives it. Each element reads “when required”."
+  },
+  "elements": [
+    {
+      "kind": "document_reference",
+      "code": "REF-FM",
+      "label": {
+        "fr": "Accord de subvention du Fonds mondial et documents du bailleur applicables au projet",
+        "en": "Global Fund grant agreement and donor documents applicable to the project"
+      },
+      "contenu": {
+        "note": {
+          "fr": "Profil d'attente : aucun état n'est livré tant qu'un document du Fonds mondial n'a pas été lu. Le dépôt ne connaît que l'existence de subventions (formation PADS, Burkina Faso).",
+          "en": "Placeholder profile: no statement is shipped until a Global Fund document has been read. The repository only knows grants exist (PADS training, Burkina Faso)."
+        },
+        "source": "SRC:forma:501 ; SRC:editeur:004"
+      }
+    }
+  ]
+}

@@ -1,0 +1,4 @@
+{
+  "calendrier.deja_traitee": "Cette échéance est déjà traitée ({statut})",
+  "calendrier.habilitation_requise": "Vous n'êtes pas habilité à « {operation} » sur ce projet"
+}

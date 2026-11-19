@@ -1,0 +1,17 @@
+{
+  "circuit.aucun_circuit": "No validation circuit for “{objet_type}” on {date}",
+  "circuit.aucune_etape_applicable": "No step of the circuit applies to this object",
+  "circuit.condition_invalide": "A step's entry condition is invalid: montant_min (number), categories or bailleurs (lists of codes)",
+  "circuit.contexte_incomplet": "The request context is incomplete: {v1} (the circuit relies on it to choose its steps)",
+  "circuit.de_une_a_cinq_etapes": "A circuit has 1 to 5 steps ({n} given)",
+  "circuit.deja_en_cours": "A validation is already in progress for this object",
+  "circuit.etape_non_courante": "Step {rang} is not the current step of this request (status: {statut})",
+  "circuit.habilitation_requise": "You are not authorised to “{operation}” on this project",
+  "circuit.montant_invalide": "The amount “{montant}” is not a non-negative number",
+  "circuit.nom_toutes_langues": "A step name is required in every supported language",
+  "circuit.operation_inconnue": "The permission “{operation}” does not exist",
+  "circuit.periode_anterieure": "The new circuit must start after the start of the circuit in force",
+  "circuit.rejet_motive": "A rejection requires a reason",
+  "circuit.signataire_distinct": "The requester cannot sign a step of their own request",
+  "circuit.une_etape_par_personne": "The same person cannot sign more than one step of a request: another authorised person is required"
+}

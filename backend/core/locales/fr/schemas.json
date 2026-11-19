@@ -1,0 +1,14 @@
+{
+  "schemas.aucune_version_schema_vigueur": "Aucune version du schéma {code} n'est en vigueur le {v1}",
+  "schemas.compte_axe_inconnu": "Compte {compte} : axe inconnu {v1}",
+  "schemas.compte_contrepartie_automatique_sens_declare": "Compte {compte} : une contrepartie automatique n'a pas de sens déclaré, il se déduit du solde",
+  "schemas.compte_regle_inconnue": "Compte {compte} : règle inconnue {regle!r}",
+  "schemas.compte_sens_inconnu": "Compte {compte} : sens inconnu {sens!r}",
+  "schemas.compte_sens_obligatoire": "Compte {compte} : le sens est obligatoire",
+  "schemas.compte_seule_regle_taux_porte": "Compte {compte} : seule la règle taux porte un taux",
+  "schemas.compte_taux_doit_etre_strictement": "Compte {compte} : le taux doit être strictement positif",
+  "schemas.contrepartie_automatique_rien_equilibrer": "La contrepartie automatique n'a rien à équilibrer",
+  "schemas.montant_nul_apres_arrondi_decimale": "Le montant est nul après arrondi à {decimales} décimale(s) : aucune pièce à générer",
+  "schemas.schema_compte_seule_contrepartie_automatique": "Un schéma ne compte qu'une seule contrepartie automatique",
+  "schemas.schema_indique_journal": "Le schéma {code_schema} n'indique pas de journal"
+}

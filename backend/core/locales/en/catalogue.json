@@ -1,0 +1,4 @@
+{
+  "catalogue.aucun_modele_livre_disponibles": "no shipped template “{nom}” (available: {v1})",
+  "catalogue.aucun_profil_livre_disponibles": "No delivered profile “{nom}” (available: {v1})"
+}

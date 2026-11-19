@@ -1,0 +1,8 @@
+{
+  "export.archive_alteree": "L'archive stockée ne correspond plus à son empreinte enregistrée : elle a été altérée",
+  "export.duree_limitee": "Un lien d'export dure de 1 minute à 24 heures",
+  "export.habilitation_requise": "L'export complet exige l'habilitation « exporter » sur tous les projets de l'organisation",
+  "export.lien_invalide": "Lien d'export invalide, expiré ou déjà révoqué",
+  "export.pas_pret": "Cet export n'est pas prêt",
+  "export.perimetre_incoherent": "Le périmètre de l'organisation n'est pas posé pour cet export : l'archive serait vide ou celle d'une autre organisation"
+}

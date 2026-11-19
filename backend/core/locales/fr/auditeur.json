@@ -1,0 +1,15 @@
+{
+  "auditeur.duree_limitee": "La durée d'un accès auditeur est de 1 à {maximum} jours",
+  "auditeur.fichier_altere": "Le fichier stocké ne correspond plus à son empreinte : il a été altéré",
+  "auditeur.habilitation_requise": "Vous n'êtes pas habilité à gérer les accès auditeur de ce projet",
+  "auditeur.jeton_expire": "Ce jeton auditeur a expiré",
+  "auditeur.jeton_invalide": "Jeton auditeur invalide",
+  "auditeur.jeton_revoque": "Ce jeton auditeur a été révoqué",
+  "auditeur.nom_obligatoire": "L'auditeur porte un nom",
+  "auditeur.pagination_invalide": "La pagination est invalide : « limite » et « decalage » sont des entiers positifs",
+  "auditeur.plage_vide": "La plage de périodes est vide : la fin doit suivre le début",
+  "auditeur.projet_hors_perimetre": "Ce projet n'est pas dans le périmètre de votre accès",
+  "auditeur.projet_introuvable": "Un des projets nommés n'existe pas dans votre organisation",
+  "auditeur.projets_obligatoires": "Un accès auditeur nomme au moins un projet",
+  "auditeur.scan_altere": "Le scan stocké ne correspond plus à son empreinte : il a été altéré"
+}

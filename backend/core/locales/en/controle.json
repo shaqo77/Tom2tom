@@ -1,0 +1,5 @@
+{
+  "controle.axe_controle_inconnu": "unknown check axis: {axe}",
+  "controle.mode_controle_inconnu": "unknown check mode: {mode}",
+  "controle.nouvelle_version_doit_prendre_effet": "The new version must take effect after {valid_from} (start of the current version)"
+}

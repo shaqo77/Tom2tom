@@ -1,0 +1,7 @@
+{
+  "annuelle.aucun_exercice_suivant_commence_lendemain": "No following fiscal year starts the day after the end of this one: create it before closing",
+  "annuelle.classes_8_9_soldent_entre": "Classes 8 and 9 do not balance each other: difference of {ecart_89}",
+  "annuelle.exercice_verrouille_nouveaux_regenerent_plus": "Fiscal year {annee} is locked: its opening balances can no longer be regenerated",
+  "annuelle.periodes_non_closes": "Periods not closed: {liste}",
+  "annuelle.premiere_periode_exercice_suivant_doit": "The first period of the following fiscal year ({annee}) must be open to receive the opening balances"
+}

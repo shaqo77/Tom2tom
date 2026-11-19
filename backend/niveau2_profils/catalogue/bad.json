@@ -1,0 +1,1058 @@
+{
+  "code": "BAD",
+  "version": 2,
+  "label": {
+    "fr": "Banque africaine de développement (BAD)",
+    "en": "African Development Bank (AfDB)"
+  },
+  "description": {
+    "fr": "Bibliothèque d'exigences POSSIBLES pour un projet financé par la Banque africaine de développement, établie d'après le manuel des décaissements (2020), le manuel de gestion financière (2014), les lignes directrices de gestion financière (2019), les lignes directrices de rapports et d'audit et le format du rapport d'achèvement. Ce n'est pas un modèle universel : l'accord de financement et la lettre de décaissement du projet décident de ce qui s'applique, avec quelle périodicité et selon quel modèle ; ces documents d'orientation ne donnent ni montants, ni taux de financement, ni catégories. Seule la périodicité recommandée du rapport financier intermédiaire (trimestrielle, 45 jours) est livrée ; chaque citation renvoie à la page du document, vérifiable par l'empreinte SHA-256. Chaque élément se lit « lorsque requis ».",
+    "en": "Library of POSSIBLE requirements for a project financed by the African Development Bank, drawn from the disbursement handbook (2020), the financial management manual (2014), the financial management guidelines (2019), the reporting and audit guidelines and the completion report format. This is not a universal template: the project's financing agreement and disbursement letter decide what applies, with what periodicity and according to which template; these guidance documents give no amounts, financing percentages or categories. Only the recommended periodicity of the interim financial report (quarterly, 45 days) is shipped; each citation points to the document page, checkable by SHA-256 fingerprint. Each element reads “when required”."
+  },
+  "elements": [
+    {
+      "kind": "document_reference",
+      "code": "REF-BAD",
+      "label": {
+        "fr": "Accord de financement de la BAD et lettre de décaissement du projet",
+        "en": "AfDB financing agreement and disbursement letter of the project"
+      },
+      "contenu": {
+        "note": {
+          "fr": "Les montants, les catégories, les taux de financement, la date de clôture et les délais propres au projet viennent de l'accord de financement et de la lettre de décaissement, jamais de ce profil.",
+          "en": "Amounts, categories, financing percentages, closing date and project-specific deadlines come from the financing agreement and the disbursement letter, never from this profile."
+        },
+        "source": "SRC:bailleur:423 (p. 19)",
+        "citations": [
+          {
+            "source": "SRC:bailleur:423",
+            "page": 19,
+            "quote": "Agrees with the Borrower on the requirements, format, content, reporting periodicity and submission deadlines for unaudited interim financial reports and"
+          }
+        ]
+      }
+    },
+    {
+      "kind": "document_reference",
+      "code": "BAD-DH",
+      "label": {
+        "fr": "Manuel des décaissements de la BAD (mars 2020)",
+        "en": "AfDB Disbursement Handbook (March 2020)"
+      },
+      "contenu": {
+        "note": {
+          "fr": "Document d'orientation de la Banque ; il ne crée pas de droit, qui se trouve dans l'accord de financement.",
+          "en": "Bank guidance document; it creates no legal right, which lies in the financing agreement."
+        },
+        "titre": "Disbursement Handbook (03/2020)",
+        "date": "2020-03",
+        "pages": 62,
+        "sha256": "7cc4be6dbc25b3e44847cec2f21a39e0b132db54468eaff64e64745c0fd34c04",
+        "source": "SRC:bailleur:420",
+        "citations": [
+          {
+            "source": "SRC:bailleur:420",
+            "page": 2,
+            "quote": "This handbook is not a contractual or legal document."
+          }
+        ]
+      }
+    },
+    {
+      "kind": "document_reference",
+      "code": "BAD-GFA",
+      "label": {
+        "fr": "Lignes directrices pour les rapports financiers et l'audit des projets (non daté)",
+        "en": "Guidelines for Financial Reporting and Auditing of Projects (undated)"
+      },
+      "contenu": {
+        "note": {
+          "fr": "Document d'orientation de la Banque, non daté ; sa couche texte est dégradée, aucune de ses phrases n'est citée hors du chapitre lu. Les formats en vigueur du projet priment.",
+          "en": "Undated Bank guidance; its text layer is degraded. The project's current formats prevail."
+        },
+        "titre": "Guidelines for Financial Reporting and Auditing of Projects",
+        "date": null,
+        "pages": 24,
+        "sha256": "34439df55e54d79e02a112801470b1e5cfe6dab0479da7526d89bad3ce49351b",
+        "source": "SRC:bailleur:421"
+      }
+    },
+    {
+      "kind": "document_reference",
+      "code": "BAD-FMM",
+      "label": {
+        "fr": "Manuel de gestion financière des opérations du secteur public (avril 2014)",
+        "en": "Financial Management Manual for Bank Group Public Sector Operations (April 2014)"
+      },
+      "contenu": {
+        "note": {
+          "fr": "Document d'orientation de la Banque ; il ne crée pas de droit, qui se trouve dans l'accord de financement.",
+          "en": "Bank guidance document; it creates no legal right, which lies in the financing agreement."
+        },
+        "titre": "Financial Management Manual for Bank Group Public Sector Operations (04/2014)",
+        "date": "2014-04",
+        "pages": 26,
+        "sha256": "617a2c0cefa7c60176c815a4c0f41b348b64f52482a153b288cc10e603eb61f8",
+        "source": "SRC:bailleur:422"
+      }
+    },
+    {
+      "kind": "document_reference",
+      "code": "BAD-FMG",
+      "label": {
+        "fr": "Lignes directrices de gestion financière des opérations d'investissement (SNFI, 2019)",
+        "en": "Financial Management Guidelines for Investment Operations (SNFI, 2019)"
+      },
+      "contenu": {
+        "note": {
+          "fr": "Document d'orientation de la Banque ; il ne crée pas de droit, qui se trouve dans l'accord de financement.",
+          "en": "Bank guidance document; it creates no legal right, which lies in the financing agreement."
+        },
+        "titre": "Financial Management Guidelines for Investment Operations (2019)",
+        "date": "2019",
+        "pages": 89,
+        "sha256": "09e36e28c27c1a33e8f011a5ecdbc413987dccfeb3315149dc7ddbadcdf07f65",
+        "source": "SRC:bailleur:423"
+      }
+    },
+    {
+      "kind": "document_reference",
+      "code": "BAD-PCR-FORMAT",
+      "label": {
+        "fr": "Format du rapport d'achèvement de projet (approuvé le 03/04/2009)",
+        "en": "Project Completion Report format (approved 03/04/2009)"
+      },
+      "contenu": {
+        "note": {
+          "fr": "Document d'orientation de la Banque ; il ne crée pas de droit, qui se trouve dans l'accord de financement.",
+          "en": "Bank guidance document; it creates no legal right, which lies in the financing agreement."
+        },
+        "titre": "Project Completion Report format (03/04/2009)",
+        "date": "2009-04-03",
+        "pages": 9,
+        "sha256": "698fd0f0e6c3935fd3d3dd5e2a45dacc9acd4879ab8bd0338c0a3807703cbad7",
+        "source": "SRC:bailleur:424"
+      }
+    },
+    {
+      "kind": "nomenclature",
+      "code": "BAD-METHODES-DECAISSEMENT",
+      "label": {
+        "fr": "Méthodes de décaissement de la BAD",
+        "en": "AfDB disbursement methods"
+      },
+      "contenu": {
+        "note": {
+          "fr": "Correspondance avec le vocabulaire de l'application : remboursement = reimbursement ; garantie de remboursement = « special commitment » des conditions générales ; compte spécial = avance (advance) ; paiement direct = direct_payment. Seule la méthode du compte spécial exige l'approbation préalable de la Banque.",
+          "en": "Mapping to the application's vocabulary: reimbursement; reimbursement guarantee = “special commitment” of the general conditions; special account = advance; direct payment. Only the special account method needs the Bank's prior approval."
+        },
+        "parametres": {
+          "correspondance": {
+            "reimbursement": "reimbursement",
+            "reimbursement_guarantee": "special_commitment",
+            "special_account": "advance",
+            "direct_payment": "direct_payment"
+          },
+          "approbation_prealable": [
+            "special_account"
+          ]
+        },
+        "source": "SRC:bailleur:420 (p. 28, 28, 28, 28)",
+        "citations": [
+          {
+            "source": "SRC:bailleur:420",
+            "page": 28,
+            "quote": "The Bank uses four disbursement methods"
+          },
+          {
+            "source": "SRC:bailleur:420",
+            "page": 28,
+            "quote": "Referred to as “special commitment” in the general conditions"
+          },
+          {
+            "source": "SRC:bailleur:420",
+            "page": 28,
+            "quote": "Only the Special Account method requires prior approval from the Bank."
+          },
+          {
+            "source": "SRC:bailleur:420",
+            "page": 28,
+            "quote": "The Borrower must continue to use the same method for all claims under a single contract unless otherwise approved by the Bank."
+          }
+        ]
+      }
+    },
+    {
+      "kind": "nomenclature",
+      "code": "BAD-TYPES-DEMANDE",
+      "label": {
+        "fr": "Types de demande du formulaire A1",
+        "en": "Application types of form A1"
+      },
+      "contenu": {
+        "parametres": {
+          "types": [
+            "reimbursement",
+            "special_account_initial_advance",
+            "special_account_replenishment",
+            "justification_only",
+            "direct_payment"
+          ]
+        },
+        "source": "SRC:bailleur:420 (p. 49, 48, 48, 48)",
+        "citations": [
+          {
+            "source": "SRC:bailleur:420",
+            "page": 49,
+            "quote": "Application Type: Check the applicable type"
+          },
+          {
+            "source": "SRC:bailleur:420",
+            "page": 48,
+            "quote": "Special Account Initial Advance"
+          },
+          {
+            "source": "SRC:bailleur:420",
+            "page": 48,
+            "quote": "Special Account Replenishment"
+          },
+          {
+            "source": "SRC:bailleur:420",
+            "page": 48,
+            "quote": "Justification Only"
+          }
+        ]
+      }
+    },
+    {
+      "kind": "nomenclature",
+      "code": "BAD-DEVISES",
+      "label": {
+        "fr": "Devises des prêts et dons de la BAD",
+        "en": "Currencies of AfDB loans and grants"
+      },
+      "contenu": {
+        "note": {
+          "fr": "Les montants du FAD et du FSN sont libellés en unités de compte (UA) ; la monnaie de décaissement et celle du compte spécial se lisent dans l'accord et la lettre de décaissement.",
+          "en": "ADF and NTF amounts are denominated in units of account (UA); the disbursement currency and the special account currency are read in the agreement and the disbursement letter."
+        },
+        "source": "SRC:bailleur:420 (p. 23, 24, 46)",
+        "citations": [
+          {
+            "source": "SRC:bailleur:420",
+            "page": 23,
+            "quote": "For the ADF and NTF loans/grants are denominated in Units of Account (UA)."
+          },
+          {
+            "source": "SRC:bailleur:420",
+            "page": 24,
+            "quote": "The beneficiary bears any exchange rate risk arising from payments made by the Bank."
+          },
+          {
+            "source": "SRC:bailleur:420",
+            "page": 46,
+            "quote": "Each disbursement request should be for amounts payable in one currency."
+          }
+        ]
+      }
+    },
+    {
+      "kind": "report_family",
+      "code": "BAD-A1",
+      "label": {
+        "fr": "Formulaire A1 — Demande de décaissement",
+        "en": "Form A1 — Disbursement Request"
+      },
+      "contenu": {
+        "note": {
+          "fr": "Le type de demande se coche (remboursement, avance initiale, reconstitution, justification seule, paiement direct) ; la demande porte le numéro à 13 chiffres de l'accord de prêt ou de don.",
+          "en": "The application type is ticked (reimbursement, initial advance, replenishment, justification only, direct payment); the request carries the 13-digit number of the loan or grant agreement."
+        },
+        "source": "SRC:bailleur:420 (p. 49, 49)",
+        "citations": [
+          {
+            "source": "SRC:bailleur:420",
+            "page": 49,
+            "quote": "Insert the 13-digit number as shown in the loan/protocol of agreement"
+          },
+          {
+            "source": "SRC:bailleur:420",
+            "page": 49,
+            "quote": "Request Number: Disbursement requests should be numbered chronologically with a maximum of 4 digits (e.g. 0001, 0002, etc.), regardless of the disbursement method used."
+          }
+        ]
+      },
+      "exigence": {
+        "subject": {
+          "fr": "Formulaire A1 de la BAD — demande de décaissement",
+          "en": "AfDB form A1 — disbursement request"
+        },
+        "rule": {
+          "kind": "report",
+          "template": "BAD_A1"
+        },
+        "obligation": "optional"
+      }
+    },
+    {
+      "kind": "report_family",
+      "code": "BAD-A2",
+      "label": {
+        "fr": "Formulaire A2 — État récapitulatif des dépenses (SOE)",
+        "en": "Form A2 — Summary Statement of Expenditure (SOE)"
+      },
+      "contenu": {
+        "note": {
+          "fr": "Joint au formulaire A1 pour le remboursement, le compte spécial et le paiement direct. Colonnes relevées : paiement antérieur de la Banque, justificatif de paiement, cumul, part de la Banque dans le contrat.",
+          "en": "Attached to form A1 for reimbursement, special account and direct payment. Columns read: amount previously paid by the Bank, evidence of payment, running total, Bank's share of the contract."
+        },
+        "source": "SRC:bailleur:420 (p. 51, 50, 50, 50, 50)",
+        "citations": [
+          {
+            "source": "SRC:bailleur:420",
+            "page": 51,
+            "quote": "Attach Form A2 - «Summary Statement of Expenditure» to Form A1 and use for the Reimbursement of Payments, Special Account, and Direct Payment Methods."
+          },
+          {
+            "source": "SRC:bailleur:420",
+            "page": 50,
+            "quote": "Amount Previously Paid by Bank"
+          },
+          {
+            "source": "SRC:bailleur:420",
+            "page": 50,
+            "quote": "Evidence of Payment"
+          },
+          {
+            "source": "SRC:bailleur:420",
+            "page": 50,
+            "quote": "Running Total"
+          },
+          {
+            "source": "SRC:bailleur:420",
+            "page": 50,
+            "quote": "Banks Share of Contract"
+          }
+        ]
+      },
+      "exigence": {
+        "subject": {
+          "fr": "Formulaire A2 de la BAD — état récapitulatif des dépenses",
+          "en": "AfDB form A2 — summary statement of expenditure"
+        },
+        "rule": {
+          "kind": "report",
+          "template": "BAD_A2"
+        },
+        "obligation": "optional"
+      }
+    },
+    {
+      "kind": "report_family",
+      "code": "BAD-A3",
+      "label": {
+        "fr": "Formulaire A3 — Estimation des activités budgétisées",
+        "en": "Form A3 — Estimated Budgeted Activities"
+      },
+      "contenu": {
+        "note": {
+          "fr": "Joint aux formulaires A1 et A2 sous la méthode du compte spécial : période d'utilisation de l'avance, avance demandée, budget annuel.",
+          "en": "Attached to forms A1 and A2 under the special account method: period for utilization of the advance, advance requested, annual budget."
+        },
+        "source": "SRC:bailleur:420 (p. 53, 52, 52, 52)",
+        "citations": [
+          {
+            "source": "SRC:bailleur:420",
+            "page": 53,
+            "quote": "Attach Form A3, entitled «Estimated Budgeted Activities», should be attached to Form A1 and Form A2 (if applicable) under the Special Account method."
+          },
+          {
+            "source": "SRC:bailleur:420",
+            "page": 52,
+            "quote": "Period for Utilization of Advance"
+          },
+          {
+            "source": "SRC:bailleur:420",
+            "page": 52,
+            "quote": "Advance Requested"
+          },
+          {
+            "source": "SRC:bailleur:420",
+            "page": 52,
+            "quote": "Annual Budget"
+          }
+        ]
+      },
+      "exigence": {
+        "subject": {
+          "fr": "Formulaire A3 de la BAD — estimation des activités budgétisées",
+          "en": "AfDB form A3 — estimated budgeted activities"
+        },
+        "rule": {
+          "kind": "report",
+          "template": "BAD_A3"
+        },
+        "obligation": "optional"
+      }
+    },
+    {
+      "kind": "report_family",
+      "code": "BAD-RECONCILIATION-CS",
+      "label": {
+        "fr": "Réconciliation du compte spécial",
+        "en": "Special Account Reconciliation Statement"
+      },
+      "contenu": {
+        "note": {
+          "fr": "Lignes relevées au modèle de l'annexe : avances versées au compte spécial, dépenses déjà justifiées à la Banque, solde de clôture du compte.",
+          "en": "Lines read in the annex sample: advances disbursed to the special account, expenses previously justified to the Bank, closing balance of the account."
+        },
+        "source": "SRC:bailleur:420 (p. 6, 58, 58, 58)",
+        "citations": [
+          {
+            "source": "SRC:bailleur:420",
+            "page": 6,
+            "quote": "Sample Special Account Reconciliation Statement"
+          },
+          {
+            "source": "SRC:bailleur:420",
+            "page": 58,
+            "quote": "Advances disbursed to the special account"
+          },
+          {
+            "source": "SRC:bailleur:420",
+            "page": 58,
+            "quote": "Expenses previously justified to the Bank"
+          },
+          {
+            "source": "SRC:bailleur:420",
+            "page": 58,
+            "quote": "SA closing balance"
+          }
+        ]
+      },
+      "exigence": {
+        "subject": {
+          "fr": "Réconciliation du compte spécial (modèle de l'annexe du manuel des décaissements)",
+          "en": "Special account reconciliation (disbursement handbook annex sample)"
+        },
+        "rule": {
+          "kind": "report",
+          "template": "BAD_RECONCILIATION_CS"
+        },
+        "obligation": "optional"
+      }
+    },
+    {
+      "kind": "report_family",
+      "code": "BAD-GARANTIE-REMBOURSEMENT",
+      "label": {
+        "fr": "Garantie de remboursement (formulaires B1 et B2)",
+        "en": "Reimbursement guarantee (forms B1 and B2)"
+      },
+      "contenu": {
+        "source": "SRC:bailleur:420 (p. 6, 6)",
+        "citations": [
+          {
+            "source": "SRC:bailleur:420",
+            "page": 6,
+            "quote": "Request for Reimbursement Guarantee"
+          },
+          {
+            "source": "SRC:bailleur:420",
+            "page": 6,
+            "quote": "Reimbursement Guarantee Text"
+          }
+        ]
+      },
+      "exigence": {
+        "subject": {
+          "fr": "Demande et texte de garantie de remboursement de la BAD",
+          "en": "AfDB reimbursement guarantee request and text"
+        },
+        "rule": {
+          "kind": "report",
+          "template": "BAD_GARANTIE"
+        },
+        "obligation": "optional"
+      }
+    },
+    {
+      "kind": "report_family",
+      "code": "BAD-IFR",
+      "label": {
+        "fr": "Rapport financier intermédiaire (IFR) — recommandation trimestrielle",
+        "en": "Interim financial report (IFR) — quarterly recommendation"
+      },
+      "contenu": {
+        "note": {
+          "fr": "Le manuel de 2014 recommande 45 jours après la fin de chaque trimestre civil, avec le rapport d'avancement ; ses lignes directrices antérieures disaient « trois mois ». Le format, le contenu et la périodicité se conviennent à l'évaluation du projet : l'accord du projet prime. Contenu attendu : sources et emplois, écart prévu/réalisé, lien entre avancement financier et physique.",
+          "en": "The 2014 manual recommends 45 days after the end of each calendar quarter, with the progress report; the earlier guidelines said “three months”. Format, content and periodicity are agreed at project appraisal: the project's agreement prevails. Expected content: sources and uses, planned vs actual variance, link between financial and physical progress."
+        },
+        "delai_type": {
+          "fr": "45 jours après la fin de chaque trimestre civil (recommandation du manuel de 2014)",
+          "en": "45 days after the end of each calendar quarter (2014 manual recommendation)"
+        },
+        "source": "SRC:bailleur:422 (p. 11, 11) ; SRC:bailleur:423 (p. 66, 65)",
+        "citations": [
+          {
+            "source": "SRC:bailleur:422",
+            "page": 11,
+            "quote": "no later than 45 days after the end of each calendar quarter, together with the quarterly Progress Report."
+          },
+          {
+            "source": "SRC:bailleur:422",
+            "page": 11,
+            "quote": "Format, type, content and periodicity of financial statements (interim and annual) will be discussed and agreed with the borrower during the appraisal stage."
+          },
+          {
+            "source": "SRC:bailleur:423",
+            "page": 66,
+            "quote": "Review variance between “planned” and “actual” and assess consistency with previous reports"
+          },
+          {
+            "source": "SRC:bailleur:423",
+            "page": 65,
+            "quote": "Does the report give adequate information linking financial and physical progress?"
+          }
+        ]
+      },
+      "exigence": {
+        "subject": {
+          "fr": "Rapport financier intermédiaire (IFR)",
+          "en": "Interim financial report (IFR)"
+        },
+        "rule": {
+          "kind": "report",
+          "template": "IFR"
+        },
+        "obligation": "optional",
+        "periodicity": "quarterly",
+        "due_offset_days": 45
+      }
+    },
+    {
+      "kind": "report_family",
+      "code": "BAD-ETATS-ANNUELS-AUDITES",
+      "label": {
+        "fr": "États financiers annuels audités",
+        "en": "Audited annual financial statements"
+      },
+      "contenu": {
+        "note": {
+          "fr": "Soumis au plus tard six mois après la fin de l'exercice : délai en mois, non converti en jours ici ; le calendrier du projet le fixe.",
+          "en": "Due no later than six months after the end of the financial year: a delay in months, not converted to days here; the project's calendar sets it."
+        },
+        "source": "SRC:bailleur:422 (p. 14) ; SRC:bailleur:420 (p. 41) ; SRC:bailleur:423 (p. 72)",
+        "citations": [
+          {
+            "source": "SRC:bailleur:422",
+            "page": 14,
+            "quote": "Audited financial statements are required to be submitted to the Bank no later than six months, following the end of the fiscal year."
+          },
+          {
+            "source": "SRC:bailleur:420",
+            "page": 41,
+            "quote": "The audit report must be completed and submitted to the Bank within six (6) months of the end of the fiscal year."
+          },
+          {
+            "source": "SRC:bailleur:423",
+            "page": 72,
+            "quote": "The SOE and reconciliation statement of special account will be attached as an annex to the financial statements in the auditor’s report."
+          }
+        ]
+      },
+      "exigence": {
+        "subject": {
+          "fr": "États financiers annuels audités",
+          "en": "Audited annual financial statements"
+        },
+        "rule": {
+          "kind": "report",
+          "template": "BAD_ETATS_ANNUELS"
+        },
+        "obligation": "optional",
+        "periodicity": "annual"
+      }
+    },
+    {
+      "kind": "report_family",
+      "code": "BAD-ETATS-FMM",
+      "label": {
+        "fr": "États financiers prévus par le manuel de gestion financière",
+        "en": "Statements listed in the financial management manual"
+      },
+      "contenu": {
+        "source": "SRC:bailleur:422 (p. 11, 9)",
+        "citations": [
+          {
+            "source": "SRC:bailleur:422",
+            "page": 11,
+            "quote": "Statement of Special Acount, Statement of Expenditures, List of significant Fixed Assets, and Statement of Receipts and Payments"
+          },
+          {
+            "source": "SRC:bailleur:422",
+            "page": 9,
+            "quote": "Accounting standards acceptable to the Bank are IPSAS, IFRS and National or Regional Accounting Standards which substantially comply with the above standards"
+          }
+        ]
+      },
+      "exigence": {
+        "subject": {
+          "fr": "État du compte spécial, état des dépenses, liste des immobilisations et état des recettes et paiements",
+          "en": "Statement of special account, statement of expenditure, fixed assets list, statement of receipts and payments"
+        },
+        "rule": {
+          "kind": "report",
+          "template": "BAD_ETATS_FMM"
+        },
+        "obligation": "optional"
+      }
+    },
+    {
+      "kind": "report_family",
+      "code": "BAD-PLAN-TRESORERIE",
+      "label": {
+        "fr": "Plan de trésorerie annuel",
+        "en": "Annual cash plan"
+      },
+      "contenu": {
+        "source": "SRC:bailleur:422 (p. 8)",
+        "citations": [
+          {
+            "source": "SRC:bailleur:422",
+            "page": 8,
+            "quote": "Annual cash plans must be prepared in advance, and should set out projected monthly cash inflows, cash outflows and borrowing or replenishment requirements."
+          }
+        ]
+      },
+      "exigence": {
+        "subject": {
+          "fr": "Plan de trésorerie annuel (flux mensuels)",
+          "en": "Annual cash plan (monthly flows)"
+        },
+        "rule": {
+          "kind": "report",
+          "template": "BAD_PLAN_TRESORERIE"
+        },
+        "obligation": "optional"
+      }
+    },
+    {
+      "kind": "report_family",
+      "code": "BAD-PCR",
+      "label": {
+        "fr": "Rapport d'achèvement de projet (PCR), sections A à J",
+        "en": "Project Completion Report (PCR), sections A to J"
+      },
+      "contenu": {
+        "note": {
+          "fr": "Sections A à J du format de 2009. La ponctualité est notée : écart de six mois ou moins entre la date de 98 % de décaissement et l'envoi du rapport = 4.",
+          "en": "Sections A to J of the 2009 format. Timeliness is scored: a gap of six months or less between the 98% disbursement date and the sending of the report scores 4."
+        },
+        "source": "SRC:bailleur:424 (p. 2, 3, 4, 5, 6, 7, 8, 8, 9, 9, 8)",
+        "citations": [
+          {
+            "source": "SRC:bailleur:424",
+            "page": 2,
+            "quote": "A. PROJECT DATA AND KEY DATES"
+          },
+          {
+            "source": "SRC:bailleur:424",
+            "page": 3,
+            "quote": "B. PROJECT CONTEXT"
+          },
+          {
+            "source": "SRC:bailleur:424",
+            "page": 4,
+            "quote": "C. PROJECT OBJECTIVES AND LOGICAL FRAMEWORK"
+          },
+          {
+            "source": "SRC:bailleur:424",
+            "page": 5,
+            "quote": "D. OUTPUTS AND OUTCOMES"
+          },
+          {
+            "source": "SRC:bailleur:424",
+            "page": 6,
+            "quote": "E. PROJECT DESIGN AND READINESS FOR IMPLEMENTATION"
+          },
+          {
+            "source": "SRC:bailleur:424",
+            "page": 7,
+            "quote": "F. IMPLEMENTATION"
+          },
+          {
+            "source": "SRC:bailleur:424",
+            "page": 8,
+            "quote": "G. COMPLETION"
+          },
+          {
+            "source": "SRC:bailleur:424",
+            "page": 8,
+            "quote": "H. LESSONS LEARNED"
+          },
+          {
+            "source": "SRC:bailleur:424",
+            "page": 9,
+            "quote": "I. PROJECT RATINGS SUMMARY"
+          },
+          {
+            "source": "SRC:bailleur:424",
+            "page": 9,
+            "quote": "J. PROCESSING"
+          },
+          {
+            "source": "SRC:bailleur:424",
+            "page": 8,
+            "quote": "if the difference is 6 months or less, a 4 is scored. If the difference is 6.1 or more, a 1 is scored"
+          }
+        ]
+      },
+      "exigence": {
+        "subject": {
+          "fr": "Rapport d'achèvement de projet (PCR)",
+          "en": "Project completion report (PCR)"
+        },
+        "rule": {
+          "kind": "report",
+          "template": "BAD_PCR"
+        },
+        "obligation": "optional"
+      }
+    },
+    {
+      "kind": "check",
+      "code": "BAD-CTRL-ELIGIBILITE-DATES",
+      "label": {
+        "fr": "Dates d'éligibilité des dépenses",
+        "en": "Expenditure eligibility dates"
+      },
+      "contenu": {
+        "parametres": {
+          "debut": "signature_ou_date_retroactive_de_la_clause",
+          "fin": "date_de_cloture",
+          "exception_audit_mois_apres_cloture": 6
+        },
+        "source": "SRC:bailleur:420 (p. 22, 22, 22, 23)",
+        "citations": [
+          {
+            "source": "SRC:bailleur:420",
+            "page": 22,
+            "quote": "In general, expenses incurred before the signature of the Legal Agreement are not eligible for financing."
+          },
+          {
+            "source": "SRC:bailleur:420",
+            "page": 22,
+            "quote": "Only expenses incurred from the signature date and, at the latest, the closing date of the related financing agreement, would be considered eligible."
+          },
+          {
+            "source": "SRC:bailleur:420",
+            "page": 22,
+            "quote": "However, on a prior agreement between the Bank and the Borrower, a special clause in the Legal Agreement authorising the financing of certain expenses incurred before the date of signature of the Legal Agreement may be included to facilitate project implementation."
+          },
+          {
+            "source": "SRC:bailleur:420",
+            "page": 23,
+            "quote": "expenditures incurred after the closing date, except for audit-related expenses incurred up to 6 months after the closing date"
+          }
+        ]
+      }
+    },
+    {
+      "kind": "check",
+      "code": "BAD-CTRL-ALLOCATIONS-CATEGORIES",
+      "label": {
+        "fr": "Décaissements dans la limite des allocations par catégorie",
+        "en": "Disbursements within category allocations"
+      },
+      "contenu": {
+        "source": "SRC:bailleur:420 (p. 23, 23, 23)",
+        "citations": [
+          {
+            "source": "SRC:bailleur:420",
+            "page": 23,
+            "quote": "Disbursements are made within the limit of the amounts allocated to each category."
+          },
+          {
+            "source": "SRC:bailleur:420",
+            "page": 23,
+            "quote": "Disbursements may not be made directly from the “unallocated” category of the loan agreement."
+          },
+          {
+            "source": "SRC:bailleur:420",
+            "page": 23,
+            "quote": "the Borrower must obtain the Bank’s prior approval of the revised allocation before incurring further expenditure or submitting a disbursement request under that category."
+          }
+        ]
+      }
+    },
+    {
+      "kind": "check",
+      "code": "BAD-CTRL-MONODEVISE",
+      "label": {
+        "fr": "Une seule devise par demande de décaissement",
+        "en": "One currency per disbursement request"
+      },
+      "contenu": {
+        "source": "SRC:bailleur:420 (p. 46, 25)",
+        "citations": [
+          {
+            "source": "SRC:bailleur:420",
+            "page": 46,
+            "quote": "Each disbursement request should be for amounts payable in one currency."
+          },
+          {
+            "source": "SRC:bailleur:420",
+            "page": 25,
+            "quote": "If the contract is expressed in several currencies, a separate disbursement request is required for each currency of payment."
+          }
+        ]
+      }
+    },
+    {
+      "kind": "check",
+      "code": "BAD-CTRL-NUMEROTATION",
+      "label": {
+        "fr": "Numérotation chronologique des demandes",
+        "en": "Chronological numbering of requests"
+      },
+      "contenu": {
+        "parametres": {
+          "chiffres_max": 4,
+          "suffixe_agence_caracteres": 3,
+          "suffixe_justification_seule": "JUS",
+          "numero_annule_non_reattribue": true,
+          "numerotation_distincte_pret_et_don": true
+        },
+        "source": "SRC:bailleur:420 (p. 49, 25, 49, 25, 25)",
+        "citations": [
+          {
+            "source": "SRC:bailleur:420",
+            "page": 49,
+            "quote": "Request Number: Disbursement requests should be numbered chronologically with a maximum of 4 digits (e.g. 0001, 0002, etc.), regardless of the disbursement method used."
+          },
+          {
+            "source": "SRC:bailleur:420",
+            "page": 25,
+            "quote": "the submissions should be numbered chronologically, with a maximum of 4 digits followed by JUS."
+          },
+          {
+            "source": "SRC:bailleur:420",
+            "page": 49,
+            "quote": "the project coordinator should assign a 3-character alpha identification for each agency"
+          },
+          {
+            "source": "SRC:bailleur:420",
+            "page": 25,
+            "quote": "The identification number accorded to a cancelled disbursement request should be considered cancelled and not attributed to a replacement or subsequent submission."
+          },
+          {
+            "source": "SRC:bailleur:420",
+            "page": 25,
+            "quote": "When a project includes a loan and a grant, each should follow separate chronological numbering of disbursement requests."
+          }
+        ]
+      }
+    },
+    {
+      "kind": "check",
+      "code": "BAD-CTRL-DELAI-DEMANDES",
+      "label": {
+        "fr": "Délai de soumission après la clôture",
+        "en": "Submission deadline after closing"
+      },
+      "contenu": {
+        "parametres": {
+          "mois_apres_cloture": 4,
+          "prolongation_demandee_mois_avant_cloture": 6
+        },
+        "source": "SRC:bailleur:420 (p. 26, 26)",
+        "citations": [
+          {
+            "source": "SRC:bailleur:420",
+            "page": 26,
+            "quote": "The Borrower is granted an additional four months after the closing date to submit disbursement requests and supporting documentation for expenditures incurred on or before the closing date."
+          },
+          {
+            "source": "SRC:bailleur:420",
+            "page": 26,
+            "quote": "the Borrower should submit a formal request for extension to the Bank at least six (6) months before the closing date."
+          }
+        ]
+      }
+    },
+    {
+      "kind": "check",
+      "code": "BAD-CTRL-PIECES-REMBOURSEMENT",
+      "label": {
+        "fr": "Pièces du remboursement",
+        "en": "Reimbursement supporting documents"
+      },
+      "contenu": {
+        "parametres": {
+          "pieces": [
+            "preuve_de_paiement_montant_date_beneficiaire",
+            "attestation_bancaire_du_taux_si_devise_differente"
+          ]
+        },
+        "source": "SRC:bailleur:420 (p. 29, 29)",
+        "citations": [
+          {
+            "source": "SRC:bailleur:420",
+            "page": 29,
+            "quote": "Evidence of payment showing the amount paid, the date of payment and the payee"
+          },
+          {
+            "source": "SRC:bailleur:420",
+            "page": 29,
+            "quote": "A bank attestation stating the exchange rate applied for the operation"
+          }
+        ]
+      }
+    },
+    {
+      "kind": "check",
+      "code": "BAD-CTRL-PAIEMENT-DIRECT",
+      "label": {
+        "fr": "Coordonnées du fournisseur au premier paiement direct",
+        "en": "Supplier account details at first direct payment"
+      },
+      "contenu": {
+        "source": "SRC:bailleur:420 (p. 36)",
+        "citations": [
+          {
+            "source": "SRC:bailleur:420",
+            "page": 36,
+            "quote": "The Borrower must submit full account details of the supplier/contractor with its first request for direct payment."
+          }
+        ]
+      }
+    },
+    {
+      "kind": "check",
+      "code": "BAD-CTRL-METHODE-PAR-CONTRAT",
+      "label": {
+        "fr": "Même méthode pour toutes les demandes d'un contrat",
+        "en": "Same method for all claims under a contract"
+      },
+      "contenu": {
+        "source": "SRC:bailleur:420 (p. 25)",
+        "citations": [
+          {
+            "source": "SRC:bailleur:420",
+            "page": 25,
+            "quote": "Withdrawals against a contract, using one method of disbursement, must continue to use the same method for all subsequent claims under that contract, unless otherwise approved by the Bank."
+          }
+        ]
+      }
+    },
+    {
+      "kind": "check",
+      "code": "BAD-CTRL-COMPTE-SPECIAL-REAPPROVISIONNEMENT",
+      "label": {
+        "fr": "Conditions de reconstitution du compte spécial",
+        "en": "Special account replenishment conditions"
+      },
+      "contenu": {
+        "parametres": {
+          "avance_precedente_justifiee_pct_min": 50,
+          "avances_plus_anciennes_justifiees_pct": 100,
+          "derniere_reconstitution_mois_avant_cloture": 6,
+          "justification_au_moins_tous_les_mois": 6,
+          "remboursement_du_solde_mois_apres_cloture": 4
+        },
+        "source": "SRC:bailleur:420 (p. 45, 33, 33, 33)",
+        "citations": [
+          {
+            "source": "SRC:bailleur:420",
+            "page": 45,
+            "quote": "The Special Account will be replenished on the condition that the Bank has received Statements of Expenditure in respect of at least 50% of the immediately preceding advance and 100% of older advances."
+          },
+          {
+            "source": "SRC:bailleur:420",
+            "page": 33,
+            "quote": "The last replenishment shall generally take place no later than 6 months before the closing date, provided that the immediately preceding advance has been justified up to at least 50 percent and that the other older advances have been fully justified."
+          },
+          {
+            "source": "SRC:bailleur:420",
+            "page": 33,
+            "quote": "Justification should be submitted as often as possible, but at least semi-annually, unless otherwise agreed."
+          },
+          {
+            "source": "SRC:bailleur:420",
+            "page": 33,
+            "quote": "The Borrower must, within 4 months of the closing date, refund to the Bank, in the currency of the Special Account, any unused/unjustified balance."
+          }
+        ]
+      }
+    },
+    {
+      "kind": "check",
+      "code": "BAD-CTRL-COMPTE-SPECIAL-USAGE",
+      "label": {
+        "fr": "Usage du compte spécial",
+        "en": "Special account use"
+      },
+      "contenu": {
+        "source": "SRC:bailleur:420 (p. 32, 32)",
+        "citations": [
+          {
+            "source": "SRC:bailleur:420",
+            "page": 32,
+            "quote": "The account shall be used only for the loan, and shall not receive any counterpart funds or other resources."
+          },
+          {
+            "source": "SRC:bailleur:420",
+            "page": 32,
+            "quote": "The Special Account may neither be used as collateral nor incur overdrafts"
+          }
+        ]
+      }
+    },
+    {
+      "kind": "check",
+      "code": "BAD-CTRL-AUDIT-ANNUEL",
+      "label": {
+        "fr": "Audit annuel et suspension des reconstitutions",
+        "en": "Annual audit and suspension of replenishments"
+      },
+      "contenu": {
+        "parametres": {
+          "remise_du_rapport_mois_apres_exercice": 6
+        },
+        "source": "SRC:bailleur:420 (p. 41, 41)",
+        "citations": [
+          {
+            "source": "SRC:bailleur:420",
+            "page": 41,
+            "quote": "The audit report must be completed and submitted to the Bank within six (6) months of the end of the fiscal year."
+          },
+          {
+            "source": "SRC:bailleur:420",
+            "page": 41,
+            "quote": "the Bank will discontinue the use of statements of expenditure as supporting documentation for disbursements and withhold additional advances to the Special Account until the Borrower provides acceptable audited financial statements."
+          }
+        ]
+      }
+    },
+    {
+      "kind": "check",
+      "code": "BAD-CTRL-SIGNATAIRES",
+      "label": {
+        "fr": "Signataires autorisés avant le premier décaissement",
+        "en": "Authorised signatories before first disbursement"
+      },
+      "contenu": {
+        "source": "SRC:bailleur:420 (p. 22)",
+        "citations": [
+          {
+            "source": "SRC:bailleur:420",
+            "page": 22,
+            "quote": "Before disbursements may commence, the Borrower is required to designate officials authorised to sign disbursement requests and provide to the Bank originals of their specimen signatures."
+          }
+        ]
+      }
+    }
+  ]
+}

@@ -16,7 +16,7 @@ from niveau4_reporting.mapping.resolveur import (
     table_active,
     verifier_exhaustivite,
 )
-from niveau4_reporting.moteur.models import LigneEcriture
+from tests.outils import creer_ligne
 
 pytestmark = pytest.mark.django_db(transaction=True)
 DATE_REFERENCE = datetime.date(2026, 3, 31)
@@ -29,7 +29,14 @@ def _poser_org(org_id):
         cur.execute("SET app.org_id = %s", [str(org_id)])
 
 
-def _table(org_id, *, version=1, status="active", valid_from=datetime.date(2026, 1, 1)):
+def _table(
+    org_id,
+    *,
+    version=1,
+    status="active",
+    valid_from=datetime.date(2026, 1, 1),
+    valid_to=None,
+):
     return TableMapping.objects.create(
         org_id=org_id,
         project_id=PROJECT_ID,
@@ -37,7 +44,7 @@ def _table(org_id, *, version=1, status="active", valid_from=datetime.date(2026,
         code="WB-TER",
         version=version,
         valid_from=valid_from,
-        valid_to=None,
+        valid_to=valid_to,
         status=status,
         validated_by=uuid.uuid4() if status in {"validated", "active"} else None,
         validated_at=timezone.now() if status in {"validated", "active"} else None,
@@ -55,21 +62,16 @@ def _regle(table, priority, match, target_code="R100"):
 
 
 def _ligne(org_id, compte, *, debit="100.0000", dim1="COMP-A"):
-    return LigneEcriture.objects.create(
-        org_id=org_id,
-        project_id=PROJECT_ID,
-        fiscal_year=2026,
-        period=1,
-        accounting_date=datetime.date(2026, 1, 15),
-        compte=compte,
+    return creer_ligne(
+        org_id,
+        compte,
+        2026,
+        1,
         debit=debit,
-        credit="0.0000",
-        dim1=dim1,
         accord="IDA-6789",
         categorie="CAT-1",
         site="SIEGE",
-        devise="DJF",
-        taux="1",
+        dim1=dim1,
     )
 
 
@@ -94,7 +96,7 @@ def test_la_premiere_regle_qui_correspond_gagne(org_a):
 
     with connection.cursor() as cur:
         cur.execute(
-            f"SELECT dim1, {cas} FROM moteur_ligneecriture ORDER BY dim1",
+            f"SELECT dim1, {cas} FROM moteur_ligneecriture WHERE dim1 IS NOT NULL ORDER BY dim1",
             params,
         )
         assert cur.fetchall() == [("COMP-A", "R_PRECIS"), ("COMP-B", "R_GENERAL")]
@@ -113,10 +115,65 @@ def test_la_version_active_est_celle_applicable_a_la_date(org_a):
         table_active(**commun, date_effet=datetime.date(2024, 12, 31))
 
 
+def test_la_fin_de_validite_est_exclue_et_les_versions_se_succedent_sans_trou(org_a):
+    """Intervalle semi-ouvert [valid_from, valid_to[ : guide §B.6.
+
+    V1 couvre toute l'année 2025 (fin = 1er janvier 2026, exclu) ; V2 commence
+    le 1er janvier 2026. Le 1er janvier 2026 appartient à V2 et à elle seule.
+    """
+    _poser_org(org_a)
+    v1 = _table(
+        org_a,
+        version=1,
+        valid_from=datetime.date(2025, 1, 1),
+        valid_to=datetime.date(2026, 1, 1),
+    )
+    v2 = _table(org_a, version=2, valid_from=datetime.date(2026, 1, 1))
+
+    commun = {"code": "WB-TER", "donor_profile_id": DONOR_ID, "project_id": PROJECT_ID}
+    assert table_active(**commun, date_effet=datetime.date(2025, 12, 31)) == v1
+    assert table_active(**commun, date_effet=datetime.date(2026, 1, 1)) == v2
+
+
+def test_une_version_close_nest_plus_applicable_a_sa_date_de_fin(org_a):
+    _poser_org(org_a)
+    table = _table(
+        org_a,
+        valid_from=datetime.date(2025, 1, 1),
+        valid_to=datetime.date(2026, 1, 1),
+    )
+    commun = {"code": "WB-TER", "donor_profile_id": DONOR_ID, "project_id": PROJECT_ID}
+    with pytest.raises(MappingIndisponible):
+        table_active(**commun, date_effet=datetime.date(2026, 1, 1))
+    with pytest.raises(MappingIndisponible):
+        comptes_non_mappes(
+            table,
+            {
+                "project_id": PROJECT_ID,
+                "fiscal_year": 2026,
+                "date_effet": datetime.date(2026, 1, 1),
+            },
+        )
+
+
+def test_un_intervalle_de_validite_vide_est_refuse(org_a):
+    """valid_to == valid_from ne couvre aucun jour : refusé par la base."""
+    from django.db import IntegrityError
+
+    _poser_org(org_a)
+    with pytest.raises(IntegrityError):
+        _table(
+            org_a,
+            valid_from=datetime.date(2026, 1, 1),
+            valid_to=datetime.date(2026, 1, 1),
+        )
+
+
 def test_un_compte_mouvemente_non_couvert_est_nomme(org_a):
     _poser_org(org_a)
     table = _table(org_a)
     _regle(table, 10, {"accounts": [["6000", "6279"]]})
+    _regle(table, 999, {"accounts": [["8999", "8999"]]}, "CONTREPARTIE")
     _ligne(org_a, "6011")
     _ligne(org_a, "6281")
     _ligne(org_a, "9999", debit="0.0000")
@@ -131,6 +188,7 @@ def test_lexhaustivite_tient_compte_des_axes_pas_seulement_du_compte(org_a):
     _poser_org(org_a)
     table = _table(org_a)
     _regle(table, 10, {"accounts": [["6281", "6281"]], "dim1": ["COMP-A"]})
+    _regle(table, 999, {"accounts": [["8999", "8999"]]}, "CONTREPARTIE")
     _ligne(org_a, "6281", dim1="COMP-A")
     _ligne(org_a, "6281", dim1="COMP-B")
 

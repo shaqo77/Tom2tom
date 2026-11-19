@@ -1,0 +1,4 @@
+{
+  "calendrier.deja_traitee": "This deadline has already been handled ({statut})",
+  "calendrier.habilitation_requise": "You are not authorised to “{operation}” on this project"
+}

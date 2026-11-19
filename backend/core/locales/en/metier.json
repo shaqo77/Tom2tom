@@ -1,0 +1,5 @@
+{
+  "metier.habilitation_requise": "The “{operation}” permission is required on this project",
+  "metier.integrite_refusee": "Operation refused by the database: {detail}",
+  "metier.montant_invalide": "Invalid amount for {champ}"
+}

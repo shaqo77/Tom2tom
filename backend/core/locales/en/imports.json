@@ -1,0 +1,11 @@
+{
+  "imports.code_double_fichier_premiere_fois": "code {code} appears twice in the file (first on line {v1})",
+  "imports.code_invalide": "invalid code: {code!r}",
+  "imports.compte_declare_imputable_mais_enfants": "account {code} is declared postable but has children",
+  "imports.correspondance_ete_validee_responsable": "The mapping “{nom}” has not been validated by a manager",
+  "imports.francais_libelle_absent": "French label missing",
+  "imports.parent_existe_deja_imputable_il": "parent {parent} already exists and is postable: it has no children",
+  "imports.parent_introuvable": "parent {parent} not found",
+  "imports.sens_inconnu": "unknown direction: {v1!r}",
+  "imports.valeur_booleenne_inconnue": "unknown boolean value: {valeur!r}"
+}
