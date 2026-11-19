@@ -214,6 +214,34 @@ livrés et ceux déjà installés) et `bibliotheque/installer/` (installation en
   évaluations, décisions et dérogations restent sans API ; les contrôles de risque de la bibliothèque
   s'installent aux seuils par défaut (pas encore paramétrables à l'installation).
 
+### Analyse — D3 : les modèles d'état BAD (A1, A2, A3, réconciliation du compte spécial)
+
+**Décision : aucun modèle n'est livré dans ce lot, et c'est voulu.** Le moteur d'états produit des
+tableaux de MONTANTS agrégés depuis le grand livre ou une source externe déclarée ; il ne produit pas de
+formulaire d'identification ni de liste de pièces. Livrer un modèle qui a l'air d'un formulaire de la
+Banque sans en contenir les rubriques serait inventer. Voici, formulaire par formulaire, ce que les
+documents de la BAD exigent (pages vérifiées du manuel des décaissements, mars 2020), ce qui existe
+et ce qui manque.
+
+| Formulaire | Ce que la BAD y met (citations du profil BAD) | Ce qui existe déjà | Ce qui manque |
+|---|---|---|---|
+| **A1** — demande de décaissement | type de demande (remboursement, avance initiale, reconstitution, justification seule, paiement direct), numéro à 13 chiffres de l'accord, numéro de demande à 4 chiffres chronologique | `DemandeRetrait` : numéro (libre), type (retrait, réapprovisionnement, paiement direct, engagement spécial), accord, période | « avance initiale » et « justification seule » n'existent pas comme types ; le numéro n'est pas contrôlé (voir D2) ; pas de signataires autorisés |
+| **A2** — état récapitulatif des dépenses (SOE) | numéro de demande, montant déjà payé par la Banque, preuve de paiement, cumul, part de la Banque dans le contrat | `etat_certifie` de la demande : dépenses par catégorie, pièce, date, montant, taux, montant à retirer | lien dépense → contrat et fournisseur ; « déjà payé par la Banque » (cumul des demandes précédentes) ; cumul courant |
+| **A3** — activités budgétisées estimées | période d'utilisation de l'avance, avance demandée, budget annuel, date d'approbation | budget par catégorie (L4), date de décision de la demande | période d'utilisation, estimation par activité |
+| **Réconciliation du compte spécial** (annexe 9) | avances versées au compte, solde de clôture, justification jointe, dépenses déjà justifiées à la Banque, écart à expliquer | état du compte désigné : solde de clôture du relevé, avances reçues PAR PÉRIODE | cumul des avances DEPUIS L'OUVERTURE ; notion de « justification soumise à la Banque » par numéro de demande ; la source du moteur refuse tout compte qui n'est pas de type désigné (le compte spécial de la BAD est un autre type) |
+
+**Ce qu'un modèle partiel aurait de trompeur** : avec l'existant on pourrait afficher « avances de la
+période » et « solde de clôture », mais pas le cumul ni les justifications ; le « montant à justifier »
+qui en sortirait serait faux dès que le compte a un solde d'ouverture. On ne l'a pas livré.
+
+**Deux voies, à décider** (aucune n'est commencée) :
+1. **Export au format bailleur d'une demande** : une fonction qui rend `etat_certifie` dans la mise en
+   page A1/A2 de la BAD (Excel), la correspondance des colonnes vivant dans le profil de bailleur (donnée,
+   pas du code). Les formulaires officiels de la BAD (Excel ou Word) sont nécessaires : l'annexe du manuel
+   n'en donne qu'un exemple imprimé.
+2. **Suivi des justifications du compte spécial** : ajouter le cumul des avances depuis l'ouverture et
+   les justifications soumises à la Banque, puis un modèle `BAD_RECONCILIATION_CS` branché sur le moteur.
+
 ### Réalisation — D2 : branchement des contrôles BAD
 
 `niveau2_profils/{services/gabarit.py,api.py,urls.py}`, `bad.json` (champ `branchement` sur les douze
