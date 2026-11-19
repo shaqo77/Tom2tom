@@ -11,9 +11,9 @@ Documents de référence, à lire avant de toucher à l'architecture :
 et registre des exigences, contrôles et rapports, dossier de conformité et accès auditeur, reprise et
 export, marchés et trésorerie, tableau de bord multi-projets et recette d'architecture T1 à T17). Restent
 **L2-T05/T06** (paquets réglementaires : il manque la source du plan comptable) et les chantiers de la
-version 2 du plan, dont **T14** (capture hors ligne), déclaré non livré. Les profils BAD, UE, FIDA, Fonds
-mondial, BID et Nations unies sont des **squelettes sourcés**, sans règle inventée : les remplir demande
-les documents des bailleurs. **L11 est en cours** (`06_PLAN_LOT_L11_MOTEUR_MULTIBAILLEUR.md`, issu d'un
+version 2 du plan, dont **T14** (capture hors ligne), déclaré non livré. Le profil BAD est rempli d'après cinq documents
+de la Banque (citations vérifiables, D1) ; les profils UE, FIDA, Fonds mondial, BID et Nations unies sont
+des **squelettes sourcés**, sans règle inventée : les remplir demande les documents des bailleurs. **L11 est en cours** (`06_PLAN_LOT_L11_MOTEUR_MULTIBAILLEUR.md`, issu d'un
 audit de 58 questions) : le branchement de l'existant (A1 à A6) est fait ; restent l'administration sans
 développeur (phase B), les rapports par bailleur, l'IA. Écarts connus, à ne pas supposer comblés : la
 répartition entre bailleurs se déclenche à la saisie (`"cle"` sur une ligne d'écriture) mais n'a ni API ni

@@ -1,0 +1,4 @@
+{
+  "citations_profil.dossier_introuvable": "Dossier introuvable : {dossier}",
+  "citations_profil.verification_echouee": "Vérification des citations échouée : {echecs} citation(s) introuvable(s), {absentes} non vérifiable(s) faute de document"
+}

@@ -40,7 +40,6 @@ from tests.test_registre_exigences_bd import PAGES, _document, base  # noqa: F40
 
 RACINE = Path(__file__).resolve().parents[2]
 PROFILS = {
-    "bad": "BAD",
     "union_europeenne": "UNION_EUROPEENNE",
     "fida": "FIDA",
     "fonds_mondial": "FONDS_MONDIAL",
@@ -48,7 +47,6 @@ PROFILS = {
     "nations_unies": "NATIONS_UNIES",
 }
 FORMULAIRES = {
-    "bad": {"BAD-A1", "BAD-A2", "BAD-A3"},
     "fida": {"FIDA-100", "FIDA-104", "FIDA-105"},
     "union_europeenne": {"UE-DEVIS-PROGRAMMES", "UE-MEMOIRES"},
     "fonds_mondial": set(),

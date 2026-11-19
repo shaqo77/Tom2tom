@@ -172,6 +172,29 @@ Un administrateur dépose lui-même les documents que les avenants et les exigen
 - Tests : 23 dans `test_api_documents_bd.py`, dont le **parcours complet** (un document déposé par HTTP sert de pièce à un avenant, B2). Mutations détectées (référence de stockage non exposée, chaînage, 200/201, cloisonnement, habilitation de lecture, tri, exigences à revérifier, intégrité en réponse normale, dates, traduction des erreurs) ; une première survivante (la liste des exigences à revérifier, sans exigence dans les tests) a été comblée.
 - **Limites** : le corps d'une requête ne dépasse pas **10 Mo** (`DATA_UPLOAD_MAX_MEMORY_SIZE`), donc un fichier d'environ 7 Mo en base64 : un manuel volumineux demandera un dépôt par morceaux ou par envoi de fichier (multipart), non fait ; pas de téléchargement du fichier (seulement ses métadonnées et son empreinte) ; pas d'écran ; pas de suppression (un document ne se supprime pas, on le remplace) ; les types de document sont ceux du modèle (six) ; CI GitHub toujours en panne.
 
+### Réalisation — D1 : profil BAD d'après les documents de la Banque
+
+Cinq documents de la BAD ont été lus (manuel des décaissements 03/2020, lignes directrices de rapports et
+d'audit non datées, manuel de gestion financière 04/2014, lignes directrices de gestion financière 2019,
+format du PCR 2009). `niveau2_profils/catalogue/bad.json` passe de squelette à **version 2** : 31 éléments
+(documents de référence identifiés par SHA-256, nomenclatures des méthodes/types de demande/devises, dix
+familles d'états, douze contrôles avec leurs paramètres chiffrés), **80 citations** littérales avec page.
+Registre : `SRC:bailleur:420` à `424` (fiabilité F2 : le manuel dit n'être « ni contractuel ni juridique »).
+
+- **Vérifiable** : `manage.py verifier_citations_profil bad --dossier <dossier des PDF>` reconnaît chaque PDF
+  par empreinte et cherche chaque extrait à sa page ; un document absent rend ses citations *non
+  vérifiables* (échec, sauf `--tolerer-absents`). Exécuté sur les cinq PDF fournis : 80 / 80.
+- **Seul délai chiffré livré** : IFR trimestriel, 45 jours (manuel 2014). Les états audités (« six mois ») sont
+  annuels **sans décalage en jours** : un délai en mois n'est pas converti. Toutes les exigences restent
+  `optional` ; l'import ne crée que des exigences proposées (règle 9).
+- **Divergence relevée** : les anciennes lignes directrices disent « trois mois » pour les états intermédiaires,
+  le manuel de 2014 « 45 jours » ; le format se convient à l'évaluation du projet, l'accord prime.
+- **Limites assumées** : les documents ne donnent ni montants, ni taux de financement, ni catégories (propres
+  à l'accord et à la lettre de décaissement) ; ils n'imposent ni FIFO ni méthode de taux de change ; les
+  lignes directrices non datées ont une couche texte dégradée, lues mais jamais citées littéralement ;
+  les contrôles du profil sont des **descriptions paramétrées** : aucun n'est encore branché sur la
+  bibliothèque de contrôles exécutés à la validation. Les modèles d'état (`BAD_A1`…) n'existent pas encore.
+
 ## Phase C — Rapports par bailleur
 
 | Tâche | Contenu | Dépend de |
