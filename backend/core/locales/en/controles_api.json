@@ -1,0 +1,5 @@
+{
+  "controles_api.statut_inconnu": "Unknown control status: “{status}”",
+  "controles_api.type_regle_inconnu": "Unknown rule type: “{type_regle}”",
+  "controles_api.severite_inconnue": "Unknown severity: “{severity}” (bloquant, avertissement or information)"
+}
