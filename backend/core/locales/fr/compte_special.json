@@ -1,0 +1,7 @@
+{
+  "compte_special.compte_non_special": "Le compte {code} n'est pas un compte spécial",
+  "compte_special.deja_justifiee": "La demande {demande} est déjà justifiée pour ce compte",
+  "compte_special.justification_refusee": "Justification refusée : {detail}",
+  "compte_special.annulation_motivee": "Annuler une justification exige un motif",
+  "compte_special.deja_annulee": "Cette justification est déjà annulée"
+}

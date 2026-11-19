@@ -20,7 +20,7 @@ répartition entre bailleurs se déclenche à la saisie (`"cle"` sur une ligne d
 écran de saisie ; les contrôles de la bibliothèque s'exécutent à la **validation d'une écriture**
 (codification, pièces, éligibilité), pas à la génération d'un rapport ; `accounting_basis` n'a qu'un
 effet (un projet en caisse ne crée pas d'engagement, aucune conversion caisse/engagement) ; les taux de
-change s'enregistrent par API (`/api/v1/taux/`) sans écran ; un seul modèle d'état est livré ; aucune IA
+change s'enregistrent par API (`/api/v1/taux/`) sans écran ; deux modèles d'état sont livrés (rapprochement du compte désigné, réconciliation BAD du compte spécial) ; aucune IA
 n'existe. Le code vit dans `core/`, `niveau1_socle/` (organisations, habilitations,
 exercices, référentiels, comptabilité, budget, financements, décaissements, avances, rapprochement,
 marchés, trésorerie), `niveau2_profils/` (bibliothèque de profils de bailleurs), `niveau3_config/` et

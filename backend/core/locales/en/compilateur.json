@@ -4,6 +4,7 @@
   "compilateur.cle_selection_inconnue": "unknown selection key: {v1!r}",
   "compilateur.columns_doit_contenir_moins_colonne": "columns must contain at least one column",
   "compilateur.compte_designe_introuvable": "no designated account “{code}” in this project",
+  "compilateur.compte_special_introuvable": "Account {code} is not a special account of this project",
   "compilateur.element_externe_inconnu": "source {source} does not know item {element}",
   "compilateur.etat_l0_doit_contenir_rubrique": "an L0 statement must contain an aggregate line item",
   "compilateur.exercice_periode_courante_invalide": "invalid fiscal year or current period",
