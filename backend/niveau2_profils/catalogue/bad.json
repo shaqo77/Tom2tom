@@ -756,6 +756,18 @@
             "page": 23,
             "quote": "expenditures incurred after the closing date, except for audit-related expenses incurred up to 6 months after the closing date"
           }
+        ],
+        "branchement": [
+          {
+            "type": "profil_decaissement",
+            "champ": "eligibility_date"
+          },
+          {
+            "type": "controle_bibliotheque",
+            "codes": [
+              "ELIG-PERIODE-ACCORD"
+            ]
+          }
         ]
       }
     },
@@ -784,6 +796,20 @@
             "page": 23,
             "quote": "the Borrower must obtain the Bank’s prior approval of the revised allocation before incurring further expenditure or submitting a disbursement request under that category."
           }
+        ],
+        "branchement": [
+          {
+            "type": "profil_decaissement",
+            "champ": "regles"
+          },
+          {
+            "type": "controle_bibliotheque",
+            "codes": [
+              "BUD-ALLOCATION",
+              "BUD-CATEGORIE",
+              "COD-CATEGORIE"
+            ]
+          }
         ]
       }
     },
@@ -806,6 +832,15 @@
             "source": "SRC:bailleur:420",
             "page": 25,
             "quote": "If the contract is expressed in several currencies, a separate disbursement request is required for each currency of payment."
+          }
+        ],
+        "branchement": [
+          {
+            "type": "non_branche",
+            "raison": {
+              "fr": "Aucun champ de la demande ne porte une devise de paiement distincte de celle de l'accord : la règle n'a rien à contrôler tant que le modèle n'en distingue pas.",
+              "en": "No request field carries a payment currency distinct from the agreement's: the rule has nothing to check until the model distinguishes one."
+            }
           }
         ]
       }
@@ -852,6 +887,15 @@
             "page": 25,
             "quote": "When a project includes a loan and a grant, each should follow separate chronological numbering of disbursement requests."
           }
+        ],
+        "branchement": [
+          {
+            "type": "non_branche",
+            "raison": {
+              "fr": "Le numéro d'une demande est libre (unique par organisation) : le format à 4 chiffres, le suffixe d'agence et le suffixe JUS ne sont pas contrôlés.",
+              "en": "A request number is free-form (unique per organisation): the 4-digit format, agency suffix and JUS suffix are not checked."
+            }
+          }
         ]
       }
     },
@@ -878,6 +922,17 @@
             "source": "SRC:bailleur:420",
             "page": 26,
             "quote": "the Borrower should submit a formal request for extension to the Bank at least six (6) months before the closing date."
+          }
+        ],
+        "branchement": [
+          {
+            "type": "profil_decaissement",
+            "champ": "disbursement_deadline",
+            "derive": {
+              "depuis": "closing_date",
+              "mois": 4,
+              "parametre": "mois_apres_cloture"
+            }
           }
         ]
       }
@@ -908,6 +963,18 @@
             "page": 29,
             "quote": "A bank attestation stating the exchange rate applied for the operation"
           }
+        ],
+        "branchement": [
+          {
+            "type": "profil_decaissement",
+            "champ": "methodes"
+          },
+          {
+            "type": "controle_bibliotheque",
+            "codes": [
+              "PIE-ETAT-CERTIFIE"
+            ]
+          }
         ]
       }
     },
@@ -926,6 +993,15 @@
             "page": 36,
             "quote": "The Borrower must submit full account details of the supplier/contractor with its first request for direct payment."
           }
+        ],
+        "branchement": [
+          {
+            "type": "non_branche",
+            "raison": {
+              "fr": "Les coordonnées du fournisseur ne sont pas rattachées à la première demande de paiement direct.",
+              "en": "Supplier account details are not linked to the first direct payment request."
+            }
+          }
         ]
       }
     },
@@ -943,6 +1019,15 @@
             "source": "SRC:bailleur:420",
             "page": 25,
             "quote": "Withdrawals against a contract, using one method of disbursement, must continue to use the same method for all subsequent claims under that contract, unless otherwise approved by the Bank."
+          }
+        ],
+        "branchement": [
+          {
+            "type": "non_branche",
+            "raison": {
+              "fr": "Une demande n'est pas rattachée à un contrat : la méthode ne peut pas être imposée contrat par contrat (le profil n'autorise que des méthodes par accord).",
+              "en": "A request is not linked to a contract: the method cannot be enforced per contract (the profile only enables methods per agreement)."
+            }
           }
         ]
       }
@@ -984,6 +1069,15 @@
             "page": 33,
             "quote": "The Borrower must, within 4 months of the closing date, refund to the Bank, in the currency of the Special Account, any unused/unjustified balance."
           }
+        ],
+        "branchement": [
+          {
+            "type": "non_branche",
+            "raison": {
+              "fr": "Les seuils de 50 % / 100 % de justification, les 6 mois avant clôture et le remboursement du solde n'ont pas de champ dans le profil de décaissement.",
+              "en": "The 50% / 100% justification thresholds, the 6 months before closing and the balance refund have no field in the disbursement profile."
+            }
+          }
         ]
       }
     },
@@ -1006,6 +1100,15 @@
             "source": "SRC:bailleur:420",
             "page": 32,
             "quote": "The Special Account may neither be used as collateral nor incur overdrafts"
+          }
+        ],
+        "branchement": [
+          {
+            "type": "non_branche",
+            "raison": {
+              "fr": "L'interdiction de fonds de contrepartie, de découvert et de garantie sur le compte spécial n'est pas contrôlée.",
+              "en": "The ban on counterpart funds, overdrafts and collateral on the special account is not checked."
+            }
           }
         ]
       }
@@ -1033,6 +1136,15 @@
             "page": 41,
             "quote": "the Bank will discontinue the use of statements of expenditure as supporting documentation for disbursements and withhold additional advances to the Special Account until the Borrower provides acceptable audited financial statements."
           }
+        ],
+        "branchement": [
+          {
+            "type": "non_branche",
+            "raison": {
+              "fr": "Le délai de six mois après l'exercice s'exprime en mois : il n'est pas converti en échéance (voir l'exigence « états audités », sans décalage en jours) et la suspension des reconstitutions n'est pas appliquée.",
+              "en": "The six-month deadline after the year-end is in months: it is not converted into a due date (see the “audited statements” requirement, no day offset) and the suspension of replenishments is not applied."
+            }
+          }
         ]
       }
     },
@@ -1050,6 +1162,15 @@
             "source": "SRC:bailleur:420",
             "page": 22,
             "quote": "Before disbursements may commence, the Borrower is required to designate officials authorised to sign disbursement requests and provide to the Bank originals of their specimen signatures."
+          }
+        ],
+        "branchement": [
+          {
+            "type": "non_branche",
+            "raison": {
+              "fr": "Les signataires autorisés et leurs spécimens ne sont pas enregistrés.",
+              "en": "Authorised signatories and their specimens are not recorded."
+            }
           }
         ]
       }
