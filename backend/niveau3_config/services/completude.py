@@ -86,7 +86,26 @@ def verifier_completude(profil: ProfilDecaissement) -> Completude:
                     msg("completude.allocations_excessives", total=total, plafond=plafond),
                 )
             )
+        fin_accord = profil.accord.date_fin_eligibilite
         for regle in regles:
+            # L'exception voulue (fin propre) reste VISIBLE : une dépense peut être finançable après
+            # la fin d'éligibilité de l'accord ; la personne qui valide le sait et le justifie.
+            if (
+                regle.fin_propre_a_la_categorie
+                and fin_accord is not None
+                and regle.eligibility_to > fin_accord
+            ):
+                avertit(
+                    Anomalie(
+                        "fin_categorie_apres_accord",
+                        msg(
+                            "completude.fin_categorie_apres_accord",
+                            code=regle.category.code,
+                            fin=regle.eligibility_to,
+                            fin_accord=fin_accord,
+                        ),
+                    )
+                )
             if regle.funding_rate == 1:
                 avertit(
                     Anomalie(

@@ -261,3 +261,27 @@ def test_du_gabarit_au_profil_actif_le_delai_de_la_bad_est_applique(monde):
     verifier_delai(profil, datetime.date(2031, 4, 30))  # le dernier jour : accepté
     with pytest.raises(ProfilViole):
         verifier_delai(profil, datetime.date(2031, 5, 1))  # le lendemain : refusé
+
+
+# --- l'exception d'audit : la règle suggérée par le gabarit (L11-D9) ----------------------------
+
+
+def test_le_gabarit_bad_suggere_la_fin_propre_des_frais_d_audit_six_mois_apres_la_cloture():
+    g = gabarit_decaissement("bad", date_cloture=datetime.date(2030, 12, 31))
+    assert g["regles_suggerees"] == [
+        {
+            "role": "frais_d_audit",
+            "eligibility_to": datetime.date(2031, 6, 30),  # clôture + 6 mois (DH p.23)
+            "fin_propre_a_la_categorie": True,
+        }
+    ]
+    # ce n'est qu'une SUGGESTION : le jalon de décaissement n'est pas touché par la règle d'audit
+    assert g["jalons"]["disbursement_deadline"] == datetime.date(2031, 4, 30)
+    assert "regles" not in g["jalons"]
+
+
+def test_un_profil_sans_exception_ne_suggere_aucune_regle():
+    assert (
+        gabarit_decaissement("fida", date_cloture=datetime.date(2030, 12, 31))["regles_suggerees"]
+        == []
+    )
