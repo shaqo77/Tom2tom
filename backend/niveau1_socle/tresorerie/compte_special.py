@@ -13,6 +13,12 @@ Les avances viennent des encaissements du relevé appariés à une demande (jama
 encaissements »), le solde du relevé, et les justifications de ce que `JustificationCompteSpecial`
 enregistre. Rien n'est estimé : un solde de relevé absent rend la situation INCOMPLÈTE.
 
+La justification de la demande EN COURS (ligne 4) peut porter sur une demande encore préparée : le
+formulaire la joint à la demande qu'il accompagne. Les « dépenses déjà justifiées » (ligne 5) ne
+comptent que des demandes soumises à la Banque : une demande rejetée ou annulée a été refusée, elle
+ne justifie rien (l'écart l'explique alors). Montant par défaut d'une justification : ce que la
+demande retire. Le compte et l'accord ont la MÊME devise : aucune conversion, le refus est net.
+
 Habilitation : `saisir` pour justifier ou annuler.
 """
 
@@ -21,6 +27,7 @@ from dataclasses import dataclass, field
 from decimal import Decimal
 
 from django.db import IntegrityError, transaction
+from django.db.models import Sum
 from django.utils import timezone
 
 from core.audit import journaliser
@@ -28,7 +35,12 @@ from core.erreurs import CodeErreur, ErreurMetier
 from core.i18n import msg
 from core.metier import decimal as nombre_decimal
 from core.metier import habilite, refuser, traduire_integrite
-from niveau1_socle.decaissements.models import DemandeRetrait
+from niveau1_socle.decaissements.models import (
+    DemandeRetrait,
+    EtatLigneDemande,
+    LigneDemande,
+    StatutDemande,
+)
 from niveau1_socle.financements.models import CompteBancaire, TypeCompte
 from niveau1_socle.rapprochement.models import MouvementReleve
 
@@ -36,6 +48,13 @@ from .models import AppariementDemande, JustificationCompteSpecial
 from .services import solde_releve_a
 
 ZERO = Decimal(0)
+# Une demande « soumise à la Banque » : elle compte parmi les dépenses déjà justifiées.
+STATUTS_SOUMIS = (
+    StatutDemande.SOUMISE,
+    StatutDemande.ACCEPTEE,
+    StatutDemande.CONTESTEE,
+    StatutDemande.REMBOURSEE,
+)
 
 
 @dataclass
@@ -48,6 +67,8 @@ class SituationCompteSpecial:
     solde_cloture: Decimal | None = None
     justifie_cette_demande: Decimal = ZERO
     justifie_precedemment: Decimal = ZERO
+    # Le détail demande par demande : (numéro, montant, date, en cours ?, comptée ?)
+    justifications: list = field(default_factory=list)
 
     @property
     def total_avances(self) -> Decimal:
@@ -104,11 +125,32 @@ def calculer_situation(
     for justification in JustificationCompteSpecial.objects.filter(
         compte=compte, annule_at__isnull=True, date_soumission__lte=date
     ).select_related("demande"):
-        if demande_numero is not None and justification.demande.numero == demande_numero:
+        statut = justification.demande.status
+        en_cours = demande_numero is not None and justification.demande.numero == demande_numero
+        comptee = statut in STATUTS_SOUMIS or (en_cours and statut == StatutDemande.PREPAREE)
+        if comptee and en_cours:
             situation.justifie_cette_demande += justification.montant
-        else:
+        elif comptee:
             situation.justifie_precedemment += justification.montant
+        situation.justifications.append(
+            (
+                justification.demande.numero,
+                justification.montant,
+                justification.date_soumission,
+                en_cours,
+                comptee,
+            )
+        )
+    situation.justifications.sort(key=lambda j: (j[2], j[0]))
     return situation
+
+
+def retrait_de_la_demande(demande: DemandeRetrait) -> Decimal:
+    """Ce que la demande retire : la somme de ses lignes vivantes."""
+    total = LigneDemande.objects.filter(demande=demande, etat=EtatLigneDemande.ACTIF).aggregate(
+        t=Sum("montant_a_retirer")
+    )["t"]
+    return total or ZERO
 
 
 def justifier_aupres_de_la_banque(
@@ -116,12 +158,26 @@ def justifier_aupres_de_la_banque(
     utilisateur,
     compte: CompteBancaire,
     demande: DemandeRetrait,
-    montant,
+    montant=None,
     date_soumission: datetime.date | None = None,
 ) -> JustificationCompteSpecial:
-    """Enregistre les dépenses justifiées à la Banque sous une demande, pour un compte spécial."""
+    """Enregistre les dépenses justifiées à la Banque sous une demande, pour un compte spécial.
+
+    Sans `montant`, la justification porte sur TOUT ce que la demande retire : la saisie à la main
+    reste possible (justification partielle), mais ne devient pas la voie ordinaire.
+    """
     habilite(utilisateur, "saisir", compte.project_id)
     _compte_special(compte)
+    if demande.accord.devise_id != compte.devise_id:
+        refuser(
+            "compte_special.devise_differente",
+            compte=compte.devise_id,
+            accord=demande.accord.devise_id,
+        )
+    if montant is None:
+        montant = retrait_de_la_demande(demande)
+        if montant <= 0:
+            refuser("compte_special.demande_sans_ligne", demande=demande.numero)
     montant = nombre_decimal(montant, "montant", signe="positif")
     try:
         with transaction.atomic():

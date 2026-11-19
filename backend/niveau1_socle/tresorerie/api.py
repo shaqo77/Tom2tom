@@ -19,7 +19,7 @@ from core.api import (
     recharge,
     reponse,
 )
-from core.metier import habilite
+from core.metier import habilite, refuser
 from niveau1_socle.decaissements.models import DemandeRetrait
 from niveau1_socle.financements.models import CompteBancaire
 from niveau1_socle.rapprochement.models import MouvementReleve
@@ -33,6 +33,8 @@ from niveau4_reporting.publication.rapports import publier_rapport
 from . import compte_special, services
 from .models import AppariementDemande, JustificationCompteSpecial
 from .releves import importer_releve
+
+NOTE_MAX = 4000  # la note qui explique l'écart de la réconciliation du compte spécial
 
 
 class Disponibilites(VueMetier):
@@ -293,7 +295,7 @@ class ComptesJustificationsBanque(VueMetier):
             utilisateur=requete.user,
             compte=compte,
             demande=objet_ou_404(DemandeRetrait, pk=champ_uuid(d, "demande")),
-            montant=champ_decimal(d, "montant"),
+            montant=champ_decimal(d, "montant", obligatoire=False),
             date_soumission=champ_date(d, "date_soumission", obligatoire=False),
         )
         return reponse(_justification(recharge(justification)), 201)
@@ -330,6 +332,16 @@ class ComptesSituationSpecial(VueMetier):
                 "complet": s.complet,
                 "manques": s.manques,
                 "avances": [{"demande": n, "montant": m} for n, m in s.avances],
+                "justifications": [
+                    {
+                        "demande": n,
+                        "montant": m,
+                        "date_soumission": jour,
+                        "en_cours": en_cours,
+                        "comptee": comptee,
+                    }
+                    for n, m, jour, en_cours, comptee in s.justifications
+                ],
                 "total_avances": s.total_avances,
                 "solde_cloture": s.solde_cloture,
                 "justifie_cette_demande": s.justifie_cette_demande,
@@ -357,6 +369,13 @@ class ComptesRapportSpecial(VueMetier):
         demande = champ_texte(d, "demande", obligatoire=False)
         if demande:
             params["demande"] = demande
+        # L'écart s'explique dans une NOTE (renvoi v de l'annexe 9) : gardée avec le rapport publié,
+        # donc scellée avec lui ; elle n'entre dans aucun calcul.
+        note = champ_texte(d, "note_ecart", obligatoire=False)
+        if note:
+            if len(note) > NOTE_MAX:
+                refuser("compte_special.note_trop_longue", maximum=NOTE_MAX)
+            params["note_ecart"] = note
         publie = publier_rapport(
             utilisateur=requete.user,
             project_id=compte.project_id,
