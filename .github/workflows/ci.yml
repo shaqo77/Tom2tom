@@ -1,9 +1,24 @@
 name: CI
-on: [push, pull_request]
+on:
+  # Une seule exécution par changement : la PR, puis `main` après fusion. Un push sur une branche
+  # qui a une PR ne relance donc plus la même suite une seconde fois.
+  push:
+    branches: [main]
+  pull_request:
+
+concurrency:
+  # Un nouveau push sur la même PR annule l'exécution devenue inutile.
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
 
 jobs:
-  backend:
+  tests-backend:
+    name: tests backend (${{ matrix.groupe }}/6)
     runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        groupe: [1, 2, 3, 4, 5, 6]
     services:
       postgres:
         image: postgres:16
@@ -40,14 +55,51 @@ jobs:
                 ALTER DEFAULT PRIVILEGES FOR ROLE sigf_owner IN SCHEMA public
                   GRANT USAGE, SELECT ON SEQUENCES TO sigf_app;"
       - name: Style
+        if: matrix.groupe == 1
         working-directory: backend
         run: ./.venv/bin/ruff check . && ./.venv/bin/ruff format --check .
       - name: Migrations
+        if: matrix.groupe == 1
         working-directory: backend
         run: ./.venv/bin/python manage.py migrate --settings=config.settings.migrate
-      - name: Tests
+      - name: Tests (groupe ${{ matrix.groupe }} sur 6)
         working-directory: backend
-        run: ./.venv/bin/pytest -q --cov=. --cov-report=term-missing
+        env:
+          COVERAGE_FILE: .coverage.${{ matrix.groupe }}
+        run: |
+          fichiers=$(python3 ci/repartir_tests.py ${{ matrix.groupe }} 6)
+          ./.venv/bin/pytest -q --cov=. $fichiers
+      - uses: actions/upload-artifact@v4
+        with:
+          name: couverture-${{ matrix.groupe }}
+          path: backend/.coverage.${{ matrix.groupe }}
+          include-hidden-files: true
+
+  # Le contrôle `backend` garde son nom : c'est lui que la protection de `main` attend.
+  backend:
+    needs: tests-backend
+    if: always()
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v3
+      - uses: actions/download-artifact@v4
+        if: needs.tests-backend.result == 'success'
+        with:
+          pattern: couverture-*
+          path: backend/couvertures
+          merge-multiple: true
+      - name: Couverture cumulée
+        if: needs.tests-backend.result == 'success'
+        working-directory: backend
+        run: |
+          uv venv --python 3.12 .venv && uv pip install coverage
+          ./.venv/bin/coverage combine couvertures/.coverage.*
+          ./.venv/bin/coverage report --skip-covered | tail -5
+      - name: Résultat des groupes
+        run: |
+          echo "tests-backend : ${{ needs.tests-backend.result }}"
+          test "${{ needs.tests-backend.result }}" = "success"
 
   frontend:
     runs-on: ubuntu-latest
