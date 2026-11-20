@@ -16,7 +16,11 @@ from django.db import IntegrityError, connection, transaction
 from rest_framework.exceptions import PermissionDenied
 
 from core.erreurs import CodeErreur, ErreurMetier
-from niveau1_socle.decaissements.services import accepter_demande
+from niveau1_socle.decaissements.services import (
+    accepter_demande,
+    annuler_demande,
+    rejeter_demande,
+)
 from niveau1_socle.financements.services import creer_compte_bancaire
 from niveau1_socle.habilitations.models import Habilitation, Role
 from niveau1_socle.tresorerie.compte_special import (
@@ -195,16 +199,6 @@ def test_une_demande_ne_se_justifie_qu_une_fois_tant_que_la_premiere_n_est_pas_a
     with pytest.raises(ErreurMetier, match="déjà justifiée"):
         _justifier(special, "100")
     assert JustificationCompteSpecial.objects.count() == 1
-
-
-def test_seule_une_demande_soumise_se_justifie(special):
-    organisation, projet, profils, accord, compte, _ = special
-    ligne = _depense(organisation, projet, accord, special_cat(special), 100, jour=14, mois=2)
-    preparee = _preparer(profils, accord, [ligne])
-    with pytest.raises(ErreurMetier, match="Seule une demande soumise"):
-        justifier_aupres_de_la_banque(
-            utilisateur=profils["amina"], compte=compte, demande=preparee, montant="10"
-        )
 
 
 def special_cat(special):
@@ -416,3 +410,121 @@ def test_la_base_refuse_un_montant_nul_ou_negatif_et_une_annulation_sans_motif(s
             JustificationCompteSpecial.objects.filter(pk=j.pk).update(
                 annule_at=datetime.datetime.now(datetime.UTC)
             )
+
+
+# --- les limites levées par D5 -----------------------------------------------------------------
+
+
+def _demande_a_part(special, *, jour=14, soumise=True):
+    """Une seconde demande de 100, préparée ou soumise (jamais acceptée)."""
+    organisation, projet, profils, accord, _, _ = special
+    from niveau1_socle.financements.models import Categorie
+
+    biens = Categorie.objects.get(accord=accord, code="BIENS")  # SERV est déjà au plafond
+    ligne = _depense(organisation, projet, accord, biens, 100, jour=jour, mois=2)
+    preparee = _preparer(profils, accord, [ligne])
+    return _soumettre(preparee, profils) if soumise else preparee
+
+
+def test_sans_montant_la_justification_porte_sur_tout_ce_que_la_demande_retire(special):
+    _, _, profils, _, compte, demande = special
+    j = justifier_aupres_de_la_banque(
+        utilisateur=profils["amina"], compte=compte, demande=demande, date_soumission=J(2026, 3, 20)
+    )
+    assert j.montant == D("300")  # la demande acceptée retire 300
+    assert calculer_situation(compte, FIN, demande.numero).justifie_cette_demande == D("300")
+
+
+def test_la_saisie_a_la_main_reste_possible_pour_une_justification_partielle(special):
+    assert _justifier(special, "120").montant == D("120")
+
+
+def test_une_demande_annulee_ne_retire_rien_et_le_defaut_est_refuse(special):
+    _, _, profils, _, compte, _ = special
+    annulee = _demande_a_part(special, soumise=False)
+    annuler_demande(annulee, utilisateur=profils["amina"], motif="erreur de période")
+    with pytest.raises(ErreurMetier, match="ne retire rien"):
+        justifier_aupres_de_la_banque(utilisateur=profils["amina"], compte=compte, demande=annulee)
+
+
+def test_une_demande_annulee_ne_se_justifie_pas_meme_avec_un_montant(special):
+    _, _, profils, _, compte, _ = special
+    annulee = _demande_a_part(special, soumise=False)
+    annuler_demande(annulee, utilisateur=profils["amina"], motif="erreur de période")
+    with pytest.raises(ErreurMetier, match="rejetée ou annulée ne se justifie pas"):
+        justifier_aupres_de_la_banque(
+            utilisateur=profils["amina"], compte=compte, demande=annulee, montant="10"
+        )
+    assert JustificationCompteSpecial.objects.count() == 0
+
+
+def test_la_justification_de_la_demande_en_cours_peut_porter_sur_une_demande_preparee(special):
+    _, _, profils, _, compte, _ = special
+    preparee = _demande_a_part(special, soumise=False)
+    assert preparee.status == "preparee"
+    justifier_aupres_de_la_banque(
+        utilisateur=profils["amina"], compte=compte, demande=preparee, montant="100",
+        date_soumission=J(2026, 3, 20),
+    )  # fmt: skip
+    en_cours = calculer_situation(compte, FIN, preparee.numero)
+    assert (en_cours.justifie_cette_demande, en_cours.justifie_precedemment) == (D("100"), 0)
+    assert en_cours.justifications == [(preparee.numero, D("100"), J(2026, 3, 20), True, True)]
+
+
+def test_une_demande_preparee_ne_compte_pas_parmi_les_depenses_deja_justifiees(special):
+    """La ligne 5 ne compte que ce qui a été soumis à la Banque : une demande encore préparée, quand
+    elle n'est pas désignée comme la demande en cours, ne justifie rien pour l'instant."""
+    _, _, profils, _, compte, demande = special
+    preparee = _demande_a_part(special, soumise=False)
+    justifier_aupres_de_la_banque(
+        utilisateur=profils["amina"], compte=compte, demande=preparee, montant="100",
+        date_soumission=J(2026, 3, 20),
+    )  # fmt: skip
+    s = calculer_situation(compte, FIN, demande.numero)  # une AUTRE demande est en cours
+    assert (s.justifie_cette_demande, s.justifie_precedemment) == (0, 0)
+    assert s.justifications == [(preparee.numero, D("100"), J(2026, 3, 20), False, False)]
+
+
+def test_une_demande_rejetee_apres_coup_ne_justifie_plus_rien(special):
+    _, _, profils, _, compte, demande = special
+    soumise = _demande_a_part(special)
+    justifier_aupres_de_la_banque(
+        utilisateur=profils["amina"], compte=compte, demande=soumise, montant="100",
+        date_soumission=J(2026, 3, 20),
+    )  # fmt: skip
+    avant = calculer_situation(compte, FIN, demande.numero)
+    assert avant.justifie_precedemment == D("100") and avant.justifications[0][4] is True
+    rejeter_demande(soumise, utilisateur=profils["bruno"], motif="dépenses non éligibles")
+    apres = calculer_situation(compte, FIN, demande.numero)
+    assert apres.justifie_precedemment == 0  # la Banque l'a refusée : l'écart l'explique
+    assert apres.ecart == avant.ecart + D("100")
+    assert apres.justifications[0][4] is False  # toujours listée, marquée « non comptée »
+
+
+def test_le_detail_est_trie_par_date_puis_par_numero(special):
+    _, _, profils, _, compte, demande = special
+    autre = _demande_a_part(special)
+    justifier_aupres_de_la_banque(
+        utilisateur=profils["amina"], compte=compte, demande=autre, montant="50",
+        date_soumission=J(2026, 3, 5),
+    )  # fmt: skip
+    _justifier(special, "200", date_soumission=J(2026, 3, 20))
+    detail = calculer_situation(compte, FIN).justifications
+    assert [(d[0], d[2]) for d in detail] == [
+        (autre.numero, J(2026, 3, 5)),
+        (demande.numero, J(2026, 3, 20)),
+    ]
+
+
+def test_un_compte_et_un_accord_de_devises_differentes_sont_refuses_sans_conversion(special):
+    from niveau1_socle.financements.models import CompteBancaire
+
+    _, _, profils, _, compte, demande = special
+    CompteBancaire.objects.filter(pk=compte.pk).update(devise_id="USD")
+    compte.refresh_from_db()
+    with pytest.raises(ErreurMetier, match=r"aucune conversion n'est faite"):  # le service, d'abord
+        _justifier(special, "100")
+    with pytest.raises(IntegrityError, match="même devise"):  # et la base, sans le service
+        with transaction.atomic():
+            _directement(special, compte=compte)
+    assert JustificationCompteSpecial.objects.count() == 0

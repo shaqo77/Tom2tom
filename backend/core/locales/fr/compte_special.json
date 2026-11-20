@@ -1,7 +1,10 @@
 {
-  "compte_special.compte_non_special": "Le compte {code} n'est pas un compte spécial",
-  "compte_special.deja_justifiee": "La demande {demande} est déjà justifiée pour ce compte",
-  "compte_special.justification_refusee": "Justification refusée : {detail}",
   "compte_special.annulation_motivee": "Annuler une justification exige un motif",
-  "compte_special.deja_annulee": "Cette justification est déjà annulée"
+  "compte_special.compte_non_special": "Le compte {code} n'est pas un compte spécial",
+  "compte_special.deja_annulee": "Cette justification est déjà annulée",
+  "compte_special.deja_justifiee": "La demande {demande} est déjà justifiée pour ce compte",
+  "compte_special.demande_sans_ligne": "La demande {demande} ne retire rien : indiquez le montant justifié",
+  "compte_special.devise_differente": "Le compte ({compte}) et l'accord de la demande ({accord}) n'ont pas la même devise : aucune conversion n'est faite",
+  "compte_special.justification_refusee": "Justification refusée : {detail}",
+  "compte_special.note_trop_longue": "La note d'écart dépasse {maximum} caractères"
 }

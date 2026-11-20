@@ -13,7 +13,7 @@ from django.db import connection
 
 from niveau1_socle.tresorerie.models import JustificationCompteSpecial
 from tests.test_api_marches_bd import appeler
-from tests.test_compte_special_bd import FIN, special  # noqa: F401
+from tests.test_compte_special_bd import FIN, _demande_a_part, special  # noqa: F401
 from tests.test_cycle_ecriture_bd import decor  # noqa: F401
 from tests.test_demandes_retrait_bd import drf  # noqa: F401
 from tests.test_financements_bd import cadre  # noqa: F401
@@ -230,3 +230,93 @@ def test_sans_habilitation_aucune_lecture_n_est_permise(special):
         cur.execute("SET app.org_id = %s", [str(organisation.id)])
     for fin in ("justifications-banque/", "situation-compte-special/?date=2026-03-31"):
         assert appeler(inconnu, "get", _chemin(compte, fin)).status_code == 403, fin
+
+
+def test_le_montant_est_facultatif_et_vaut_alors_tout_ce_que_la_demande_retire(special):
+    _, _, profils, _, compte, demande = special
+    r = appeler(
+        profils["amina"],
+        "post",
+        _chemin(compte, "justifications-banque/"),
+        {"demande": str(demande.id), "date_soumission": "2026-03-20"},
+    )
+    assert r.status_code == 201, r.content
+    assert Decimal(r.json()["montant"]) == Decimal("300")
+
+
+def test_la_situation_detaille_les_justifications_demande_par_demande(special):
+    _, _, profils, _, compte, demande = special
+    _poster(special, "200")
+    r = appeler(
+        profils["amina"],
+        "get",
+        _chemin(
+            compte, f"situation-compte-special/?date={FIN.isoformat()}&demande={demande.numero}"
+        ),
+    )
+    detail = r.json()["justifications"]
+    assert len(detail) == 1
+    assert (detail[0]["demande"], detail[0]["date_soumission"]) == (demande.numero, "2026-03-20")
+    assert (Decimal(detail[0]["montant"]), detail[0]["en_cours"], detail[0]["comptee"]) == (
+        Decimal("200"),
+        True,
+        True,
+    )
+
+
+def test_la_note_d_ecart_est_gardee_et_scellee_avec_le_rapport(special):
+    _, _, profils, _, compte, demande = special
+    _poster(special, "150")
+    chemin = _chemin(compte, "rapport-compte-special/")
+    base = {"date_fin": FIN.isoformat(), "demande": demande.numero}
+    sans = appeler(profils["pia"], "post", chemin, base).json()
+    avec = appeler(
+        profils["pia"], "post", chemin, base | {"note_ecart": "Intérêts créditeurs du mois"}
+    )
+    assert avec.status_code == 201, avec.content
+    from niveau4_reporting.publication.models import RapportPublie
+
+    with connection.cursor() as cur:
+        cur.execute("SET app.org_id = %s", [str(special[0].id)])
+    rapport = RapportPublie.objects.get(pk=avec.json()["id"])
+    assert rapport.params["note_ecart"] == "Intérêts créditeurs du mois"
+    assert "note_ecart" not in RapportPublie.objects.get(pk=sans["id"]).params
+    assert avec.json()["scelle"] != sans["scelle"]  # la note fait partie de ce qui est scellé
+    assert avec.json()["valeurs"]["R700/PER"] == "50"  # la note n'entre dans aucun calcul
+
+
+def test_une_note_trop_longue_est_refusee(special):
+    _, _, profils, _, compte, _ = special
+    r = appeler(
+        profils["pia"], "post", _chemin(compte, "rapport-compte-special/"),
+        {"date_fin": FIN.isoformat(), "note_ecart": "x" * 4001},
+    )  # fmt: skip
+    assert r.status_code == 422 and "dépasse 4000" in r.json()["message"]
+
+
+def test_le_detail_marque_non_comptee_une_justification_qui_ne_compte_pas_encore(special):
+    """Une demande encore préparée, qui n'est pas la demande en cours, ne justifie rien : elle reste
+    listée, marquée « non comptée », pour que l'écart s'explique."""
+    _, _, profils, _, compte, demande = special
+    preparee = _demande_a_part(special, soumise=False)
+    r = appeler(
+        profils["amina"],
+        "post",
+        _chemin(compte, "justifications-banque/"),
+        {"demande": str(preparee.id), "montant": "100", "date_soumission": "2026-03-20"},
+    )
+    assert r.status_code == 201, r.content
+    situation = appeler(
+        profils["amina"],
+        "get",
+        _chemin(
+            compte, f"situation-compte-special/?date={FIN.isoformat()}&demande={demande.numero}"
+        ),
+    ).json()
+    (ligne,) = situation["justifications"]
+    assert (ligne["demande"], ligne["en_cours"], ligne["comptee"]) == (
+        preparee.numero,
+        False,
+        False,
+    )
+    assert Decimal(situation["justifie_precedemment"]) == 0

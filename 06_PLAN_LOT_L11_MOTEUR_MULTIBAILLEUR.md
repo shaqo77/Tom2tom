@@ -270,6 +270,32 @@ qui en sortirait serait faux dès que le compte a un solde d'ouverture. On ne l'
 - **Mutations** : quinze mutations (service, déclencheurs de la base, source, API) détectées ; une seule
   équivalente, l'habilitation `publier` de l'API que le service de publication impose déjà.
 
+### Réalisation — D5a : limites de D4 levées
+
+`niveau1_socle/tresorerie/{compte_special.py,api.py}`, migration 0004, tests ajoutés à
+`tests/test_compte_special_bd.py` (43) et `tests/test_api_compte_special_bd.py` (21). Cinq limites de D4 :
+
+- **Justification « saisie à la main »** : sans montant, la justification porte sur tout ce que la demande
+  retire (`retrait_de_la_demande`). La saisie reste possible pour une justification PARTIELLE. Une demande
+  qui ne retire rien (annulée) refuse le défaut.
+- **« La demande en cours doit être soumise »** : la justification de la demande en cours (ligne 4) peut
+  maintenant porter sur une demande encore PRÉPARÉE, comme le formulaire qui l'accompagne. La ligne 5 ne
+  compte que des demandes soumises à la Banque ; une demande préparée non désignée, rejetée ou annulée
+  reste LISTÉE dans le détail, marquée « non comptée », et l'écart l'explique. Rejeter une demande déjà
+  justifiée la retire du total.
+- **Détail demande par demande** : `situation-compte-special` rend la liste des justifications
+  (demande, montant, date, en cours ?, comptée ?) ; c'est le détail des lignes 4 et 5 du formulaire
+  imprimé, que le modèle d'état (des montants agrégés) ne peut pas porter.
+- **Note qui explique l'écart** : `rapport-compte-special` accepte `note_ecart` (4 000 caractères au plus),
+  gardée avec le rapport publié et donc SCELLÉE avec lui (la note change le sceau) ; elle n'entre dans
+  aucun calcul.
+- **Conversion de devise** : le compte et l'accord de la demande doivent avoir la MÊME devise, au service
+  (message qui nomme les deux devises) et à la base (déclencheur). Aucune conversion n'est tentée : une
+  conversion exigerait de choisir un taux, et le manuel n'en impose aucun.
+- **Mutations** : onze mutations (service, déclencheur, API) détectées ; deux gardes de la base ont été
+  éprouvées par une mutation sémantique, pas seulement par l'échec de la migration.
+- **Reste** : le modèle d'état lui-même ne rend toujours que des montants agrégés (voir D4).
+
 ### Réalisation — D2 : branchement des contrôles BAD
 
 `niveau2_profils/{services/gabarit.py,api.py,urls.py}`, `bad.json` (champ `branchement` sur les douze
