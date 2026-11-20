@@ -195,6 +195,31 @@ Un administrateur dépose lui-même les documents que les avenants et les exigen
   individuellement (on rejette ou on recrée) ; `exigence` ne se désigne que par code, version validée ou
   active la plus récente ; les pièces exigées et les méthodes restent des ensembles fermés (migration).
 
+### Réalisation — D2 : branchement des contrôles BAD
+
+`niveau2_profils/{services/gabarit.py,api.py,urls.py}`, `bad.json` (champ `branchement` sur les douze
+contrôles), `tests/test_branchement_controles_bad_bd.py` (21 tests). Le profil BAD dit désormais, pour
+chaque règle de contrôle, COMMENT elle est appliquée :
+
+- **Quatre règles sont appliquées** par ce qui existe : dates d'éligibilité (jalon `eligibility_date` du
+  profil de décaissement + contrôle `ELIG-PERIODE-ACCORD`), allocations par catégorie (règles du profil +
+  `BUD-ALLOCATION`, `BUD-CATEGORIE`, `COD-CATEGORIE`), délai de soumission (`disbursement_deadline`,
+  contrôlé à la préparation d'une demande), pièces du remboursement (méthodes du profil +
+  `PIE-ETAT-CERTIFIE`).
+- **Huit règles ne sont appliquées par rien**, et le disent avec leur raison (bilingue) : une seule devise
+  par demande, numérotation (4 chiffres, suffixes), coordonnées du paiement direct, même méthode par
+  contrat, conditions de reconstitution du compte spécial (50 % / 100 %, 6 mois), usage du compte
+  spécial, audit annuel (un délai en mois), signataires. Cause commune : le modèle n'a pas le champ
+  (une demande ne porte ni devise ni contrat ; son numéro est libre).
+- **Gabarit** : `GET /projets/<p>/profils-bailleurs/<nom>/gabarit-decaissement/?date_cloture=…` calcule ce
+  que le profil énonce — pour la BAD, `disbursement_deadline` = clôture + 4 mois (dernier jour du mois si
+  besoin) —, liste les contrôles de la bibliothèque et les règles non branchées, et nomme ce qui reste à
+  décider (régime, catégories, taux, comptes, pièces). Il ne crée rien ; l'administrateur soumet le corps
+  à l'API de B4. Un test déroule gabarit → profil actif → demande acceptée le dernier jour, refusée le lendemain.
+- **Limites assumées** : aucun contrôle de la bibliothèque n'est ajouté ni activé (règle 9) ; l'exception
+  « dépenses d'audit jusqu'à 6 mois après la clôture » n'est pas modélisée ; le gabarit dérive un seul
+  jalon ; les profils squelettes n'ont aucun branchement.
+
 ### Réalisation — D1 : profil BAD d'après les documents de la Banque
 
 Cinq documents de la BAD ont été lus (manuel des décaissements 03/2020, lignes directrices de rapports et
