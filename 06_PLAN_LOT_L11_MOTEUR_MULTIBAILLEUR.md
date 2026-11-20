@@ -296,6 +296,24 @@ qui en sortirait serait faux dès que le compte a un solde d'ouverture. On ne l'
   éprouvées par une mutation sémantique, pas seulement par l'échec de la migration.
 - **Reste** : le modèle d'état lui-même ne rend toujours que des montants agrégés (voir D4).
 
+### Réalisation — D6 : documents, dépôt jusqu'à 50 Mio et téléchargement vérifié
+
+`niveau3_config/{api.py,urls.py}`, `tests/test_api_documents_fichiers_bd.py` (16). Deux limites de B3 :
+
+- **« Corps ≤ 10 Mo »** : le dépôt (et le remplacement) accepte désormais un envoi MULTIPART (champs `kind`,
+  `title`, `version`, `issued_on` et le fichier `fichier`) jusqu'à la taille maximale du service, 50 Mio ;
+  le JSON en base64 reste possible (environ 7 Mo). Même fichier par l'un ou l'autre : même document
+  (idempotent d'un mode à l'autre). Au-delà de 50 Mio : refus net en 422.
+- **« Pas de téléchargement »** : `GET …/documents/<id>/contenu/`. L'empreinte est vérifiée AVANT de servir ;
+  un fichier altéré ou disparu n'est jamais servi (409 `DOCUMENT_ALTERE`, constat journalisé et non annulé).
+  Le fichier est toujours une PIÈCE JOINTE (`attachment`, `nosniff`, `CSP: sandbox`, empreinte en
+  `Digest`) : un document déposé reste une donnée non fiable. Son type vient de ses octets (PDF reconnu à
+  sa signature), jamais de ce qu'il prétend être ; son nom est nettoyé (aucun `/`, guillemet ni saut de
+  ligne). Chaque téléchargement est journalisé.
+- **Limites assumées** : le fichier est lu en mémoire (jusqu'à 50 Mio) ; pas de reprise de transfert ni de
+  téléversement par morceaux ; un reverse proxy placé devant l'application doit lui-même autoriser
+  50 Mio.
+
 ### Réalisation — D2 : branchement des contrôles BAD
 
 `niveau2_profils/{services/gabarit.py,api.py,urls.py}`, `bad.json` (champ `branchement` sur les douze
