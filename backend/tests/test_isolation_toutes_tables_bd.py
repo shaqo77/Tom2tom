@@ -64,6 +64,7 @@ from niveau1_socle.reprise.models import (
 from niveau1_socle.reversibilite.models import ExportOrganisation
 from niveau1_socle.tresorerie.models import (
     AppariementDemande,
+    JustificationCompteSpecial,
     JustificationEcart,
     PrevisionTresorerie,
     SoldeReleve,
@@ -291,6 +292,25 @@ def _peupler(organisation, projet, profils, accord, categories):
     (encaissement,) = importer_mouvements(
         utilisateur=claire, compte=compte, mouvements=[_mouvement(compte, "R2", "20")]
     )[0]
+    compte_special = creer_compte_bancaire(
+        utilisateur=dora,
+        project_id=projet.id,
+        code="CS",
+        type="special",
+        devise="DJF",
+        banque="BCD",
+        numero="DJ-0000-2",
+        accord=accord,
+    )
+    JustificationCompteSpecial.objects.create(
+        org_id=organisation.id,
+        compte=compte_special,
+        demande=demande,
+        project_id=projet.id,
+        montant="1",
+        date_soumission=DEBUT,
+        saisie_par=amina.id,
+    )
     AppariementDemande.objects.create(
         org_id=organisation.id,
         mouvement=encaissement,

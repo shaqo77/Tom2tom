@@ -1,0 +1,50 @@
+{
+  "code": "BAD_RECONCILIATION_CS",
+  "version": 1,
+  "columns": [
+    {
+      "code": "PER",
+      "period": "year_to_date"
+    }
+  ],
+  "rows": [
+    {
+      "code": "H100",
+      "type": "heading"
+    },
+    {
+      "code": "R200",
+      "item": "avances_versees",
+      "type": "external",
+      "source": "compte_special"
+    },
+    {
+      "code": "R300",
+      "item": "solde_cloture",
+      "type": "external",
+      "source": "compte_special"
+    },
+    {
+      "code": "R400",
+      "item": "justifie_cette_demande",
+      "type": "external",
+      "source": "compte_special"
+    },
+    {
+      "code": "R500",
+      "item": "justifie_precedemment",
+      "type": "external",
+      "source": "compte_special"
+    },
+    {
+      "code": "R600",
+      "type": "computed",
+      "formula": "R300 + R400 + R500"
+    },
+    {
+      "code": "R700",
+      "type": "computed",
+      "formula": "R200 - R600"
+    }
+  ]
+}

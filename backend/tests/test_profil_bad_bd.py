@@ -239,3 +239,13 @@ def test_importer_le_profil_bad_ne_produit_que_des_propositions(base):
     assert (ifr.periodicity, ifr.due_offset_days, ifr.obligation) == ("quarterly", 45, "optional")
     annuel = Exigence.objects.get(code="BAD-ETATS-ANNUELS-AUDITES")
     assert (annuel.periodicity, annuel.due_offset_days) == ("annual", None)
+
+
+def test_la_reconciliation_du_compte_special_renvoie_a_un_modele_livre_de_meme_code():
+    from niveau4_reporting.modeles_etats import lire_modele_livre, modeles_livres
+
+    element = _elements()["BAD-RECONCILIATION-CS"]
+    nom = element["contenu"]["modele_livre"]
+    assert nom in modeles_livres()
+    assert lire_modele_livre(nom)["code"] == element["exigence"]["rule"]["template"]
+    assert set(element["contenu"]["couverture"]) == {"fr", "en"}

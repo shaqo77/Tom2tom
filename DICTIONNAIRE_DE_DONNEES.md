@@ -3,7 +3,7 @@
 Généré depuis les modèles (`python manage.py generer_dictionnaire`). Ne le modifiez pas
 à la main : un test échoue si ce fichier n'est plus celui que les modèles produisent.
 
-100 tables. « Isolée » : la table porte `org_id` et sa politique de
+101 tables. « Isolée » : la table porte `org_id` et sa politique de
 sécurité par ligne (RLS). Les contraintes nommées sont contrôlées par la base.
 
 ## Index
@@ -105,6 +105,7 @@ sécurité par ligne (RLS). Les contraintes nommées sont contrôlées par la ba
 - [`reprise_reprise`](#reprise_reprise) — reprise.Reprise
 - [`reversibilite_exportorganisation`](#reversibilite_exportorganisation) — reversibilite.ExportOrganisation
 - [`tresorerie_appariementdemande`](#tresorerie_appariementdemande) — tresorerie.AppariementDemande
+- [`tresorerie_justificationcomptespecial`](#tresorerie_justificationcomptespecial) — tresorerie.JustificationCompteSpecial
 - [`tresorerie_justificationecart`](#tresorerie_justificationecart) — tresorerie.JustificationEcart
 - [`tresorerie_previsiontresorerie`](#tresorerie_previsiontresorerie) — tresorerie.PrevisionTresorerie
 - [`tresorerie_soldereleve`](#tresorerie_soldereleve) — tresorerie.SoldeReleve
@@ -2463,6 +2464,32 @@ Un encaissement du relevé apparié à une demande de retrait. Voir L9-T05.
 | `motif_annulation` | text | non |  |  | — |
 
 Contraintes : `appariement_annulation_coherente` (verification), `uq_appariement_un_mouvement_une_demande` (unicite)
+
+## tresorerie_justificationcomptespecial
+
+Modèle `tresorerie.JustificationCompteSpecial` — isolée par organisation.
+
+Des dépenses justifiées à la Banque sous une demande, pour un compte spécial. Voir L11-D4.
+
+| Colonne | Type | Null | Clé | Relation | Description |
+|---|---|---|---|---|---|
+| `id` | uuid | non | PK |  | Identifiant unique (UUID) de la ligne. |
+| `created_at` | timestamp with time zone | non |  |  | Date et heure de création de la ligne. |
+| `created_by` | uuid | oui |  |  | Identifiant de l'utilisateur qui a créé la ligne. |
+| `updated_at` | timestamp with time zone | non |  |  | Date et heure de la dernière modification. |
+| `updated_by` | uuid | oui |  |  | Identifiant de l'utilisateur qui l'a modifiée en dernier. |
+| `org_id` | uuid | non |  |  | Organisation propriétaire : l'isolation des données repose dessus (RLS). |
+| `compte_id` | uuid | non |  | `financements_comptebancaire.id` | — |
+| `demande_id` | uuid | non |  | `decaissements_demanderetrait.id` | — |
+| `project_id` | uuid | non |  |  | Projet auquel la ligne se rattache (cloisonné par habilitation). |
+| `montant` | numeric(20, 4) | non |  |  | — |
+| `date_soumission` | date | non |  |  | — |
+| `saisie_par` | uuid | non |  |  | — |
+| `annule_at` | timestamp with time zone | oui |  |  | — |
+| `annule_par` | uuid | oui |  |  | — |
+| `motif_annulation` | text | non |  |  | — |
+
+Contraintes : `justifcs_annulation_coherente` (verification), `justifcs_montant_positif` (verification), `uq_justifcs_une_par_demande` (unicite)
 
 ## tresorerie_justificationecart
 

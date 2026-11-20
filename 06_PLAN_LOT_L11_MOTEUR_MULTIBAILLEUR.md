@@ -228,7 +228,7 @@ et ce qui manque.
 | **A1** — demande de décaissement | type de demande (remboursement, avance initiale, reconstitution, justification seule, paiement direct), numéro à 13 chiffres de l'accord, numéro de demande à 4 chiffres chronologique | `DemandeRetrait` : numéro (libre), type (retrait, réapprovisionnement, paiement direct, engagement spécial), accord, période | « avance initiale » et « justification seule » n'existent pas comme types ; le numéro n'est pas contrôlé (voir D2) ; pas de signataires autorisés |
 | **A2** — état récapitulatif des dépenses (SOE) | numéro de demande, montant déjà payé par la Banque, preuve de paiement, cumul, part de la Banque dans le contrat | `etat_certifie` de la demande : dépenses par catégorie, pièce, date, montant, taux, montant à retirer | lien dépense → contrat et fournisseur ; « déjà payé par la Banque » (cumul des demandes précédentes) ; cumul courant |
 | **A3** — activités budgétisées estimées | période d'utilisation de l'avance, avance demandée, budget annuel, date d'approbation | budget par catégorie (L4), date de décision de la demande | période d'utilisation, estimation par activité |
-| **Réconciliation du compte spécial** (annexe 9) | avances versées au compte, solde de clôture, justification jointe, dépenses déjà justifiées à la Banque, écart à expliquer | état du compte désigné : solde de clôture du relevé, avances reçues PAR PÉRIODE | cumul des avances DEPUIS L'OUVERTURE ; notion de « justification soumise à la Banque » par numéro de demande ; la source du moteur refuse tout compte qui n'est pas de type désigné (le compte spécial de la BAD est un autre type) |
+| **Réconciliation du compte spécial** (annexe 9) — **livrée par D4** | avances versées au compte, solde de clôture, justification jointe, dépenses déjà justifiées à la Banque, écart à expliquer | état du compte désigné : solde de clôture du relevé, avances reçues PAR PÉRIODE | cumul des avances DEPUIS L'OUVERTURE ; notion de « justification soumise à la Banque » par numéro de demande ; la source du moteur refuse tout compte qui n'est pas de type désigné (le compte spécial de la BAD est un autre type) |
 
 **Ce qu'un modèle partiel aurait de trompeur** : avec l'existant on pourrait afficher « avances de la
 période » et « solde de clôture », mais pas le cumul ni les justifications ; le « montant à justifier »
@@ -241,6 +241,34 @@ qui en sortirait serait faux dès que le compte a un solde d'ouverture. On ne l'
    n'en donne qu'un exemple imprimé.
 2. **Suivi des justifications du compte spécial** : ajouter le cumul des avances depuis l'ouverture et
    les justifications soumises à la Banque, puis un modèle `BAD_RECONCILIATION_CS` branché sur le moteur.
+
+### Réalisation — D4 : suivi des justifications du compte spécial et réconciliation BAD
+
+`niveau1_socle/tresorerie/{models.py,compte_special.py,api.py,urls.py}` (+ migration 0003),
+`niveau4_reporting/moteur/source_compte_special.py`, modèle `BAD_RECONCILIATION_CS`
+(`catalogue_modeles/bad_reconciliation_compte_special.json`), `tests/test_compte_special_bd.py` (35) et
+`tests/test_api_compte_special_bd.py` (17). Ce que D3 listait comme manquant est maintenant là :
+
+- **`JustificationCompteSpecial`** : « dépenses justifiées à la Banque sous la demande n° X », pour un
+  compte de type SPÉCIAL. Ajout seul ; seule l'annulation (une fois, motivée) change une ligne. La base
+  vérifie : compte spécial, même projet, même accord que le compte, demande SOUMISE à la Banque, jamais
+  plus que ce que la demande retire, une seule justification vivante par demande.
+- **Situation à une date** : avances cumulées DEPUIS L'OUVERTURE (seuls les encaissements appariés à une
+  demande, appariements annulés exclus), solde du relevé, justification de la demande en cours (ligne 4)
+  séparée des justifications précédentes (ligne 5). Un solde de relevé absent rend la situation
+  INCOMPLÈTE : aucun écart n'est inventé.
+- **Modèle d'état `BAD_RECONCILIATION_CS`** (lignes 2 à 7 de l'annexe 9, en montants) sur la source
+  externe `compte_special`, publiable, scellé et régénérable comme les autres. L'écart n'est pas une
+  assertion bloquante : le manuel demande de l'expliquer dans une note, pas de le rendre nul.
+- **API** : `comptes/<id>/justifications-banque/` (liste, création), `justifications-banque/<id>/annulation/`,
+  `comptes/<id>/situation-compte-special/?date=&demande=`, `comptes/<id>/rapport-compte-special/`.
+- **Limites assumées** : le modèle d'état ne rend que des montants — pas le détail demande par demande
+  du formulaire imprimé, ni la note d'explication de l'écart ; la justification est une SAISIE (elle
+  n'est pas déduite automatiquement des lignes de la demande) ; une demande ne peut être justifiée
+  qu'une fois soumise, donc la « demande en cours » doit l'être avant l'état ; la devise du compte est
+  celle de la demande (aucune conversion) ; A1, A2 et A3 restent non livrés (voir D3).
+- **Mutations** : quinze mutations (service, déclencheurs de la base, source, API) détectées ; une seule
+  équivalente, l'habilitation `publier` de l'API que le service de publication impose déjà.
 
 ### Réalisation — D2 : branchement des contrôles BAD
 

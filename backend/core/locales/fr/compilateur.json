@@ -4,6 +4,7 @@
   "compilateur.cle_selection_inconnue": "clé de sélection inconnue : {v1!r}",
   "compilateur.columns_doit_contenir_moins_colonne": "columns doit contenir au moins une colonne",
   "compilateur.compte_designe_introuvable": "aucun compte désigné « {code} » dans ce projet",
+  "compilateur.compte_special_introuvable": "Le compte {code} n'est pas un compte spécial de ce projet",
   "compilateur.element_externe_inconnu": "la source {source} ne connaît pas l'élément {element}",
   "compilateur.etat_l0_doit_contenir_rubrique": "un état L0 doit contenir une rubrique aggregate",
   "compilateur.exercice_periode_courante_invalide": "exercice ou période courante invalide",
