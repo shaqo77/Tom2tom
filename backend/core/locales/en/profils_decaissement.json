@@ -1,0 +1,23 @@
+{
+  "profils_decaissement.vous_etes_habilite_projet": "You are not authorised to “{operation}” on this project",
+  "profils_decaissement.exigence_inconnue": "No validated or active requirement with code “{code}” in this project",
+  "profils_decaissement.categorie_inconnue": "Unknown category in this agreement: “{code}”",
+  "profils_decaissement.compte_inconnu": "Unknown bank account in this project: “{code}”",
+  "profils_decaissement.methode_inconnue": "Unknown disbursement method: “{methode}”",
+  "profils_decaissement.piece_inconnue": "Unknown required document: “{piece}”",
+  "profils_decaissement.assiette_inconnue": "Unknown tax basis: “{assiette}”",
+  "profils_decaissement.devise_inconnue": "Unknown currency: “{devise}”",
+  "profils_decaissement.plafond_genre_inconnu": "Unknown ceiling kind: “{genre}” (fixed or variable)",
+  "profils_decaissement.regime_inconnu": "Unknown disbursement regime: “{regime}”",
+  "profils_decaissement.jalon_inconnu": "Unknown milestone: “{jalon}”",
+  "profils_decaissement.categorie_sans_regle": "Category “{code}” has no rule in this profile",
+  "profils_decaissement.categorie_en_double": "A category can have only one rule per profile",
+  "profils_decaissement.methode_en_double": "A method can appear only once per profile",
+  "profils_decaissement.compte_en_double": "An account can appear only once per profile",
+  "profils_decaissement.taux_hors_bornes": "The funding rate must be greater than 0 and at most 1",
+  "profils_decaissement.deux_minimums": "A method has a minimum amount OR a percentage of the ceiling, not both",
+  "profils_decaissement.pourcentage_hors_bornes": "A percentage must be between 0 and 1",
+  "profils_decaissement.plafond_incoherent": "A fixed ceiling carries an amount; a variable ceiling carries none",
+  "profils_decaissement.eligibilite_incoherente": "A category's eligibility start must not be after its end",
+  "profils_decaissement.dates_incoherentes": "The profile's dates are out of order (effectiveness, eligibility, closing, disbursement deadline)"
+}

@@ -6,18 +6,38 @@ La référence de stockage est INTERNE : elle n'est jamais rendue, seule l'empre
 Lecture et intégrité : habilitation `consulter` ; dépôt et remplacement : `parametrer`.
 """
 
+from django.db import IntegrityError
+
 from core.api import (
     VueMetier,
     champ_date,
+    champ_decimal,
     champ_octets,
     champ_texte,
     corps,
     objet_ou_404,
+    parametre_entier,
+    recharge,
     reponse,
 )
-from core.metier import habilite
+from core.metier import decimal as decimal_exact
+from core.metier import habilite, refuser, traduire_integrite
+from niveau1_socle.financements.models import Accord
+from niveau1_socle.referentiels.models import Devise
 
-from .models import DocumentReference
+from .models import (
+    PIECES_EXIGEES,
+    AssietteTaxes,
+    DocumentReference,
+    MethodeDecaissementCode,
+    PlafondCompte,
+    ProfilDecaissement,
+    RegimeDecaissement,
+    StatutProfil,
+)
+from .services.activation import activer_profil, rejeter_profil, valider_profil
+from .services.comparaison import comparer_versions
+from .services.completude import verifier_completude
 from .services.documents import (
     IntegriteDocument,
     enregistrer_document,
@@ -25,6 +45,8 @@ from .services.documents import (
     remplacer_document,
     verifier_integrite,
 )
+from .services.profils_decaissement import JALONS, creer_profil_decaissement
+from .services.versions import DATES_MODIFIABLES, nouvelle_version
 
 
 def _document(d: DocumentReference) -> dict:
@@ -103,3 +125,343 @@ class DocumentIntegrite(VueMetier):
         except IntegriteDocument as probleme:
             return reponse({"integre": False, "probleme": str(probleme)})
         return reponse({"integre": True, "probleme": None})
+
+
+# --- profils de décaissement -------------------------------------------------------------------
+#
+# Un profil se construit en brouillon, se valide (complétude), puis s'active à sa date d'effet ; un
+# profil actif ne se modifie pas : on crée une NOUVELLE version. Lecture : `consulter` ; création,
+# activation, nouvelle version : `parametrer` ; validation et rejet : `valider`.
+
+
+def _accord_du_projet(project_id, accord_id) -> Accord:
+    return objet_ou_404(Accord, pk=accord_id, project_id=project_id)
+
+
+def _profil_de_l_accord(project_id, accord_id, profil_id) -> ProfilDecaissement:
+    return objet_ou_404(
+        ProfilDecaissement, pk=profil_id, accord_id=accord_id, project_id=project_id
+    )
+
+
+def _methode(m) -> dict:
+    return {
+        "method": m.method,
+        "is_enabled": m.is_enabled,
+        "supporting_docs": sorted(m.supporting_docs),
+        "full_doc_threshold": m.full_doc_threshold,
+        "min_application_amount": m.min_application_amount,
+        "min_application_pct_of_ceiling": m.min_application_pct_of_ceiling,
+    }
+
+
+def _regle(r) -> dict:
+    return {
+        "category": r.category.code,
+        "allocation": r.allocation,
+        "funding_rate": r.funding_rate,
+        "tax_basis": r.tax_basis,
+        "eligibility_from": r.eligibility_from,
+        "eligibility_to": r.eligibility_to,
+        "requires_prior_review": r.requires_prior_review,
+        "max_per_contract": r.max_per_contract,
+    }
+
+
+def _compte(c) -> dict:
+    return {
+        "compte": c.bank_account.code,
+        "devise": c.currency_id,
+        "ceiling_kind": c.ceiling_kind,
+        "ceiling_amount": c.ceiling_amount,
+        "replenishment_threshold_pct": c.replenishment_threshold_pct,
+    }
+
+
+def _profil(p: ProfilDecaissement, *, detail: bool = False) -> dict:
+    sortie = {
+        "id": p.id,
+        "accord": p.accord.numero,
+        "version": p.version,
+        "status": p.status,
+        "valid_from": p.valid_from,
+        "valid_to": p.valid_to,
+        "regime": p.regime,
+        "exigence": p.requirement.code if p.requirement_id else None,
+        "rejection_reason": p.rejection_reason,
+        **{j: getattr(p, j) for j in JALONS},
+    }
+    if detail:
+        sortie["methodes"] = [_methode(m) for m in p.methodes.order_by("method")]
+        sortie["regles"] = [
+            _regle(r) for r in p.regles.select_related("category").order_by("category__code")
+        ]
+        sortie["comptes"] = [
+            _compte(c)
+            for c in p.comptes.select_related("bank_account").order_by("bank_account__code")
+        ]
+        if p.status == StatutProfil.BROUILLON:
+            c = verifier_completude(p)
+            sortie["completude"] = {
+                "complet": c.complet,
+                "bloquantes": [{"code": a.code, "message": str(a.message)} for a in c.bloquantes],
+                "avertissements": [
+                    {"code": a.code, "message": str(a.message)} for a in c.avertissements
+                ],
+            }
+    return sortie
+
+
+def _liste(donnees: dict, nom: str, *, obligatoire: bool = True) -> list[dict]:
+    valeur = donnees.get(nom)
+    if valeur is None and not obligatoire:
+        return []
+    if not isinstance(valeur, list) or not valeur or not all(isinstance(x, dict) for x in valeur):
+        refuser("api.champ_invalide", champ=nom, attendu="liste d'objets non vide")
+    return valeur
+
+
+def _optionnel(d: dict, nom: str):
+    brut = d.get(nom)
+    if brut in (None, ""):
+        return None
+    champ_decimal(d, nom)  # refuse un flottant et un type illisible
+    return decimal_exact(brut, nom, signe="positif_ou_nul")
+
+
+def _booleen(d: dict, nom: str, defaut: bool) -> bool:
+    valeur = d.get(nom, defaut)
+    if not isinstance(valeur, bool):
+        refuser("api.champ_invalide", champ=nom, attendu="booléen")
+    return valeur
+
+
+def _methodes(d: dict) -> list[dict]:
+    sortie = []
+    for m in _liste(d, "methodes"):
+        code = champ_texte(m, "method")
+        if code not in MethodeDecaissementCode.values:
+            refuser("profils_decaissement.methode_inconnue", methode=code)
+        pieces = m.get("supporting_docs", [])
+        if not isinstance(pieces, list) or not all(isinstance(x, str) for x in pieces):
+            refuser("api.champ_invalide", champ="supporting_docs", attendu="liste de textes")
+        for piece in pieces:
+            if piece not in PIECES_EXIGEES:
+                refuser("profils_decaissement.piece_inconnue", piece=piece)
+        sortie.append(
+            {
+                "method": code,
+                "is_enabled": _booleen(m, "is_enabled", True),
+                "supporting_docs": pieces,
+                "full_doc_threshold": _optionnel(m, "full_doc_threshold"),
+                "min_application_amount": _optionnel(m, "min_application_amount"),
+                "min_application_pct_of_ceiling": _optionnel(m, "min_application_pct_of_ceiling"),
+            }
+        )
+    return sortie
+
+
+def _regles(d: dict) -> list[dict]:
+    sortie = []
+    for r in _liste(d, "regles"):
+        assiette = champ_texte(r, "tax_basis")
+        if assiette not in AssietteTaxes.values:
+            refuser("profils_decaissement.assiette_inconnue", assiette=assiette)
+        champ_decimal(r, "allocation")
+        champ_decimal(r, "funding_rate")
+        sortie.append(
+            {
+                "category": champ_texte(r, "category"),
+                "allocation": decimal_exact(r["allocation"], "allocation", signe="positif_ou_nul"),
+                "funding_rate": decimal_exact(r["funding_rate"], "funding_rate", signe="positif"),
+                "tax_basis": assiette,
+                "eligibility_from": champ_date(r, "eligibility_from", obligatoire=False),
+                "eligibility_to": champ_date(r, "eligibility_to", obligatoire=False),
+                "requires_prior_review": _booleen(r, "requires_prior_review", False),
+                "max_per_contract": _optionnel(r, "max_per_contract"),
+            }
+        )
+    return sortie
+
+
+def _comptes(d: dict) -> list[dict]:
+    sortie = []
+    for c in _liste(d, "comptes", obligatoire=False):
+        devise = champ_texte(c, "devise")
+        if not Devise.objects.filter(pk=devise).exists():
+            refuser("profils_decaissement.devise_inconnue", devise=devise)
+        genre = champ_texte(c, "ceiling_kind")
+        if genre not in PlafondCompte.values:
+            refuser("profils_decaissement.plafond_genre_inconnu", genre=genre)
+        sortie.append(
+            {
+                "compte": champ_texte(c, "compte"),
+                "currency_id": devise,
+                "ceiling_kind": genre,
+                "ceiling_amount": _optionnel(c, "ceiling_amount"),
+                "replenishment_threshold_pct": _optionnel(c, "replenishment_threshold_pct"),
+            }
+        )
+    return sortie
+
+
+def _traduire_profil(erreur: IntegrityError):
+    """Chaque contrainte de la base devient un refus métier précis (jamais une erreur brute)."""
+    connues = {
+        "uq_regle_categorie": ("profils_decaissement.categorie_en_double", {}),
+        "uq_methode_par_profil": ("profils_decaissement.methode_en_double", {}),
+        "uq_regle_compte": ("profils_decaissement.compte_en_double", {}),
+        "regle_taux_dans_0_1": ("profils_decaissement.taux_hors_bornes", {}),
+        "methode_un_seul_minimum": ("profils_decaissement.deux_minimums", {}),
+        "methode_pourcentage_borne": ("profils_decaissement.pourcentage_hors_bornes", {}),
+        "regle_compte_seuil_borne": ("profils_decaissement.pourcentage_hors_bornes", {}),
+        "regle_compte_plafond_coherent": ("profils_decaissement.plafond_incoherent", {}),
+        "regle_eligibilite_coherente": ("profils_decaissement.eligibilite_incoherente", {}),
+        "profil_dates_coherentes": ("profils_decaissement.dates_incoherentes", {}),
+    } | {f"profil_jalons_{i}": ("profils_decaissement.dates_incoherentes", {}) for i in range(4)}
+    return traduire_integrite(erreur, connues)
+
+
+class ProfilsDecaissement(VueMetier):
+    def get(self, requete, project_id, accord_id):
+        habilite(requete.user, "consulter", project_id)
+        accord = _accord_du_projet(project_id, accord_id)
+        profils = ProfilDecaissement.objects.filter(accord=accord).select_related(
+            "accord", "requirement"
+        )
+        return reponse([_profil(p) for p in profils.order_by("version")])
+
+    def post(self, requete, project_id, accord_id):
+        accord = _accord_du_projet(project_id, accord_id)
+        d = corps(requete)
+        regime = champ_texte(d, "regime")
+        if regime not in RegimeDecaissement.values:
+            refuser("profils_decaissement.regime_inconnu", regime=regime)
+        jalons = {j: champ_date(d, j, obligatoire=False) for j in JALONS}
+        try:
+            profil = creer_profil_decaissement(
+                utilisateur=requete.user,
+                accord=accord,
+                valid_from=champ_date(d, "valid_from"),
+                regime=regime,
+                jalons=jalons,
+                methodes=_methodes(d),
+                regles=_regles(d),
+                comptes=_comptes(d),
+                exigence=champ_texte(d, "exigence", obligatoire=False),
+            )
+        except IntegrityError as erreur:
+            raise _traduire_profil(erreur) from erreur
+        return reponse(_profil(recharge(profil), detail=True), 201)
+
+
+class ProfilDecaissementDetail(VueMetier):
+    def get(self, requete, project_id, accord_id, profil_id):
+        habilite(requete.user, "consulter", project_id)
+        return reponse(_profil(_profil_de_l_accord(project_id, accord_id, profil_id), detail=True))
+
+
+class ProfilValider(VueMetier):
+    def post(self, requete, project_id, accord_id, profil_id):
+        profil = _profil_de_l_accord(project_id, accord_id, profil_id)
+        d = corps(requete)
+        justifications = d.get("justifications", {})
+        if not isinstance(justifications, dict) or not all(
+            isinstance(v, str) for v in justifications.values()
+        ):
+            refuser("api.champ_invalide", champ="justifications", attendu="objet de textes")
+        profil = valider_profil(
+            utilisateur=requete.user, profil=profil, justifications=justifications
+        )
+        return reponse(_profil(recharge(profil), detail=True))
+
+
+class ProfilActiver(VueMetier):
+    def post(self, requete, project_id, accord_id, profil_id):
+        profil = _profil_de_l_accord(project_id, accord_id, profil_id)
+        profil = activer_profil(utilisateur=requete.user, profil=profil)
+        return reponse(_profil(recharge(profil), detail=True))
+
+
+class ProfilRejeter(VueMetier):
+    def post(self, requete, project_id, accord_id, profil_id):
+        profil = _profil_de_l_accord(project_id, accord_id, profil_id)
+        motif = champ_texte(corps(requete), "motif", obligatoire=False, defaut="")
+        profil = rejeter_profil(utilisateur=requete.user, profil=profil, motif=motif)
+        return reponse(_profil(recharge(profil), detail=True))
+
+
+class ProfilNouvelleVersion(VueMetier):
+    """Une copie brouillon du profil, à effet de `valid_from`, avec des allocations ou des jalons
+    changés : `allocations` = `{code de catégorie: montant}`, `dates` = jalons à remplacer."""
+
+    def post(self, requete, project_id, accord_id, profil_id):
+        habilite(requete.user, "parametrer", project_id)
+        base = _profil_de_l_accord(project_id, accord_id, profil_id)
+        d = corps(requete)
+        allocations_brutes = d.get("allocations", {})
+        dates_brutes = d.get("dates", {})
+        if not isinstance(allocations_brutes, dict) or not isinstance(dates_brutes, dict):
+            refuser("api.champ_invalide", champ="allocations", attendu="objet")
+        par_code = {r.category.code: r.category_id for r in base.regles.select_related("category")}
+        allocations = {}
+        for code, montant in allocations_brutes.items():
+            if code not in par_code:
+                refuser("profils_decaissement.categorie_sans_regle", code=code)
+            champ_decimal({"montant": montant}, "montant")
+            allocations[par_code[code]] = decimal_exact(montant, code, signe="positif_ou_nul")
+        dates = {}
+        for nom, valeur in dates_brutes.items():
+            if nom not in DATES_MODIFIABLES:
+                refuser("profils_decaissement.jalon_inconnu", jalon=nom)
+            dates[nom] = champ_date({nom: valeur}, nom)
+        try:
+            nouveau = nouvelle_version(
+                base,
+                valid_from=champ_date(d, "valid_from"),
+                utilisateur=requete.user,
+                allocations=allocations,
+                dates=dates,
+            )
+        except IntegrityError as erreur:
+            raise _traduire_profil(erreur) from erreur
+        return reponse(_profil(recharge(nouveau), detail=True), 201)
+
+
+class ProfilComparaison(VueMetier):
+    """Ce qui a changé entre deux versions du profil d'un même accord (`?avec=` + numéro)."""
+
+    def get(self, requete, project_id, accord_id, profil_id):
+        habilite(requete.user, "consulter", project_id)
+        a = _profil_de_l_accord(project_id, accord_id, profil_id)
+        version = parametre_entier(requete, "avec")
+        b = objet_ou_404(
+            ProfilDecaissement, accord_id=accord_id, project_id=project_id, version=version
+        )
+
+        def famille(f):
+            return {
+                "identiques": [str(x) for x in f.identiques],
+                "modifies": [
+                    {
+                        "cle": str(cle),
+                        "ecarts": {k: {"avant": v[0], "apres": v[1]} for k, v in e.items()},
+                    }
+                    for cle, e in f.modifies
+                ],
+                "ajoutes": [str(x) for x in f.ajoutes],
+                "supprimes": [str(x) for x in f.supprimes],
+            }
+
+        c = comparer_versions(a, b)
+        return reponse(
+            {
+                "de": a.version,
+                "vers": b.version,
+                "identiques": c.identiques,
+                "parametres": famille(c.parametres),
+                "methodes": famille(c.methodes),
+                "categories": famille(c.categories),
+                "comptes": famille(c.comptes),
+            }
+        )
