@@ -19,17 +19,22 @@ from core.api import (
     recharge,
     reponse,
 )
-from core.metier import habilite
+from core.metier import habilite, refuser
 from niveau1_socle.decaissements.models import DemandeRetrait
 from niveau1_socle.financements.models import CompteBancaire
 from niveau1_socle.rapprochement.models import MouvementReleve
 from niveau1_socle.referentiels.models import ValeurDimension
-from niveau4_reporting.modeles_etats import modele_rapprochement_compte_designe
+from niveau4_reporting.modeles_etats import (
+    modele_rapprochement_compte_designe,
+    modele_reconciliation_compte_special,
+)
 from niveau4_reporting.publication.rapports import publier_rapport
 
-from . import services
-from .models import AppariementDemande
+from . import compte_special, services
+from .models import AppariementDemande, JustificationCompteSpecial
 from .releves import importer_releve
+
+NOTE_MAX = 4000  # la note qui explique l'écart de la réconciliation du compte spécial
 
 
 class Disponibilites(VueMetier):
@@ -254,3 +259,138 @@ class AppariementAnnulation(VueMetier):
             motif=champ_texte(d, "motif", obligatoire=False, defaut=""),
         )
         return reponse(projeter(recharge(appariement), "id", "annule_at", "motif_annulation"))
+
+
+# --- compte spécial (BAD) : justifications soumises à la Banque (L11-D4) -------------------
+
+
+def _justification(j: JustificationCompteSpecial) -> dict:
+    return {
+        "id": j.id,
+        "demande": j.demande.numero,
+        "montant": j.montant,
+        "date_soumission": j.date_soumission,
+        "annulee": j.annule_at is not None,
+        "motif_annulation": j.motif_annulation,
+    }
+
+
+class ComptesJustificationsBanque(VueMetier):
+    """Les dépenses justifiées à la Banque, demande par demande, pour un compte spécial."""
+
+    def get(self, requete, compte_id):
+        compte = objet_ou_404(CompteBancaire, pk=compte_id)
+        habilite(requete.user, "consulter", compte.project_id)
+        justifications = JustificationCompteSpecial.objects.filter(compte=compte).select_related(
+            "demande"
+        )
+        return reponse(
+            [_justification(j) for j in justifications.order_by("date_soumission", "id")]
+        )
+
+    def post(self, requete, compte_id):
+        compte = objet_ou_404(CompteBancaire, pk=compte_id)
+        d = corps(requete)
+        justification = compte_special.justifier_aupres_de_la_banque(
+            utilisateur=requete.user,
+            compte=compte,
+            demande=objet_ou_404(DemandeRetrait, pk=champ_uuid(d, "demande")),
+            montant=champ_decimal(d, "montant", obligatoire=False),
+            date_soumission=champ_date(d, "date_soumission", obligatoire=False),
+        )
+        return reponse(_justification(recharge(justification)), 201)
+
+
+class JustificationBanqueAnnulation(VueMetier):
+    def post(self, requete, justification_id):
+        justification = objet_ou_404(JustificationCompteSpecial, pk=justification_id)
+        d = corps(requete)
+        justification = compte_special.annuler_justification(
+            utilisateur=requete.user,
+            justification=justification,
+            motif=champ_texte(d, "motif", obligatoire=False, defaut=""),
+        )
+        return reponse(_justification(recharge(justification)))
+
+
+class ComptesSituationSpecial(VueMetier):
+    """La situation du compte spécial à une date (lignes 2 à 7 de l'annexe 9), montants exacts."""
+
+    def get(self, requete, compte_id):
+        compte = objet_ou_404(CompteBancaire, pk=compte_id)
+        habilite(requete.user, "consulter", compte.project_id)
+        s = compte_special.calculer_situation(
+            compte,
+            parametre_date(requete, "date"),
+            requete.query_params.get("demande") or None,
+        )
+        return reponse(
+            {
+                "compte": s.compte_code,
+                "devise": s.devise,
+                "date": s.date,
+                "complet": s.complet,
+                "manques": s.manques,
+                "avances": [{"demande": n, "montant": m} for n, m in s.avances],
+                "justifications": [
+                    {
+                        "demande": n,
+                        "montant": m,
+                        "date_soumission": jour,
+                        "en_cours": en_cours,
+                        "comptee": comptee,
+                    }
+                    for n, m, jour, en_cours, comptee in s.justifications
+                ],
+                "total_avances": s.total_avances,
+                "solde_cloture": s.solde_cloture,
+                "justifie_cette_demande": s.justifie_cette_demande,
+                "justifie_precedemment": s.justifie_precedemment,
+                "total_justifie": s.total_justifie,
+                "ecart": s.ecart,
+            }
+        )
+
+
+class ComptesRapportSpecial(VueMetier):
+    """Publie la réconciliation du compte spécial (habilitation « publier »)."""
+
+    def post(self, requete, compte_id):
+        compte = objet_ou_404(CompteBancaire, pk=compte_id)
+        habilite(requete.user, "publier", compte.project_id)
+        d = corps(requete)
+        fin = champ_date(d, "date_fin")
+        params = {
+            "fiscal_year": fin.year,
+            "current_period": fin.month,
+            "compte_special": compte.code,
+            "date_fin": fin.isoformat(),
+        }
+        demande = champ_texte(d, "demande", obligatoire=False)
+        if demande:
+            params["demande"] = demande
+        # L'écart s'explique dans une NOTE (renvoi v de l'annexe 9) : gardée avec le rapport publié,
+        # donc scellée avec lui ; elle n'entre dans aucun calcul.
+        note = champ_texte(d, "note_ecart", obligatoire=False)
+        if note:
+            if len(note) > NOTE_MAX:
+                refuser("compte_special.note_trop_longue", maximum=NOTE_MAX)
+            params["note_ecart"] = note
+        publie = publier_rapport(
+            utilisateur=requete.user,
+            project_id=compte.project_id,
+            modele=modele_reconciliation_compte_special(),
+            params=params,
+            tables={},
+            period_from=champ_date(d, "date_debut", obligatoire=False) or fin.replace(day=1),
+            period_to=fin,
+        )
+        return reponse(
+            {
+                "id": publie.id,
+                "modele": publie.template_code,
+                "scelle": bytes(publie.seal).hex(),
+                "valeurs": publie.values,
+            },
+            201,
+        )

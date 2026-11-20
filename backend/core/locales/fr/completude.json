@@ -5,6 +5,7 @@
   "completude.chevauchement_avec_fin": "La version {version} couvre déjà la période (du {debut} au {fin})",
   "completude.chevauchement_sans_fin": "La version {version} couvre déjà la période (du {debut} sans fin)",
   "completude.exigence_non_validee": "L'exigence source {code} v{version} est « {status} » : une exigence critique sans source validée ne justifie rien",
+  "completude.fin_categorie_apres_accord": "La catégorie {code} reste éligible jusqu'au {fin}, après la fin d'éligibilité de l'accord ({fin_accord}) : l'exception est voulue et se justifie",
   "completude.fin_validite_avant_debut": "La fin de validité précède le début de validité",
   "completude.jalons_desordre": "{avant} ({a}) est postérieure à {apres} ({b})",
   "completude.methode_sans_pieces": "La méthode « {methode} » est activée sans aucune pièce exigée",

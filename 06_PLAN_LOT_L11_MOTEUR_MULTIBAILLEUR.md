@@ -228,7 +228,7 @@ et ce qui manque.
 | **A1** — demande de décaissement | type de demande (remboursement, avance initiale, reconstitution, justification seule, paiement direct), numéro à 13 chiffres de l'accord, numéro de demande à 4 chiffres chronologique | `DemandeRetrait` : numéro (libre), type (retrait, réapprovisionnement, paiement direct, engagement spécial), accord, période | « avance initiale » et « justification seule » n'existent pas comme types ; le numéro n'est pas contrôlé (voir D2) ; pas de signataires autorisés |
 | **A2** — état récapitulatif des dépenses (SOE) | numéro de demande, montant déjà payé par la Banque, preuve de paiement, cumul, part de la Banque dans le contrat | `etat_certifie` de la demande : dépenses par catégorie, pièce, date, montant, taux, montant à retirer | lien dépense → contrat et fournisseur ; « déjà payé par la Banque » (cumul des demandes précédentes) ; cumul courant |
 | **A3** — activités budgétisées estimées | période d'utilisation de l'avance, avance demandée, budget annuel, date d'approbation | budget par catégorie (L4), date de décision de la demande | période d'utilisation, estimation par activité |
-| **Réconciliation du compte spécial** (annexe 9) | avances versées au compte, solde de clôture, justification jointe, dépenses déjà justifiées à la Banque, écart à expliquer | état du compte désigné : solde de clôture du relevé, avances reçues PAR PÉRIODE | cumul des avances DEPUIS L'OUVERTURE ; notion de « justification soumise à la Banque » par numéro de demande ; la source du moteur refuse tout compte qui n'est pas de type désigné (le compte spécial de la BAD est un autre type) |
+| **Réconciliation du compte spécial** (annexe 9) — **livrée par D4** | avances versées au compte, solde de clôture, justification jointe, dépenses déjà justifiées à la Banque, écart à expliquer | état du compte désigné : solde de clôture du relevé, avances reçues PAR PÉRIODE | cumul des avances DEPUIS L'OUVERTURE ; notion de « justification soumise à la Banque » par numéro de demande ; la source du moteur refuse tout compte qui n'est pas de type désigné (le compte spécial de la BAD est un autre type) |
 
 **Ce qu'un modèle partiel aurait de trompeur** : avec l'existant on pourrait afficher « avances de la
 période » et « solde de clôture », mais pas le cumul ni les justifications ; le « montant à justifier »
@@ -241,6 +241,152 @@ qui en sortirait serait faux dès que le compte a un solde d'ouverture. On ne l'
    n'en donne qu'un exemple imprimé.
 2. **Suivi des justifications du compte spécial** : ajouter le cumul des avances depuis l'ouverture et
    les justifications soumises à la Banque, puis un modèle `BAD_RECONCILIATION_CS` branché sur le moteur.
+
+### Réalisation — D4 : suivi des justifications du compte spécial et réconciliation BAD
+
+`niveau1_socle/tresorerie/{models.py,compte_special.py,api.py,urls.py}` (+ migration 0003),
+`niveau4_reporting/moteur/source_compte_special.py`, modèle `BAD_RECONCILIATION_CS`
+(`catalogue_modeles/bad_reconciliation_compte_special.json`), `tests/test_compte_special_bd.py` (35) et
+`tests/test_api_compte_special_bd.py` (17). Ce que D3 listait comme manquant est maintenant là :
+
+- **`JustificationCompteSpecial`** : « dépenses justifiées à la Banque sous la demande n° X », pour un
+  compte de type SPÉCIAL. Ajout seul ; seule l'annulation (une fois, motivée) change une ligne. La base
+  vérifie : compte spécial, même projet, même accord que le compte, demande SOUMISE à la Banque, jamais
+  plus que ce que la demande retire, une seule justification vivante par demande.
+- **Situation à une date** : avances cumulées DEPUIS L'OUVERTURE (seuls les encaissements appariés à une
+  demande, appariements annulés exclus), solde du relevé, justification de la demande en cours (ligne 4)
+  séparée des justifications précédentes (ligne 5). Un solde de relevé absent rend la situation
+  INCOMPLÈTE : aucun écart n'est inventé.
+- **Modèle d'état `BAD_RECONCILIATION_CS`** (lignes 2 à 7 de l'annexe 9, en montants) sur la source
+  externe `compte_special`, publiable, scellé et régénérable comme les autres. L'écart n'est pas une
+  assertion bloquante : le manuel demande de l'expliquer dans une note, pas de le rendre nul.
+- **API** : `comptes/<id>/justifications-banque/` (liste, création), `justifications-banque/<id>/annulation/`,
+  `comptes/<id>/situation-compte-special/?date=&demande=`, `comptes/<id>/rapport-compte-special/`.
+- **Limites assumées** : le modèle d'état ne rend que des montants — pas le détail demande par demande
+  du formulaire imprimé, ni la note d'explication de l'écart ; la justification est une SAISIE (elle
+  n'est pas déduite automatiquement des lignes de la demande) ; une demande ne peut être justifiée
+  qu'une fois soumise, donc la « demande en cours » doit l'être avant l'état ; la devise du compte est
+  celle de la demande (aucune conversion) ; A1, A2 et A3 restent non livrés (voir D3).
+- **Mutations** : quinze mutations (service, déclencheurs de la base, source, API) détectées ; une seule
+  équivalente, l'habilitation `publier` de l'API que le service de publication impose déjà.
+
+### Réalisation — D5a : limites de D4 levées
+
+`niveau1_socle/tresorerie/{compte_special.py,api.py}`, migration 0004, tests ajoutés à
+`tests/test_compte_special_bd.py` (43) et `tests/test_api_compte_special_bd.py` (21). Cinq limites de D4 :
+
+- **Justification « saisie à la main »** : sans montant, la justification porte sur tout ce que la demande
+  retire (`retrait_de_la_demande`). La saisie reste possible pour une justification PARTIELLE. Une demande
+  qui ne retire rien (annulée) refuse le défaut.
+- **« La demande en cours doit être soumise »** : la justification de la demande en cours (ligne 4) peut
+  maintenant porter sur une demande encore PRÉPARÉE, comme le formulaire qui l'accompagne. La ligne 5 ne
+  compte que des demandes soumises à la Banque ; une demande préparée non désignée, rejetée ou annulée
+  reste LISTÉE dans le détail, marquée « non comptée », et l'écart l'explique. Rejeter une demande déjà
+  justifiée la retire du total.
+- **Détail demande par demande** : `situation-compte-special` rend la liste des justifications
+  (demande, montant, date, en cours ?, comptée ?) ; c'est le détail des lignes 4 et 5 du formulaire
+  imprimé, que le modèle d'état (des montants agrégés) ne peut pas porter.
+- **Note qui explique l'écart** : `rapport-compte-special` accepte `note_ecart` (4 000 caractères au plus),
+  gardée avec le rapport publié et donc SCELLÉE avec lui (la note change le sceau) ; elle n'entre dans
+  aucun calcul.
+- **Conversion de devise** : le compte et l'accord de la demande doivent avoir la MÊME devise, au service
+  (message qui nomme les deux devises) et à la base (déclencheur). Aucune conversion n'est tentée : une
+  conversion exigerait de choisir un taux, et le manuel n'en impose aucun.
+- **Mutations** : onze mutations (service, déclencheur, API) détectées ; deux gardes de la base ont été
+  éprouvées par une mutation sémantique, pas seulement par l'échec de la migration.
+- **Reste** : le modèle d'état lui-même ne rend toujours que des montants agrégés (voir D4).
+
+### Réalisation — D6 : documents, dépôt jusqu'à 50 Mio et téléchargement vérifié
+
+`niveau3_config/{api.py,urls.py}`, `tests/test_api_documents_fichiers_bd.py` (16). Deux limites de B3 :
+
+- **« Corps ≤ 10 Mo »** : le dépôt (et le remplacement) accepte désormais un envoi MULTIPART (champs `kind`,
+  `title`, `version`, `issued_on` et le fichier `fichier`) jusqu'à la taille maximale du service, 50 Mio ;
+  le JSON en base64 reste possible (environ 7 Mo). Même fichier par l'un ou l'autre : même document
+  (idempotent d'un mode à l'autre). Au-delà de 50 Mio : refus net en 422.
+- **« Pas de téléchargement »** : `GET …/documents/<id>/contenu/`. L'empreinte est vérifiée AVANT de servir ;
+  un fichier altéré ou disparu n'est jamais servi (409 `DOCUMENT_ALTERE`, constat journalisé et non annulé).
+  Le fichier est toujours une PIÈCE JOINTE (`attachment`, `nosniff`, `CSP: sandbox`, empreinte en
+  `Digest`) : un document déposé reste une donnée non fiable. Son type vient de ses octets (PDF reconnu à
+  sa signature), jamais de ce qu'il prétend être ; son nom est nettoyé (aucun `/`, guillemet ni saut de
+  ligne). Chaque téléchargement est journalisé.
+- **Limites assumées** : le fichier est lu en mémoire (jusqu'à 50 Mio) ; pas de reprise de transfert ni de
+  téléversement par morceaux ; un reverse proxy placé devant l'application doit lui-même autoriser
+  50 Mio.
+
+### Réalisation — D7 : évaluations, décisions, dérogations et seuils de risque par API
+
+`niveau4_reporting/controles/{api.py,urls.py,services.py}`, catalogues `controles.json` et
+`controles_api.json`, `tests/test_api_evaluations_bd.py` (32). Trois limites de B5 :
+
+- **« Évaluations, décisions, dérogations sans API »** : sous `/projets/<projet>/` :
+  `evaluations-controles/` (le journal, du plus récent au plus ancien, filtrable par résultat, contrôle,
+  type et identifiant d'objet, BORNÉ à 200 lignes) et `evaluations-controles/<id>/` (détail : décisions,
+  justifications, dérogations) ; `…/decision/` (trancher un contrôle « à vérifier », `valider`),
+  `…/justification/` (`saisir`), `…/derogation/` (demander, `saisir`) ; `derogations/` (liste, filtre
+  `statut`) et `derogations/<id>/decision/` (approuver ou refuser, `valider`, jamais par le demandeur) ;
+  `controles-en-attente/` (ce qui empêche d'avancer pour un objet, à une date) ;
+  `dossier-conformite-objet/` (le fil d'un objet : le résultat « bloquant » initial reste lisible, suivi de
+  la dérogation). Le journal reste en AJOUT SEUL : l'API ne modifie jamais une évaluation.
+- **« Contrôles de risque aux seuils par défaut »** : `bibliotheque/installer/` accepte `seuils`
+  (`RIS-CATEGORIE-SEUIL` : pourcentage exact de 0 à 100 en chaîne ; `RIS-AVANCE-NON-APUREE` : jours entiers
+  ≥ 1 ; `RIS-REJETS-REPETES` : entier ≥ 0). Jamais un flottant, un booléen ni un texte illisible ; un seuil
+  pour un autre contrôle, ou pour un contrôle qu'on n'installe pas, est refusé et rien n'est installé.
+- **Toujours la règle 9** : installer ne crée que des brouillons, avec le seuil choisi ; il faut une
+  personne qui valide puis une qui active.
+- **Mutations** : douze (filtres, tri, borne, booléen, seuils) détectées.
+- **Reste** : pas d'écran ; la modification d'un contrôle reste une nouvelle version ; les fabriques
+  d'éligibilité et de pièces de la bibliothèque (période, nature, zone, bénéficiaires exclus) s'écrivent
+  toujours par la création d'un contrôle avec son expression, pas par un formulaire dédié.
+
+### Réalisation — D8 : un brouillon de profil de décaissement se modifie et s'abandonne
+
+`niveau3_config/{api.py,services/profils_decaissement.py}`, tests ajoutés à
+`tests/test_api_profils_decaissement_bd.py` (58). Limite de B4 : « une règle ou un compte d'un brouillon ne
+se modifie pas individuellement ».
+
+- **Choix** : `PUT …/profils-decaissement/<id>/` remplace TOUT le contenu d'un brouillon, d'un bloc, avec
+  les mêmes règles et les mêmes refus qu'à la création. Corriger une règle ou un compte à l'unité aurait
+  exigé des états intermédiaires invalides (allocations dépassant l'accord, compte sans catégorie…) ; le
+  remplacement est ATOMIQUE : une erreur au milieu laisse l'ancien brouillon intact. L'identifiant, la
+  version et l'accord ne changent pas.
+- `DELETE` abandonne un brouillon ; la version suivante reprend le numéro (aucune version fantôme). Un
+  profil validé, actif, remplacé ou rejeté ne se modifie ni ne se supprime : 422 qui renvoie à la nouvelle
+  version, en plus du refus de la base. Habilitation `parametrer`, les deux actes sont journalisés.
+- Une liste facultative (`comptes`) vide ou absente veut dire « aucun » : un remplacement peut retirer tous
+  les comptes.
+- **Exigence source** : désormais couverte par des tests (la plus récente version validée ou active d'un
+  code ; une exigence seulement proposée ne justifie rien ; le remplacement peut la changer ou la retirer).
+- **Mutations** : treize détectées ; une survivante au départ (l'exigence non reportée) a donné les tests
+  ci-dessus.
+- **Reste** : la désignation de l'exigence par son code reste voulue (c'est ce que voit un administrateur) ;
+  pas d'écran.
+
+### Réalisation — D9 : l'exception d'éligibilité des frais d'audit (fin propre d'une catégorie)
+
+`niveau3_config/{models.py,migrations/0014,services/decaissement.py,services/completude.py,api.py}`,
+`niveau2_profils/{services/gabarit.py,catalogue/bad.json}`, tests dans `test_eligibilite_depenses_bd.py`,
+`test_api_profils_decaissement_bd.py` (64) et `test_branchement_controles_bad_bd.py`. Limite de D2 :
+« l'exception dépenses d'audit jusqu'à 6 mois après la clôture n'est pas modélisée ».
+
+- **Constat** : la fenêtre d'éligibilité retient la fin la plus PRÉCOCE entre l'accord et la catégorie
+  (décision de A5, testée). Une catégorie ne pouvait donc que resserrer la fin, jamais l'étendre : la
+  règle de la BAD (frais d'audit éligibles 6 mois après la clôture, DH p.23) était inexprimable.
+- **Choix** : plutôt que d'inverser la règle générale (qui aurait élargi silencieusement l'éligibilité
+  de tous les bailleurs), un CHOIX EXPLICITE sur la règle de catégorie : `fin_propre_a_la_categorie`
+  (faux par défaut). Vrai, la fin de la catégorie prime sur celle de l'accord ; elle doit exister (la base
+  l'impose) ; elle ne touche pas le début. Reprise par une nouvelle version, lisible et comparable.
+- **Visible, pas silencieux** : tant que le profil est un brouillon, la complétude signale par un
+  AVERTISSEMENT (`fin_categorie_apres_accord`) toute fin propre postérieure à celle de l'accord ; il ne
+  bloque pas, la personne qui valide le justifie. Une fin égale à celle de l'accord n'est pas signalée.
+- **Gabarit BAD** : il suggère la règle (`regles_suggerees` : rôle `frais_d_audit`, fin = clôture + 6 mois,
+  fin propre) ; il ne sait pas quelle catégorie du projet porte ce rôle, l'administrateur l'applique à la
+  bonne. Le jalon de décaissement n'est pas touché.
+- **Mutations** : douze détectées (une survivante, la borne de l'avertissement, a donné un cas de test).
+- **Limites assumées** : l'exception vaut pour le contrôle de validation d'une écriture
+  (`ELIG-PERIODE-ACCORD`) ; la préparation d'une demande ne contrôle déjà que la fin de la catégorie, pas
+  celle de l'accord, donc elle est cohérente ; aucune catégorie n'est marquée « audit » dans le modèle :
+  le rôle reste porté par le CHOIX de l'administrateur.
 
 ### Réalisation — D2 : branchement des contrôles BAD
 

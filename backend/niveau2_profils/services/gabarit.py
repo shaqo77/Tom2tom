@@ -40,6 +40,7 @@ def gabarit_decaissement(
     if date_eligibilite is not None:
         jalons["eligibility_date"] = date_eligibilite
     controles: list[str] = []
+    regles: list[dict] = []
     non_branches = []
     for element in donnees["elements"]:
         if element["kind"] != "check":
@@ -53,7 +54,19 @@ def gabarit_decaissement(
                 derive = branchement["derive"]
                 parametre = contenu["parametres"][derive["parametre"]]
                 if derive["depuis"] == "closing_date":
-                    jalons[branchement["champ"]] = ajouter_mois(date_cloture, parametre)
+                    fin = ajouter_mois(date_cloture, parametre)
+                    if branchement["champ"] == "regles":
+                        # Une règle SUGGÉRÉE : le gabarit ne sait pas quelle catégorie du projet
+                        # porte ce rôle ; l'administrateur l'applique à la bonne.
+                        regles.append(
+                            {
+                                "role": branchement["role"],
+                                "eligibility_to": fin,
+                                "fin_propre_a_la_categorie": True,
+                            }
+                        )
+                    else:
+                        jalons[branchement["champ"]] = fin
             elif genre == "non_branche":
                 non_branches.append(
                     {
@@ -73,6 +86,7 @@ def gabarit_decaissement(
         "profil": donnees["code"],
         "version": donnees.get("version", 1),
         "jalons": jalons,
+        "regles_suggerees": regles,
         "methodes_disponibles": methodes,
         "controles_bibliotheque": controles,
         "non_branches": non_branches,

@@ -145,3 +145,45 @@ class JustificationEcart(ModeleOrganisation):
                 condition=Q(date_fin__gte=models.F("date_debut")), name="justifecart_periode"
             ),
         ]
+
+
+class JustificationCompteSpecial(ModeleOrganisation):
+    """Des dépenses justifiées à la Banque sous une demande, pour un compte spécial. Voir L11-D4.
+
+    La réconciliation du compte spécial de la BAD (annexe 9 du manuel des décaissements) compare les
+    avances reçues à ce qui reste sur le compte PLUS ce qui a été justifié à la Banque, demande par
+    demande. Cette trace manquait : « dépenses justifiées à la Banque sous la demande n° X ».
+
+    En ajout seul : seule l'ANNULATION (une fois, motivée) change une ligne ; on ne corrige pas un
+    montant, on annule puis on enregistre la bonne justification.
+    """
+
+    compte = models.ForeignKey(CompteBancaire, on_delete=models.PROTECT, related_name="+")
+    demande = models.ForeignKey(DemandeRetrait, on_delete=models.PROTECT, related_name="+")
+    project_id = models.UUIDField(db_index=True)
+    montant = MontantField()  # les dépenses justifiées, en devise du compte
+    date_soumission = models.DateField()
+    saisie_par = models.UUIDField()
+    annule_at = models.DateTimeField(null=True, blank=True)
+    annule_par = models.UUIDField(null=True, blank=True)
+    motif_annulation = models.TextField(blank=True, default="")
+
+    class Meta:
+        constraints = [
+            models.UniqueConstraint(
+                fields=["compte", "demande"],
+                condition=Q(annule_at__isnull=True),
+                name="uq_justifcs_une_par_demande",
+            ),
+            models.CheckConstraint(condition=Q(montant__gt=0), name="justifcs_montant_positif"),
+            models.CheckConstraint(
+                condition=(
+                    Q(annule_at__isnull=True, annule_par__isnull=True, motif_annulation="")
+                    | (
+                        Q(annule_at__isnull=False, annule_par__isnull=False)
+                        & ~Q(motif_annulation="")
+                    )
+                ),
+                name="justifcs_annulation_coherente",
+            ),
+        ]

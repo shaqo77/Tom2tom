@@ -36,3 +36,10 @@ def modele_rapprochement_compte_designe(version: int = 1) -> dict:
     modele = copy.deepcopy(lire_modele_livre("rapprochement_compte_designe"))
     modele["version"] = version
     return modele
+
+
+def modele_reconciliation_compte_special(version: int = 1) -> dict:
+    """La réconciliation du compte spécial de la BAD (annexe 9), code `BAD_RECONCILIATION_CS`."""
+    modele = copy.deepcopy(lire_modele_livre("bad_reconciliation_compte_special"))
+    modele["version"] = version
+    return modele

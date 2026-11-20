@@ -8,6 +8,7 @@ action corrective, exigence et clause sources, date, déclencheur.
 
 import datetime
 from dataclasses import dataclass, field
+from decimal import Decimal, InvalidOperation
 
 from django.db import IntegrityError, transaction
 from django.utils import timezone
@@ -22,7 +23,12 @@ from niveau3_config.services.activation import _fermer_les_precedentes, _transit
 from niveau3_config.services.decaissement import profil_en_vigueur
 
 from . import conditions
-from .bibliotheque import livres_avec_risque
+from .bibliotheque import (
+    livres_avec_risque,
+    risque_avance_non_apuree,
+    risque_categorie_consommee,
+    risque_rejets_repetes,
+)
 from .decision import ParametresInvalides, decider, valider_parametres
 from .derogations import derogation_en_vigueur
 from .models import (
@@ -480,16 +486,57 @@ class ResultatInstallation:
     deja_presents: list = field(default_factory=list)  # codes qui existaient déjà dans le projet
 
 
+# Les contrôles de RISQUE ont un seuil réglé à l'installation : code → (fabrique, nom du seuil).
+SEUILS = {
+    "RIS-CATEGORIE-SEUIL": (risque_categorie_consommee, "seuil_pct"),
+    "RIS-AVANCE-NON-APUREE": (risque_avance_non_apuree, "delai_jours"),
+    "RIS-REJETS-REPETES": (risque_rejets_repetes, "maximum"),
+}
+
+
+def _seuil_valide(code: str, valeur):
+    """Un seuil exact : un pourcentage de 0 à 100 en chaîne, un nombre de jours entier strictement
+    positif, ou un maximum entier. Jamais un flottant, un booléen ni un texte illisible."""
+    _, nom = SEUILS[code]
+    invalide = ErreurMetier(
+        CodeErreur.REGLE_INVALIDE, msg("controles.seuil_invalide", code=code, champ=nom)
+    )
+    if isinstance(valeur, bool) or isinstance(valeur, float):
+        raise invalide
+    if nom == "seuil_pct":
+        try:
+            nombre = Decimal(str(valeur))
+        except InvalidOperation as erreur:
+            raise invalide from erreur
+        if not nombre.is_finite() or not 0 <= nombre <= 100:
+            raise invalide
+        return format(nombre, "f")
+    if not isinstance(valeur, int) or valeur < (1 if nom == "delai_jours" else 0):
+        raise invalide
+    return valeur
+
+
 def installer_bibliotheque(
-    *, utilisateur, project_id, valid_from: datetime.date, codes: list[str] | None = None
+    *,
+    utilisateur,
+    project_id,
+    valid_from: datetime.date,
+    codes: list[str] | None = None,
+    seuils: dict | None = None,
 ) -> ResultatInstallation:
     """Installe les contrôles livrés EN BROUILLON : ni validés ni activés (règle 9).
 
     Un code déjà présent dans le projet n'est pas recréé. `codes` restreint l'installation ; un
-    code inconnu de la bibliothèque est refusé.
+    code inconnu de la bibliothèque est refusé. `seuils` règle les contrôles de risque installés
+    (`{code: seuil}`) ; un seuil pour un autre contrôle ou un contrôle non installé est refusé.
     """
     _habilite(utilisateur, "parametrer", project_id)
     livres = {d.code: d for d in livres_avec_risque()}
+    seuils = seuils or {}
+    for code, valeur in seuils.items():
+        if code not in SEUILS:
+            raise ErreurMetier(CodeErreur.REGLE_INVALIDE, msg("controles.seuil_inconnu", code=code))
+        livres[code] = SEUILS[code][0](_seuil_valide(code, valeur))
     if codes is not None:
         inconnus = sorted(set(codes) - set(livres))
         if inconnus:
@@ -498,6 +545,11 @@ def installer_bibliotheque(
                 msg("controles.controles_inconnus_bibliotheque", inconnus=inconnus),
             )
         livres = {c: livres[c] for c in codes}
+    hors = sorted(set(seuils) - set(livres))
+    if hors:
+        raise ErreurMetier(
+            CodeErreur.REGLE_INVALIDE, msg("controles.seuil_controle_non_installe", codes=hors)
+        )
     resultat = ResultatInstallation()
     with transaction.atomic():
         for code, d in livres.items():

@@ -5,6 +5,7 @@
   "completude.chevauchement_avec_fin": "Version {version} already covers the period (from {debut} to {fin})",
   "completude.chevauchement_sans_fin": "Version {version} already covers the period (from {debut}, open-ended)",
   "completude.exigence_non_validee": "The source requirement {code} v{version} is “{status}”: a critical requirement without a validated source justifies nothing",
+  "completude.fin_categorie_apres_accord": "Category {code} stays eligible until {fin}, after the agreement's eligibility end ({fin_accord}): the exception is deliberate and must be justified",
   "completude.fin_validite_avant_debut": "The end of validity precedes the start of validity",
   "completude.jalons_desordre": "{avant} ({a}) is later than {apres} ({b})",
   "completude.methode_sans_pieces": "The method “{methode}” is enabled without any required supporting document",

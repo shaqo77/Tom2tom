@@ -55,6 +55,52 @@ def _exigence(project_id, code: str) -> Exigence:
     return exigence
 
 
+def _habiliter(utilisateur, accord: Accord) -> None:
+    if not est_habilite(utilisateur, "parametrer", accord.project_id):
+        raise PermissionDenied(
+            msg("profils_decaissement.vous_etes_habilite_projet", operation="parametrer")
+        )
+
+
+def _resoudre(accord: Accord, regles, comptes, exigence):
+    """Catégories, comptes et exigence résolus DANS l'accord et le projet, ou refus nommé."""
+    categories = {c.code: c for c in Categorie.objects.filter(accord=accord)}
+    comptes_projet = {
+        c.code: c for c in CompteBancaire.objects.filter(project_id=accord.project_id)
+    }
+    for regle in regles:
+        if regle["category"] not in categories:
+            raise ProfilDecaissementInvalide(
+                msg("profils_decaissement.categorie_inconnue", code=regle["category"])
+            )
+    for compte in comptes or []:
+        if compte["compte"] not in comptes_projet:
+            raise ProfilDecaissementInvalide(
+                msg("profils_decaissement.compte_inconnu", code=compte["compte"])
+            )
+    source = _exigence(accord.project_id, exigence) if exigence else None
+    return categories, comptes_projet, source
+
+
+def _enfants(profil, categories, comptes_projet, methodes, regles, comptes) -> None:
+    for methode in methodes:
+        MethodeDecaissement.objects.create(org_id=profil.org_id, profil=profil, **methode)
+    for regle in regles:
+        RegleFinancementCategorie.objects.create(
+            org_id=profil.org_id,
+            profil=profil,
+            **{**regle, "category": categories[regle["category"]]},
+        )
+    for compte in comptes or []:
+        champs = {k: v for k, v in compte.items() if k != "compte"}
+        RegleCompteDesigne.objects.create(
+            org_id=profil.org_id,
+            profil=profil,
+            bank_account=comptes_projet[compte["compte"]],
+            **champs,
+        )
+
+
 def creer_profil_decaissement(
     *,
     utilisateur,
@@ -72,27 +118,10 @@ def creer_profil_decaissement(
     `regles` : `category` = CODE de la catégorie de l'accord ; `comptes` : `compte` = CODE d'un
     compte bancaire du projet ; `exigence` = code de l'exigence source (validée ou active).
     """
-    if not est_habilite(utilisateur, "parametrer", accord.project_id):
-        raise PermissionDenied(
-            msg("profils_decaissement.vous_etes_habilite_projet", operation="parametrer")
-        )
+    _habiliter(utilisateur, accord)
     jalons = jalons or {}
     with transaction.atomic():
-        categories = {c.code: c for c in Categorie.objects.filter(accord=accord)}
-        comptes_projet = {
-            c.code: c for c in CompteBancaire.objects.filter(project_id=accord.project_id)
-        }
-        for regle in regles:
-            if regle["category"] not in categories:
-                raise ProfilDecaissementInvalide(
-                    msg("profils_decaissement.categorie_inconnue", code=regle["category"])
-                )
-        for compte in comptes or []:
-            if compte["compte"] not in comptes_projet:
-                raise ProfilDecaissementInvalide(
-                    msg("profils_decaissement.compte_inconnu", code=compte["compte"])
-                )
-        source = _exigence(accord.project_id, exigence) if exigence else None
+        categories, comptes_projet, source = _resoudre(accord, regles, comptes, exigence)
         derniere = ProfilDecaissement.objects.filter(
             accord=accord, project_id=accord.project_id
         ).aggregate(m=Max("version"))["m"]
@@ -108,22 +137,7 @@ def creer_profil_decaissement(
             created_by=utilisateur.id,
             **{j: jalons.get(j) for j in JALONS},
         )
-        for methode in methodes:
-            MethodeDecaissement.objects.create(org_id=profil.org_id, profil=profil, **methode)
-        for regle in regles:
-            RegleFinancementCategorie.objects.create(
-                org_id=profil.org_id,
-                profil=profil,
-                **{**regle, "category": categories[regle["category"]]},
-            )
-        for compte in comptes or []:
-            champs = {k: v for k, v in compte.items() if k != "compte"}
-            RegleCompteDesigne.objects.create(
-                org_id=profil.org_id,
-                profil=profil,
-                bank_account=comptes_projet[compte["compte"]],
-                **champs,
-            )
+        _enfants(profil, categories, comptes_projet, methodes, regles, comptes)
         journaliser(
             org_id=profil.org_id,
             actor_id=utilisateur.id,
@@ -134,3 +148,80 @@ def creer_profil_decaissement(
             after={"accord": accord.numero, "version": profil.version, "regime": regime},
         )
     return profil
+
+
+def _brouillon_verrouille(profil: ProfilDecaissement) -> ProfilDecaissement:
+    """Le profil relu sous verrou, refusé s'il n'est plus un brouillon : un profil validé ou actif
+    ne se modifie pas, on crée une version."""
+    courant = ProfilDecaissement.objects.select_for_update().get(pk=profil.pk)
+    if courant.status != StatutProfil.BROUILLON:
+        raise ProfilDecaissementInvalide(
+            msg("profils_decaissement.profil_non_brouillon", status=courant.status)
+        )
+    return courant
+
+
+def remplacer_brouillon(
+    *,
+    utilisateur,
+    profil: ProfilDecaissement,
+    valid_from: datetime.date,
+    regime: str,
+    jalons: dict | None = None,
+    methodes: list[dict],
+    regles: list[dict],
+    comptes: list[dict] | None = None,
+    exigence: str | None = None,
+) -> ProfilDecaissement:
+    """Remplace TOUT le contenu d'un brouillon, d'un bloc : tout est accepté ou rien ne change.
+
+    Une règle ou un compte ne se corrige pas à l'unité (il faudrait des états intermédiaires
+    invalides) : on renvoie le profil entier, comme à la création. L'accord reste le même.
+    """
+    _habiliter(utilisateur, profil.accord)
+    jalons = jalons or {}
+    with transaction.atomic():
+        courant = _brouillon_verrouille(profil)
+        categories, comptes_projet, source = _resoudre(courant.accord, regles, comptes, exigence)
+        courant.valid_from = valid_from
+        courant.regime = regime
+        courant.requirement = source
+        for jalon in JALONS:
+            setattr(courant, jalon, jalons.get(jalon))
+        courant.save()
+        courant.methodes.all().delete()
+        courant.regles.all().delete()
+        courant.comptes.all().delete()
+        _enfants(courant, categories, comptes_projet, methodes, regles, comptes)
+        journaliser(
+            org_id=courant.org_id,
+            actor_id=utilisateur.id,
+            action="disbursement_profile_updated",
+            object_type="profil_decaissement",
+            object_id=courant.id,
+            project_id=courant.project_id,
+            after={"version": courant.version, "regime": regime},
+        )
+    return courant
+
+
+def supprimer_brouillon(*, utilisateur, profil: ProfilDecaissement) -> None:
+    """Abandonne un brouillon. Un profil validé, actif, remplacé ou rejeté ne se supprime jamais."""
+    _habiliter(utilisateur, profil.accord)
+    with transaction.atomic():
+        courant = _brouillon_verrouille(profil)
+        identifiant, version = courant.id, courant.version
+        courant.methodes.all().delete()
+        courant.regles.all().delete()
+        courant.comptes.all().delete()
+        org_id, project_id = courant.org_id, courant.project_id
+        courant.delete()
+        journaliser(
+            org_id=org_id,
+            actor_id=utilisateur.id,
+            action="disbursement_profile_deleted",
+            object_type="profil_decaissement",
+            object_id=identifiant,
+            project_id=project_id,
+            after={"version": version},
+        )

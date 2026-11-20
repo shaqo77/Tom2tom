@@ -429,7 +429,12 @@
             "page": 58,
             "quote": "SA closing balance"
           }
-        ]
+        ],
+        "modele_livre": "bad_reconciliation_compte_special",
+        "couverture": {
+          "fr": "Lignes 2 à 7 de l'annexe 9 en MONTANTS (avances depuis l'ouverture, solde du relevé, justification de la demande en cours, dépenses déjà justifiées, total justifié, écart). Le détail demande par demande (lignes 1 à 5 du modèle imprimé) et la note qui explique l'écart ne sont pas produits.",
+          "en": "Lines 2 to 7 of annex 9 as AMOUNTS (advances since opening, statement balance, justification of the current request, expenses already justified, total justified, discrepancy). The request-by-request detail (lines 1 to 5 of the printed template) and the note explaining the discrepancy are not produced."
+        }
       },
       "exigence": {
         "subject": {
@@ -767,6 +772,20 @@
             "codes": [
               "ELIG-PERIODE-ACCORD"
             ]
+          },
+          {
+            "type": "profil_decaissement",
+            "champ": "regles",
+            "role": "frais_d_audit",
+            "derive": {
+              "depuis": "closing_date",
+              "mois": 6,
+              "parametre": "exception_audit_mois_apres_cloture"
+            },
+            "note": {
+              "fr": "Exception : à appliquer à la catégorie des frais d'audit, avec la fin propre à la catégorie.",
+              "en": "Exception: apply to the audit-fees category, with the category's own end."
+            }
           }
         ]
       }

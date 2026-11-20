@@ -1,0 +1,10 @@
+{
+  "compte_special.annulation_motivee": "Cancelling a justification requires a reason",
+  "compte_special.compte_non_special": "Account {code} is not a special account",
+  "compte_special.deja_annulee": "This justification is already cancelled",
+  "compte_special.deja_justifiee": "Request {demande} is already justified for this account",
+  "compte_special.demande_sans_ligne": "Request {demande} withdraws nothing: state the amount justified",
+  "compte_special.devise_differente": "The account ({compte}) and the request's agreement ({accord}) have different currencies: no conversion is made",
+  "compte_special.justification_refusee": "Justification refused: {detail}",
+  "compte_special.note_trop_longue": "The discrepancy note exceeds {maximum} characters"
+}

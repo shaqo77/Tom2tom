@@ -7,4 +7,4 @@ class MoteurConfig(AppConfig):
 
     def ready(self) -> None:
         # Déclare les sources externes livrées (registre fermé : voir `sources_externes`).
-        from . import source_compte_designe  # noqa: F401
+        from . import source_compte_designe, source_compte_special  # noqa: F401

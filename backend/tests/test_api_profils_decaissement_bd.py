@@ -609,3 +609,391 @@ def test_le_profil_cree_par_l_api_pilote_le_calcul_du_decaissement(monde):
     assert (
         RegleFinancementCategorie.objects.count() == 2 and MethodeDecaissement.objects.count() == 2
     )
+
+
+# --- modifier ou abandonner un brouillon (L11-D8) -----------------------------------------------
+
+
+def _contenu(p):
+    return (
+        [m["method"] for m in p["methodes"]],
+        [(r["category"], r["funding_rate"]) for r in p["regles"]],
+        [c["compte"] for c in p["comptes"]],
+    )
+
+
+def test_un_brouillon_se_remplace_d_un_bloc_et_garde_sa_version_et_son_identifiant(monde):
+    _, projet, profils, accord, _, _ = monde
+    p = _creer(monde)
+    nouveau = _corps(
+        valid_from="2026-02-01",
+        regime="report_based",
+        closing_date="2031-12-31",
+        disbursement_deadline="2032-04-30",
+        methodes=[{"method": "advance", "supporting_docs": ["soe"]}],
+        regles=[
+            {
+                "category": "TRAVAUX",
+                "allocation": "500000",
+                "funding_rate": "0.7",
+                "tax_basis": "net_of_taxes",
+            }
+        ],
+        comptes=[],
+    )
+    r = appeler(profils["dora"], "put", _chemin(projet, accord, f"{p['id']}/"), nouveau)
+    assert r.status_code == 200, r.content
+    q = r.json()
+    assert (q["id"], q["version"], q["status"]) == (p["id"], 1, "draft")
+    assert (q["valid_from"], q["regime"], q["closing_date"]) == (
+        "2026-02-01",
+        "report_based",
+        "2031-12-31",
+    )
+    assert _contenu(q) == (["advance"], [("TRAVAUX", "0.700000")], [])  # l'ancien contenu a disparu
+    assert _nb(monde) == 1  # aucun doublon : c'est le même profil
+
+
+def test_un_remplacement_invalide_ne_change_rien_du_tout(monde):
+    """Atomique : une erreur au milieu du contenu laisse l'ancien brouillon intact."""
+    _, projet, profils, accord, _, _ = monde
+    p = _creer(monde)
+    mauvais = _corps(
+        regles=[
+            {
+                "category": "TRAVAUX",
+                "allocation": "1",
+                "funding_rate": "0.5",
+                "tax_basis": "taxes_included",
+            },
+            {
+                "category": "TRAVAUX",
+                "allocation": "1",
+                "funding_rate": "0.5",
+                "tax_basis": "taxes_included",
+            },
+        ],
+        regime="report_based",
+    )
+    r = appeler(profils["dora"], "put", _chemin(projet, accord, f"{p['id']}/"), mauvais)
+    assert r.status_code == 422 and "qu'une règle par profil" in r.json()["message"]
+    apres = appeler(profils["dora"], "get", _chemin(projet, accord, f"{p['id']}/")).json()
+    assert _contenu(apres) == _contenu(p) and apres["regime"] == "transaction_based"
+
+
+@pytest.mark.parametrize(
+    "changes, attendu",
+    [
+        ({"regime": "inconnu"}, "Régime de décaissement inconnu"),
+        ({"methodes": []}, None),
+        ({"valid_from": "demain"}, None),
+        (
+            {
+                "regles": [
+                    {
+                        "category": "NOPE",
+                        "allocation": "1",
+                        "funding_rate": "0.5",
+                        "tax_basis": "taxes_included",
+                    }
+                ]
+            },
+            "Catégorie inconnue dans cet accord",
+        ),
+        (
+            {"comptes": [{"compte": "NOPE", "devise": "USD", "ceiling_kind": "variable"}]},
+            "Compte bancaire inconnu",
+        ),
+        ({"exigence": "REQ-INCONNUE"}, "Aucune exigence validée ou active"),
+    ],
+)
+def test_le_remplacement_refuse_les_memes_donnees_que_la_creation(monde, changes, attendu):
+    _, projet, profils, accord, _, _ = monde
+    p = _creer(monde)
+    r = appeler(profils["dora"], "put", _chemin(projet, accord, f"{p['id']}/"), _corps(**changes))
+    assert r.status_code == 422 and set(r.json()) == {"code", "message"}, r.content
+    if attendu:
+        assert attendu in r.json()["message"]
+    apres = appeler(profils["dora"], "get", _chemin(projet, accord, f"{p['id']}/")).json()
+    assert _contenu(apres) == _contenu(p)
+
+
+def test_un_profil_valide_ou_actif_ne_se_remplace_ni_ne_se_supprime(monde):
+    _, projet, profils, accord, _, _ = monde
+    p = _creer(monde)
+    chemin = _chemin(projet, accord, f"{p['id']}/")
+    appeler(profils["bruno"], "post", _chemin(projet, accord, f"{p['id']}/valider/"), {})
+    for methode, corps in (("put", _corps(regime="report_based")), ("delete", None)):
+        r = appeler(profils["dora"], methode, chemin, corps)
+        assert r.status_code == 422 and "seul un brouillon se modifie" in r.json()["message"]
+    appeler(profils["dora"], "post", _chemin(projet, accord, f"{p['id']}/activer/"), {})
+    for methode, corps in (("put", _corps(regime="report_based")), ("delete", None)):
+        assert appeler(profils["dora"], methode, chemin, corps).status_code == 422
+    assert _en_base(monde, p["id"]).regime == "transaction_based"
+
+
+def test_un_brouillon_se_supprime_et_la_version_suivante_reprend_le_numero(monde):
+    _, projet, profils, accord, _, _ = monde
+    p1 = _creer(monde)
+    p2 = _creer(monde, valid_from="2027-01-01")
+    assert p2["version"] == 2
+    r = appeler(profils["dora"], "delete", _chemin(projet, accord, f"{p2['id']}/"))
+    assert r.status_code == 200 and r.json() == {"supprime": True}
+    assert (
+        appeler(profils["dora"], "get", _chemin(projet, accord, f"{p2['id']}/")).status_code == 404
+    )
+    assert [x["id"] for x in appeler(profils["dora"], "get", _chemin(projet, accord)).json()] == [
+        p1["id"]
+    ]
+    assert _creer(monde, valid_from="2028-01-01")["version"] == 2  # aucune version fantôme
+
+
+def test_remplacer_ou_supprimer_exige_parametrer(monde):
+    _, projet, profils, accord, _, _ = monde
+    p = _creer(monde)
+    chemin = _chemin(projet, accord, f"{p['id']}/")
+    assert appeler(profils["amina"], "put", chemin, _corps()).status_code == 403
+    assert appeler(profils["bruno"], "delete", chemin).status_code == 403
+    assert _nb(monde) == 1
+
+
+def test_remplacer_ou_supprimer_un_profil_inconnu_ou_d_un_autre_accord_est_404(monde):
+    _, projet, profils, accord, _, _ = monde
+    inconnu = "00000000-0000-0000-0000-000000000000"
+    assert (
+        appeler(
+            profils["dora"], "put", _chemin(projet, accord, f"{inconnu}/"), _corps()
+        ).status_code
+        == 404
+    )
+    assert (
+        appeler(profils["dora"], "delete", _chemin(projet, accord, f"{inconnu}/")).status_code
+        == 404
+    )
+
+
+def test_remplacer_et_supprimer_sont_journalises(monde):
+    from core.models import AuditLog
+
+    _, projet, profils, accord, _, _ = monde
+    p = _creer(monde)
+    chemin = _chemin(projet, accord, f"{p['id']}/")
+    appeler(profils["dora"], "put", chemin, _corps(regime="report_based"))
+    appeler(profils["dora"], "delete", chemin)
+    _poser(monde[0])
+    actions = list(
+        AuditLog.objects.filter(object_id=p["id"])
+        .values_list("action", flat=True)
+        .order_by("occurred_at")
+    )
+    assert actions == [
+        "disbursement_profile_created",
+        "disbursement_profile_updated",
+        "disbursement_profile_deleted",
+    ]
+
+
+# --- l'exigence source d'un profil ---------------------------------------------------------------
+
+
+def _exigence_validee(monde, code="REQ-DEC", version=1, statut="active"):
+    import uuid
+
+    from django.utils import timezone
+
+    from niveau3_config.models import Exigence
+    from tests.test_exigences_bd import CITATION
+    from tests.test_financements_bd import _document
+
+    organisation, projet, _, _, _, _ = monde
+    _poser(organisation)
+    document = _document(organisation, projet, nom=f"Accord {code} v{version}")
+    return Exigence.objects.create(
+        org_id=organisation.id, project_id=projet.id, code=code, document=document,
+        citation=CITATION, subject="Profil de décaissement", rule={}, obligation="mandatory",
+        valid_from=datetime.date(2026, 1, 1), version=version, status=statut, source="manual",
+        validated_by=uuid.uuid4(), validated_at=timezone.now(),
+        citation_verifiee_sha256=document.sha256,
+    )  # fmt: skip
+
+
+def test_un_profil_se_rattache_a_l_exigence_validee_la_plus_recente_par_son_code(monde):
+    _exigence_validee(monde, version=1, statut="validated")
+    recente = _exigence_validee(monde, version=2, statut="active")
+    p = _creer(monde, exigence="REQ-DEC")
+    assert p["exigence"] == "REQ-DEC"
+    assert str(_en_base(monde, p["id"]).requirement_id) == str(recente.id)
+
+
+def test_une_exigence_validee_suffit_mais_une_exigence_proposee_ne_justifie_pas_un_profil(monde):
+    _, projet, profils, accord, _, _ = monde
+    _exigence_validee(monde, code="REQ-OK", statut="validated")
+    assert _creer(monde, exigence="REQ-OK")["exigence"] == "REQ-OK"
+    _exigence_validee(monde, code="REQ-PROP", statut="proposed")
+    r = appeler(profils["dora"], "post", _chemin(projet, accord), _corps(exigence="REQ-PROP"))
+    assert r.status_code == 422 and "Aucune exigence validée ou active" in r.json()["message"]
+
+
+def test_le_remplacement_change_l_exigence_source_et_peut_la_retirer(monde):
+    _, projet, profils, accord, _, _ = monde
+    _exigence_validee(monde)
+    p = _creer(monde)
+    assert p["exigence"] is None
+    chemin = _chemin(projet, accord, f"{p['id']}/")
+    avec = appeler(profils["dora"], "put", chemin, _corps(exigence="REQ-DEC")).json()
+    assert avec["exigence"] == "REQ-DEC" and _en_base(monde, p["id"]).requirement_id is not None
+    sans = appeler(profils["dora"], "put", chemin, _corps()).json()
+    assert sans["exigence"] is None and _en_base(monde, p["id"]).requirement_id is None
+
+
+# --- la fin propre d'une catégorie : l'exception d'éligibilité (L11-D9) ----------------------
+
+
+def _regle_audit(**champs):
+    return {
+        "category": "SERVICES",
+        "allocation": "100000",
+        "funding_rate": "1",
+        "tax_basis": "taxes_included",
+        "eligibility_to": "2031-06-30",
+    } | champs
+
+
+def _corps_audit(**regle):
+    return _corps(
+        regles=[
+            {
+                "category": "TRAVAUX",
+                "allocation": "600000",
+                "funding_rate": "0.85",
+                "tax_basis": "taxes_included",
+            },
+            _regle_audit(**regle),
+        ]
+    )
+
+
+def test_la_fin_propre_d_une_categorie_se_pose_et_se_relit(monde):
+    _, projet, profils, accord, _, _ = monde
+    r = appeler(
+        profils["dora"],
+        "post",
+        _chemin(projet, accord),
+        _corps_audit(fin_propre_a_la_categorie=True),
+    )
+    assert r.status_code == 201, r.content
+    regles = {x["category"]: x for x in r.json()["regles"]}
+    assert regles["SERVICES"]["fin_propre_a_la_categorie"] is True
+    assert regles["SERVICES"]["eligibility_to"] == "2031-06-30"
+    assert (
+        regles["TRAVAUX"]["fin_propre_a_la_categorie"] is False
+    )  # par défaut : jamais l'exception
+
+
+def test_une_fin_propre_sans_date_de_fin_est_refusee(monde):
+    _, projet, profils, accord, _, _ = monde
+    corps = _corps_audit(fin_propre_a_la_categorie=True)
+    del corps["regles"][1]["eligibility_to"]
+    r = appeler(profils["dora"], "post", _chemin(projet, accord), corps)
+    assert r.status_code == 422 and "doit avoir une date de fin" in r.json()["message"]
+    assert _nb(monde) == 0
+
+
+def test_la_fin_propre_doit_etre_un_booleen(monde):
+    _, projet, profils, accord, _, _ = monde
+    r = appeler(
+        profils["dora"],
+        "post",
+        _chemin(projet, accord),
+        _corps_audit(fin_propre_a_la_categorie="oui"),
+    )
+    assert r.status_code == 422 and _nb(monde) == 0
+
+
+def test_la_fin_propre_apres_la_fin_de_l_accord_est_un_avertissement_visible(monde):
+    from niveau1_socle.financements.models import Bailleur
+    from niveau1_socle.financements.services import creer_categorie
+
+    organisation, projet, profils, _, _, _ = monde
+    _poser(organisation)
+    accord = _accord(
+        projet,
+        profils,
+        Bailleur.objects.first(),
+        "DON-FIN",
+        date_fin_eligibilite=datetime.date(2030, 12, 31),
+    )
+    changer_statut_accord(accord, "actif", utilisateur=profils["dora"])
+    for code in ("TRAVAUX", "SERVICES"):
+        creer_categorie(utilisateur=profils["dora"], accord=accord, code=code, label={"fr": code})
+    _poser(organisation)
+
+    def creer(**regle):
+        r = appeler(profils["dora"], "post", _chemin(projet, accord), _corps_audit(**regle))
+        assert r.status_code == 201, r.content
+        return [a["code"] for a in r.json()["completude"]["avertissements"]], r.json()
+
+    codes, p = creer(fin_propre_a_la_categorie=True)
+    assert "fin_categorie_apres_accord" in codes
+    message = next(
+        a["message"]
+        for a in p["completude"]["avertissements"]
+        if a["code"] == "fin_categorie_apres_accord"
+    )
+    assert "SERVICES" in message and "2031-06-30" in message and "2030-12-31" in message
+    assert p["completude"]["complet"] is True  # un avertissement ne bloque pas
+    # sans la fin propre, ou avec une fin avant celle de l'accord : aucun avertissement
+    assert "fin_categorie_apres_accord" not in creer()[0]
+    # une fin ÉGALE à celle de l'accord n'est pas « après » : rien à signaler
+    assert (
+        "fin_categorie_apres_accord"
+        not in creer(fin_propre_a_la_categorie=True, eligibility_to="2030-12-31")[0]
+    )
+    assert (
+        "fin_categorie_apres_accord"
+        not in creer(fin_propre_a_la_categorie=True, eligibility_to="2030-06-30")[0]
+    )
+
+
+def test_la_fin_propre_est_reprise_par_une_nouvelle_version_et_visible_a_la_comparaison(monde):
+    _, projet, profils, accord, _, _ = monde
+    v1 = appeler(
+        profils["dora"],
+        "post",
+        _chemin(projet, accord),
+        _corps_audit(fin_propre_a_la_categorie=True),
+    ).json()
+    v2 = appeler(
+        profils["dora"],
+        "post",
+        _chemin(projet, accord, f"{v1['id']}/nouvelle-version/"),
+        {"valid_from": "2027-01-01"},
+    ).json()
+    assert {x["category"]: x["fin_propre_a_la_categorie"] for x in v2["regles"]}["SERVICES"] is True
+    # une troisième version, remplacée SANS l'exception : la comparaison la nomme
+    appeler(
+        profils["dora"],
+        "put",
+        _chemin(projet, accord, f"{v2['id']}/"),
+        _corps_audit(fin_propre_a_la_categorie=False),
+    )
+    c = appeler(
+        profils["dora"], "get", _chemin(projet, accord, f"{v1['id']}/comparaison/?avec=2")
+    ).json()
+    ecarts = {m["cle"]: m["ecarts"] for m in c["categories"]["modifies"]}
+    assert ecarts["SERVICES"]["fin_propre_a_la_categorie"] == {"avant": True, "apres": False}
+
+
+def test_la_base_refuse_une_fin_propre_sans_fin_meme_hors_de_l_api(monde):
+    from django.db import IntegrityError, transaction
+
+    from niveau3_config.models import RegleFinancementCategorie
+
+    organisation, projet, profils, accord, (travaux, _), _ = monde
+    p = _creer(monde)
+    _poser(organisation)
+    regle = RegleFinancementCategorie.objects.filter(profil_id=p["id"], category=travaux).get()
+    regle.fin_propre_a_la_categorie = True
+    with pytest.raises(IntegrityError, match="regle_fin_propre_exige_une_fin"):
+        with transaction.atomic():
+            regle.save()

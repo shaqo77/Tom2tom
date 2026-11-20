@@ -132,8 +132,10 @@ def fenetre_d_eligibilite(
     """La fenêtre `(début, fin)` dans laquelle une dépense est finançable, bornes INCLUSES.
 
     Début : le plus tardif des débuts connus (date d'éligibilité du profil, début de la catégorie).
-    Fin : la plus précoce des fins connues (fin d'éligibilité de l'accord, fin de la catégorie).
-    Une borne inconnue n'en est pas une : on n'invente aucune date.
+    Fin : la plus précoce des fins connues (fin d'éligibilité de l'accord, de la catégorie), SAUF
+    quand la catégorie déclare sa fin PROPRE (`fin_propre_a_la_categorie`) : cette fin prime alors
+    sur celle de l'accord, l'exception voulue (frais d'audit après la clôture). Une borne inconnue
+    n'en est pas une : on n'invente aucune date.
     """
     debuts = [
         d
@@ -143,14 +145,10 @@ def fenetre_d_eligibilite(
         )
         if d
     ]
-    fins = [
-        d
-        for d in (
-            getattr(accord, "date_fin_eligibilite", None),
-            getattr(regle, "eligibility_to", None),
-        )
-        if d
-    ]
+    fin_categorie = getattr(regle, "eligibility_to", None)
+    if fin_categorie and getattr(regle, "fin_propre_a_la_categorie", False):
+        return (max(debuts) if debuts else None, fin_categorie)
+    fins = [d for d in (getattr(accord, "date_fin_eligibilite", None), fin_categorie) if d]
     return (max(debuts) if debuts else None, min(fins) if fins else None)
 
 
