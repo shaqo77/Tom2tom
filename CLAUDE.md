@@ -27,7 +27,7 @@ marchés, trésorerie), `niveau2_profils/` (bibliothèque de profils de bailleur
 `niveau4_reporting/` (moteur d'états, publication, contrôles, tableau de bord). L'API HTTP (`/api/v1/`,
 JSON strict, montants en chaînes, erreurs `{code, message}`) couvre les marchés, la trésorerie, le
 tableau de bord, les réglages de devises, les clés de cofinancement, les accords, les documents de
-référence et les profils de décaissement ; elle n'a ni pagination ni jeton d'API.
+référence, les profils de décaissement et les contrôles ; elle n'a ni pagination ni jeton d'API.
 Chaque tâche a sa note « Réalisation » dans `04_PLAN_LOTS_L0_A_L4.md`, `05_PLAN_LOTS_L5_A_L10.md` ou
 `06_PLAN_LOT_L11_MOTEUR_MULTIBAILLEUR.md`, avec ses limites assumées : à lire avant de s'appuyer sur un comportement.
 

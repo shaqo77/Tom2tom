@@ -195,6 +195,25 @@ Un administrateur dépose lui-même les documents que les avenants et les exigen
   individuellement (on rejette ou on recrée) ; `exigence` ne se désigne que par code, version validée ou
   active la plus récente ; les pièces exigées et les méthodes restent des ensembles fermés (migration).
 
+### Réalisation — B5 : API des contrôles
+
+`niveau4_reporting/controles/{api.py,urls.py}`, catalogue `controles_api.json`,
+`tests/test_api_controles_bd.py` (34 tests). Sous `/api/v1/projets/<projet>/controles/` : liste (filtres
+`code`, `status`), création, lecture, `valider`, `activer`, `rejeter` ; `bibliotheque/` (les contrôles
+livrés et ceux déjà installés) et `bibliotheque/installer/` (installation en BROUILLON, `codes` facultatif).
+
+- **Règle 9 tenue** : installer ne crée que des brouillons ; il faut une personne qui valide (`valider`)
+  puis une qui active (`parametrer`). Un test déroule le parcours HTTP complet et prouve qu'un contrôle
+  installé et activé par l'API refuse ensuite la validation d'une dépense sans catégorie (A4).
+- **Langage borné (règle 5)** : l'expression d'un contrôle est vérifiée à la création par le langage de
+  conditions ; un champ ou un opérateur hors schéma (`eval`…), un type de règle incohérent ou un
+  contrôle automatique sans expression sont refusés en 422 `{code, message}`.
+- **Cycle** : brouillon → validé → actif, pas de saut (409 `TRANSITION_INTERDITE`), rejet avec motif,
+  nouvelle version = nouveau contrôle qui ferme le précédent à sa date d'effet.
+- **Limites assumées** : pas d'écran ; la modification d'un contrôle se fait par nouvelle version ; les
+  évaluations, décisions et dérogations restent sans API ; les contrôles de risque de la bibliothèque
+  s'installent aux seuils par défaut (pas encore paramétrables à l'installation).
+
 ### Réalisation — D2 : branchement des contrôles BAD
 
 `niveau2_profils/{services/gabarit.py,api.py,urls.py}`, `bad.json` (champ `branchement` sur les douze
