@@ -1,5 +1,7 @@
 {
+  "controles_api.resultat_inconnu": "Résultat d'évaluation inconnu : « {resultat} »",
+  "controles_api.severite_inconnue": "Sévérité inconnue : « {severity} » (bloquant, avertissement ou information)",
+  "controles_api.statut_derogation_inconnu": "Statut de dérogation inconnu : « {statut} »",
   "controles_api.statut_inconnu": "Statut de contrôle inconnu : « {status} »",
-  "controles_api.type_regle_inconnu": "Type de règle inconnu : « {type_regle} »",
-  "controles_api.severite_inconnue": "Sévérité inconnue : « {severity} » (bloquant, avertissement ou information)"
+  "controles_api.type_regle_inconnu": "Type de règle inconnu : « {type_regle} »"
 }

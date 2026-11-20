@@ -314,6 +314,31 @@ qui en sortirait serait faux dès que le compte a un solde d'ouverture. On ne l'
   téléversement par morceaux ; un reverse proxy placé devant l'application doit lui-même autoriser
   50 Mio.
 
+### Réalisation — D7 : évaluations, décisions, dérogations et seuils de risque par API
+
+`niveau4_reporting/controles/{api.py,urls.py,services.py}`, catalogues `controles.json` et
+`controles_api.json`, `tests/test_api_evaluations_bd.py` (32). Trois limites de B5 :
+
+- **« Évaluations, décisions, dérogations sans API »** : sous `/projets/<projet>/` :
+  `evaluations-controles/` (le journal, du plus récent au plus ancien, filtrable par résultat, contrôle,
+  type et identifiant d'objet, BORNÉ à 200 lignes) et `evaluations-controles/<id>/` (détail : décisions,
+  justifications, dérogations) ; `…/decision/` (trancher un contrôle « à vérifier », `valider`),
+  `…/justification/` (`saisir`), `…/derogation/` (demander, `saisir`) ; `derogations/` (liste, filtre
+  `statut`) et `derogations/<id>/decision/` (approuver ou refuser, `valider`, jamais par le demandeur) ;
+  `controles-en-attente/` (ce qui empêche d'avancer pour un objet, à une date) ;
+  `dossier-conformite-objet/` (le fil d'un objet : le résultat « bloquant » initial reste lisible, suivi de
+  la dérogation). Le journal reste en AJOUT SEUL : l'API ne modifie jamais une évaluation.
+- **« Contrôles de risque aux seuils par défaut »** : `bibliotheque/installer/` accepte `seuils`
+  (`RIS-CATEGORIE-SEUIL` : pourcentage exact de 0 à 100 en chaîne ; `RIS-AVANCE-NON-APUREE` : jours entiers
+  ≥ 1 ; `RIS-REJETS-REPETES` : entier ≥ 0). Jamais un flottant, un booléen ni un texte illisible ; un seuil
+  pour un autre contrôle, ou pour un contrôle qu'on n'installe pas, est refusé et rien n'est installé.
+- **Toujours la règle 9** : installer ne crée que des brouillons, avec le seuil choisi ; il faut une
+  personne qui valide puis une qui active.
+- **Mutations** : douze (filtres, tri, borne, booléen, seuils) détectées.
+- **Reste** : pas d'écran ; la modification d'un contrôle reste une nouvelle version ; les fabriques
+  d'éligibilité et de pièces de la bibliothèque (période, nature, zone, bénéficiaires exclus) s'écrivent
+  toujours par la création d'un contrôle avec son expression, pas par un formulaire dédié.
+
 ### Réalisation — D2 : branchement des contrôles BAD
 
 `niveau2_profils/{services/gabarit.py,api.py,urls.py}`, `bad.json` (champ `branchement` sur les douze
