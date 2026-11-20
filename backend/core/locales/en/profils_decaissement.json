@@ -10,6 +10,7 @@
   "profils_decaissement.devise_inconnue": "Unknown currency: “{devise}”",
   "profils_decaissement.eligibilite_incoherente": "A category's eligibility start must not be after its end",
   "profils_decaissement.exigence_inconnue": "No validated or active requirement with code “{code}” in this project",
+  "profils_decaissement.fin_propre_sans_fin": "A category with its own eligibility end must have an end date (eligibility_to)",
   "profils_decaissement.jalon_inconnu": "Unknown milestone: “{jalon}”",
   "profils_decaissement.methode_en_double": "A method can appear only once per profile",
   "profils_decaissement.methode_inconnue": "Unknown disbursement method: “{methode}”",

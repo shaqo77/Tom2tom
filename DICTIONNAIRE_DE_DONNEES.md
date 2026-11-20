@@ -1867,8 +1867,9 @@ Allocation ET taux de financement d'une catégorie, versionnés avec le profil.
 | `eligibility_to` | date | oui |  |  | — |
 | `requires_prior_review` | boolean | non |  |  | — |
 | `max_per_contract` | numeric(20, 4) | oui |  |  | — |
+| `fin_propre_a_la_categorie` | boolean | non |  |  | — |
 
-Contraintes : `regle_allocation_positive` (verification), `regle_assiette_fermee` (verification), `regle_eligibilite_coherente` (verification), `regle_plafond_contrat_positif` (verification), `regle_taux_dans_0_1` (verification), `uq_regle_categorie` (unicite)
+Contraintes : `regle_allocation_positive` (verification), `regle_assiette_fermee` (verification), `regle_eligibilite_coherente` (verification), `regle_fin_propre_exige_une_fin` (verification), `regle_plafond_contrat_positif` (verification), `regle_taux_dans_0_1` (verification), `uq_regle_categorie` (unicite)
 
 ## organisations_organisation
 

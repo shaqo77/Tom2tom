@@ -10,6 +10,7 @@
   "profils_decaissement.devise_inconnue": "Devise inconnue : « {devise} »",
   "profils_decaissement.eligibilite_incoherente": "Le début d'éligibilité d'une catégorie doit précéder sa fin",
   "profils_decaissement.exigence_inconnue": "Aucune exigence validée ou active de code « {code} » dans ce projet",
+  "profils_decaissement.fin_propre_sans_fin": "Une catégorie à fin d'éligibilité propre doit avoir une date de fin (eligibility_to)",
   "profils_decaissement.jalon_inconnu": "Jalon inconnu : « {jalon} »",
   "profils_decaissement.methode_en_double": "Une méthode ne peut figurer qu'une fois par profil",
   "profils_decaissement.methode_inconnue": "Méthode de décaissement inconnue : « {methode} »",

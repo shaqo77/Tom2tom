@@ -239,6 +239,7 @@ def _regle(r) -> dict:
         "eligibility_to": r.eligibility_to,
         "requires_prior_review": r.requires_prior_review,
         "max_per_contract": r.max_per_contract,
+        "fin_propre_a_la_categorie": r.fin_propre_a_la_categorie,
     }
 
 
@@ -353,6 +354,7 @@ def _regles(d: dict) -> list[dict]:
                 "eligibility_to": champ_date(r, "eligibility_to", obligatoire=False),
                 "requires_prior_review": _booleen(r, "requires_prior_review", False),
                 "max_per_contract": _optionnel(r, "max_per_contract"),
+                "fin_propre_a_la_categorie": _booleen(r, "fin_propre_a_la_categorie", False),
             }
         )
     return sortie
@@ -391,6 +393,7 @@ def _traduire_profil(erreur: IntegrityError):
         "regle_compte_seuil_borne": ("profils_decaissement.pourcentage_hors_bornes", {}),
         "regle_compte_plafond_coherent": ("profils_decaissement.plafond_incoherent", {}),
         "regle_eligibilite_coherente": ("profils_decaissement.eligibilite_incoherente", {}),
+        "regle_fin_propre_exige_une_fin": ("profils_decaissement.fin_propre_sans_fin", {}),
         "profil_dates_coherentes": ("profils_decaissement.dates_incoherentes", {}),
     } | {f"profil_jalons_{i}": ("profils_decaissement.dates_incoherentes", {}) for i in range(4)}
     return traduire_integrite(erreur, connues)

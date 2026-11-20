@@ -362,6 +362,32 @@ se modifie pas individuellement ».
 - **Reste** : la désignation de l'exigence par son code reste voulue (c'est ce que voit un administrateur) ;
   pas d'écran.
 
+### Réalisation — D9 : l'exception d'éligibilité des frais d'audit (fin propre d'une catégorie)
+
+`niveau3_config/{models.py,migrations/0014,services/decaissement.py,services/completude.py,api.py}`,
+`niveau2_profils/{services/gabarit.py,catalogue/bad.json}`, tests dans `test_eligibilite_depenses_bd.py`,
+`test_api_profils_decaissement_bd.py` (64) et `test_branchement_controles_bad_bd.py`. Limite de D2 :
+« l'exception dépenses d'audit jusqu'à 6 mois après la clôture n'est pas modélisée ».
+
+- **Constat** : la fenêtre d'éligibilité retient la fin la plus PRÉCOCE entre l'accord et la catégorie
+  (décision de A5, testée). Une catégorie ne pouvait donc que resserrer la fin, jamais l'étendre : la
+  règle de la BAD (frais d'audit éligibles 6 mois après la clôture, DH p.23) était inexprimable.
+- **Choix** : plutôt que d'inverser la règle générale (qui aurait élargi silencieusement l'éligibilité
+  de tous les bailleurs), un CHOIX EXPLICITE sur la règle de catégorie : `fin_propre_a_la_categorie`
+  (faux par défaut). Vrai, la fin de la catégorie prime sur celle de l'accord ; elle doit exister (la base
+  l'impose) ; elle ne touche pas le début. Reprise par une nouvelle version, lisible et comparable.
+- **Visible, pas silencieux** : tant que le profil est un brouillon, la complétude signale par un
+  AVERTISSEMENT (`fin_categorie_apres_accord`) toute fin propre postérieure à celle de l'accord ; il ne
+  bloque pas, la personne qui valide le justifie. Une fin égale à celle de l'accord n'est pas signalée.
+- **Gabarit BAD** : il suggère la règle (`regles_suggerees` : rôle `frais_d_audit`, fin = clôture + 6 mois,
+  fin propre) ; il ne sait pas quelle catégorie du projet porte ce rôle, l'administrateur l'applique à la
+  bonne. Le jalon de décaissement n'est pas touché.
+- **Mutations** : douze détectées (une survivante, la borne de l'avertissement, a donné un cas de test).
+- **Limites assumées** : l'exception vaut pour le contrôle de validation d'une écriture
+  (`ELIG-PERIODE-ACCORD`) ; la préparation d'une demande ne contrôle déjà que la fin de la catégorie, pas
+  celle de l'accord, donc elle est cohérente ; aucune catégorie n'est marquée « audit » dans le modèle :
+  le rôle reste porté par le CHOIX de l'administrateur.
+
 ### Réalisation — D2 : branchement des contrôles BAD
 
 `niveau2_profils/{services/gabarit.py,api.py,urls.py}`, `bad.json` (champ `branchement` sur les douze

@@ -772,6 +772,20 @@
             "codes": [
               "ELIG-PERIODE-ACCORD"
             ]
+          },
+          {
+            "type": "profil_decaissement",
+            "champ": "regles",
+            "role": "frais_d_audit",
+            "derive": {
+              "depuis": "closing_date",
+              "mois": 6,
+              "parametre": "exception_audit_mois_apres_cloture"
+            },
+            "note": {
+              "fr": "Exception : à appliquer à la catégorie des frais d'audit, avec la fin propre à la catégorie.",
+              "en": "Exception: apply to the audit-fees category, with the category's own end."
+            }
           }
         ]
       }

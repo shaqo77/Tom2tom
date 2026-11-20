@@ -397,6 +397,10 @@ class RegleFinancementCategorie(ModeleOrganisation):
     eligibility_to = models.DateField(null=True, blank=True)  # incluse
     requires_prior_review = models.BooleanField(default=False)
     max_per_contract = MontantField(null=True, blank=True)
+    # La fin d'éligibilité de CETTE catégorie prime sur celle de l'accord : l'exception, choisie et
+    # visible (les frais d'audit de la BAD, éligibles jusqu'à 6 mois après la clôture). Par défaut,
+    # la fin la plus précoce s'applique, comme avant.
+    fin_propre_a_la_categorie = models.BooleanField(default=False)
 
     class Meta:
         constraints = [
@@ -419,6 +423,10 @@ class RegleFinancementCategorie(ModeleOrganisation):
             models.CheckConstraint(
                 condition=Q(max_per_contract__isnull=True) | Q(max_per_contract__gte=0),
                 name="regle_plafond_contrat_positif",
+            ),
+            models.CheckConstraint(
+                condition=Q(fin_propre_a_la_categorie=False) | Q(eligibility_to__isnull=False),
+                name="regle_fin_propre_exige_une_fin",
             ),
         ]
 
