@@ -6,7 +6,8 @@ Seuls les champs techniques standard restent en anglais (`org_id`, `project_id`,
 
 Documents de référence, à lire avant de toucher à l'architecture :
 `01_SPECIFICATION_FONCTIONNELLE.md`, `02_ARCHITECTURE_TECHNIQUE.md`, `03_GUIDE_DEMARRAGE.md`
-(conventions, partie B ; règles, partie C), `04_PLAN_LOTS_L0_A_L4.md`, `05_PLAN_LOTS_L5_A_L10.md`, `06_PLAN_LOT_L11_MOTEUR_MULTIBAILLEUR.md`.
+(conventions, partie B ; règles, partie C), `04_PLAN_LOTS_L0_A_L4.md`, `05_PLAN_LOTS_L5_A_L10.md`, `06_PLAN_LOT_L11_MOTEUR_MULTIBAILLEUR.md`,
+`07_PLAN_FINALISATION.md` (le reste à faire, pas à pas, pour une personne qui débute : à suivre dans l'ordre).
 État actuel : lots **L0** à **L10** livrés, chacun avec son contrôle de sortie (fondations, configuration
 et registre des exigences, contrôles et rapports, dossier de conformité et accès auditeur, reprise et
 export, marchés et trésorerie, tableau de bord multi-projets et recette d'architecture T1 à T17). Restent
