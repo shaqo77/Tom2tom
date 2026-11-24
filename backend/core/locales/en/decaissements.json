@@ -23,6 +23,7 @@
   "decaissements.plafond_categorie_depasse": "category {code}: ceiling {plafond}, already requested {utilise}, this application {demande}",
   "decaissements.rejetee_demande_reprendre_demande_represente": "rejected in an application: to be taken up again by an application that resubmits it",
   "decaissements.sans_categorie_depenses": "without an expense category",
+  "decaissements.sequence_bad_epuisee": "Agreement {numero} reached the last numberable request ({maximum}) in the BAD format",
   "decaissements.type_demande_inconnu": "unknown application type: {type}",
   "decaissements.vous_etes_habilite_projet": "You are not authorised to “{operation}” on this project."
 }

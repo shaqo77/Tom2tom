@@ -6,6 +6,7 @@ journalisée, comme pour les coordonnées bancaires d'un tiers.
 """
 
 import datetime
+import re
 from decimal import Decimal
 
 from django.db import transaction
@@ -25,6 +26,7 @@ from .models import (
     Bailleur,
     Categorie,
     CompteBancaire,
+    FormatNumeroDemande,
     StatutAccord,
 )
 
@@ -361,3 +363,44 @@ def consulter_numero_compte(utilisateur, compte: CompteBancaire) -> str:
             after={"code": courant.code},
         )
     return courant.numero
+
+
+def parametrer_numerotation_demandes(
+    accord: Accord, *, format: str, suffixe_agence: str = "", utilisateur
+) -> Accord:
+    """Choisit le format de numérotation des demandes de retrait d'un accord (Lot 3-A).
+
+    `standard` (`DRF-<accord>-<n>`) ou `bad` (n sur 4 chiffres + suffixe d'agence de 3 lettres
+    majuscules). Règle 7 : dès qu'une demande existe, le format ne change plus.
+    """
+    from niveau1_socle.decaissements.models import DemandeRetrait  # évite l'import circulaire
+
+    _habilite(utilisateur, "parametrer", accord.project_id)
+    if format not in FormatNumeroDemande.values:
+        raise FinancementInvalide(msg("financements.format_numero_invalide", format=format))
+    suffixe = suffixe_agence or ""
+    if format == FormatNumeroDemande.BAD:
+        if not re.fullmatch(r"[A-Z]{3}", suffixe):
+            raise FinancementInvalide(msg("financements.suffixe_agence_invalide"))
+    elif suffixe:
+        raise FinancementInvalide(msg("financements.suffixe_agence_seulement_bad"))
+    with transaction.atomic():
+        courant = Accord.objects.select_for_update().get(pk=accord.pk)
+        if DemandeRetrait.objects.filter(accord=courant).exists():
+            raise FinancementInvalide(msg("financements.format_numero_fige", numero=courant.numero))
+        avant = {"format": courant.format_numero_demande, "suffixe_agence": courant.suffixe_agence}
+        courant.format_numero_demande = format
+        courant.suffixe_agence = suffixe
+        courant.save(update_fields=["format_numero_demande", "suffixe_agence", "updated_at"])
+        journaliser(
+            org_id=courant.org_id,
+            actor_id=utilisateur.id,
+            action="agreement_numbering_set",
+            object_type="accord",
+            object_id=courant.id,
+            project_id=courant.project_id,
+            before=avant,
+            after={"format": format, "suffixe_agence": suffixe},
+        )
+    accord.refresh_from_db()
+    return accord

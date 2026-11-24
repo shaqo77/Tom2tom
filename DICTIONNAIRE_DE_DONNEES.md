@@ -3,7 +3,7 @@
 Généré depuis les modèles (`python manage.py generer_dictionnaire`). Ne le modifiez pas
 à la main : un test échoue si ce fichier n'est plus celui que les modèles produisent.
 
-101 tables. « Isolée » : la table porte `org_id` et sa politique de
+102 tables. « Isolée » : la table porte `org_id` et sa politique de
 sécurité par ligne (RLS). Les contraintes nommées sont contrôlées par la base.
 
 ## Index
@@ -52,6 +52,7 @@ sécurité par ligne (RLS). Les contraintes nommées sont contrôlées par la ba
 - [`financements_categorie`](#financements_categorie) — financements.Categorie
 - [`financements_clecofinancement`](#financements_clecofinancement) — financements.CleCofinancement
 - [`financements_comptebancaire`](#financements_comptebancaire) — financements.CompteBancaire
+- [`financements_compteurdemande`](#financements_compteurdemande) — financements.CompteurDemande
 - [`financements_partcle`](#financements_partcle) — financements.PartCle
 - [`financements_versioncle`](#financements_versioncle) — financements.VersionCle
 - [`habilitations_habilitation`](#habilitations_habilitation) — habilitations.Habilitation
@@ -1045,8 +1046,10 @@ Un accord de financement. Le montant COURANT est celui du dernier avenant, sinon
 | `date_fin_eligibilite` | date | oui |  |  | — |
 | `date_cloture` | date | oui |  |  | — |
 | `date_limite_decaissement` | date | oui |  |  | — |
+| `format_numero_demande` | varchar(8) | non |  |  | — |
+| `suffixe_agence` | varchar(3) | non |  |  | — |
 
-Contraintes : `accord_dates_0` (verification), `accord_dates_1` (verification), `accord_dates_2` (verification), `accord_dates_3` (verification), `accord_dates_4` (verification), `accord_dates_5` (verification), `accord_montant_positif` (verification), `accord_nature_fermee` (verification), `accord_statut_ferme` (verification), `uq_accord_numero` (unicite)
+Contraintes : `accord_dates_0` (verification), `accord_dates_1` (verification), `accord_dates_2` (verification), `accord_dates_3` (verification), `accord_dates_4` (verification), `accord_dates_5` (verification), `accord_format_numero_coherent` (verification), `accord_montant_positif` (verification), `accord_nature_fermee` (verification), `accord_statut_ferme` (verification), `uq_accord_numero` (unicite)
 
 ## financements_avenantaccord
 
@@ -1161,6 +1164,25 @@ Un compte bancaire du projet. Le NUMÉRO COMPLET n'est lisible que d'une habilit
 | `actif` | boolean | non |  |  | — |
 
 Contraintes : `comptebancaire_plafond_positif` (verification), `comptebancaire_seuil_positif` (verification), `comptebancaire_seuil_sous_plafond` (verification), `comptebancaire_type_ferme` (verification), `uq_comptebancaire_code` (unicite), `uq_comptebancaire_numero` (unicite)
+
+## financements_compteurdemande
+
+Modèle `financements.CompteurDemande` — isolée par organisation.
+
+La dernière séquence attribuée à une demande d'un accord au format `bad`. Lot 3-A.
+
+| Colonne | Type | Null | Clé | Relation | Description |
+|---|---|---|---|---|---|
+| `id` | uuid | non | PK |  | Identifiant unique (UUID) de la ligne. |
+| `created_at` | timestamp with time zone | non |  |  | Date et heure de création de la ligne. |
+| `created_by` | uuid | oui |  |  | Identifiant de l'utilisateur qui a créé la ligne. |
+| `updated_at` | timestamp with time zone | non |  |  | Date et heure de la dernière modification. |
+| `updated_by` | uuid | oui |  |  | Identifiant de l'utilisateur qui l'a modifiée en dernier. |
+| `org_id` | uuid | non |  |  | Organisation propriétaire : l'isolation des données repose dessus (RLS). |
+| `accord_id` | uuid | non |  | `financements_accord.id` | — |
+| `derniere_sequence` | integer | non |  |  | — |
+
+Contraintes : `compteur_demande_borne` (verification)
 
 ## financements_partcle
 
