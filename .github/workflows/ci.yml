@@ -1,10 +1,12 @@
 name: CI
 on:
-  # Une seule exécution par changement : la PR, puis `main` après fusion. Un push sur une branche
-  # qui a une PR ne relance donc plus la même suite une seconde fois.
-  push:
-    branches: [main]
+  # Économie de quota : une seule exécution par PR (pas de second passage au push sur `main`),
+  # aucune exécution pour une PR qui ne touche que la documentation, lancement manuel possible.
   pull_request:
+    paths-ignore:
+      - "**.md"
+      - "docs/**"
+  workflow_dispatch:
 
 concurrency:
   # Un nouveau push sur la même PR annule l'exécution devenue inutile.
@@ -38,6 +40,9 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - uses: astral-sh/setup-uv@v3
+        with:
+          enable-cache: true
+          cache-dependency-glob: backend/pyproject.toml
       - name: Dépendances
         working-directory: backend
         run: uv venv --python 3.12 .venv && uv pip install -r pyproject.toml --group dev
