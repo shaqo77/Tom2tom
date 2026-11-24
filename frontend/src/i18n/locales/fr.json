@@ -236,5 +236,16 @@
   "tableau.descente.type_piece.bon_de_commande": "Bon de commande",
   "tableau.descente.type_piece.contrat": "Contrat",
   "tableau.descente.type_piece.preuve_de_paiement": "Preuve de paiement",
-  "tableau.descente.type_piece.autre": "Autre"
+  "tableau.descente.type_piece.autre": "Autre",
+  "mdp.nav": "Mot de passe",
+  "mdp.titre": "Changer de mot de passe",
+  "mdp.sous_titre": "Choisissez un nouveau mot de passe. Votre session actuelle reste ouverte.",
+  "mdp.actuel": "Mot de passe actuel",
+  "mdp.nouveau": "Nouveau mot de passe",
+  "mdp.confirmation": "Confirmer le nouveau mot de passe",
+  "mdp.valider": "Changer le mot de passe",
+  "mdp.actuel_requis": "Saisissez votre mot de passe actuel.",
+  "mdp.nouveau_requis": "Saisissez le nouveau mot de passe.",
+  "mdp.confirmation_differente": "La confirmation est différente du nouveau mot de passe.",
+  "mdp.change": "Votre mot de passe a été changé."
 }
