@@ -80,6 +80,9 @@ export function MiseEnPage() {
                 {moi.nom_complet}
                 {moi.organisation && <small className="technique"> · {moi.organisation.code}</small>}
               </span>
+              <Link to="/mot-de-passe" className="navigation__lien" activeProps={{ className: "navigation__lien navigation__lien--actif" }}>
+                {t("mdp.nav")}
+              </Link>
               <Bouton variante="secondaire" onClick={() => void sortir()}>
                 {t("session.deconnexion")}
               </Bouton>

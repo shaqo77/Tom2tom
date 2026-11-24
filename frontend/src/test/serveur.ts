@@ -186,6 +186,23 @@ export function demarrerServeur(comptes: Compte[]): FauxServeur {
         connecte = trouve;
         return json(trouve.moi);
       }
+      if (chemin === "/session/mot-de-passe/" && methode === "POST") {
+        if (!connecte) return json({ code: "NON_AUTHENTIFIE", message: "Connexion requise" }, 401);
+        if (serveur.retard) await serveur.retard;
+        // Mêmes refus et mêmes messages que le serveur ; la règle de robustesse (ici 12 caractères)
+        // n'est qu'un exemple de refus : l'écran n'en connaît aucune.
+        if (corps?.actuel !== connecte.motDePasse) {
+          return json({ code: "REGLE_INVALIDE", message: "Le mot de passe actuel est incorrect." }, 422);
+        }
+        if (corps?.nouveau === corps?.actuel) {
+          return json({ code: "REGLE_INVALIDE", message: "Le nouveau mot de passe doit être différent de l'actuel." }, 422);
+        }
+        if (String(corps?.nouveau).length < 12) {
+          return json({ code: "REGLE_INVALIDE", message: "Mot de passe refusé : trop court." }, 422);
+        }
+        connecte.motDePasse = String(corps?.nouveau);
+        return new Response(null, { status: 204 });
+      }
       if (chemin === "/session/deconnexion/" && methode === "POST") {
         connecte = null;
         return new Response(null, { status: 204 });
