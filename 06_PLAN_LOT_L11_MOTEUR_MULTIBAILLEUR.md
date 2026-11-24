@@ -492,6 +492,18 @@ Le parcours navigateur entre dans la CI.
 - Devises autorisées sans taux de change ni contrôle sur le budget (A6).
 - Aucune vérification externe tant que la CI est en panne (0.1).
 
+### Réalisation — Lot 2-B : pagination optionnelle des listes
+`core/pagination.py` (`paginer`, plafond 500) et `core.api.reponse_liste`. Le corps reste un tableau JSON ;
+`?limite=` (1 à 500) et `?decalage=` (≥ 0) ; en-têtes `X-Total-Count` et, s'il y a une suite,
+`X-Decalage-Suivant`. Sans `limite` : la liste entière jusqu'à 500 lignes, au-delà un refus 422 demande
+de paginer. Un queryset non trié est une erreur de programmation (`TypeError`).
+**Listes paginées :** bailleurs, accords d'un projet, taux de change (les taux étaient tronqués en silence à 500).
+**Listes NON encore paginées (à faire, une par une avec son test) :** clés de cofinancement, documents de
+référence, profils de décaissement, contrôles, évaluations, dérogations, justifications du compte spécial,
+demandes de retrait, listes de marchés et de trésorerie. Elles restent non bornées.
+Tests : `test_pagination.py` (logique), `test_api_pagination_bd.py`, `test_api_pagination_financements_bd.py` ;
+mutation vérifiée (sans la limite, les 4 tests d'API échouent).
+
 ---
 
 *Retour : [guide de démarrage](03_GUIDE_DEMARRAGE.md) · [lots L5 à L10](05_PLAN_LOTS_L5_A_L10.md)*

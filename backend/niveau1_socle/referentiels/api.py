@@ -18,6 +18,7 @@ from core.api import (
     projeter,
     recharge,
     reponse,
+    reponse_liste,
 )
 from core.metier import habilite, refuser
 from niveau1_socle.organisations.models import Projet
@@ -124,17 +125,15 @@ class TauxDeChange(VueMetier):
     enregistrement. Un taux n'est jamais écrasé ; l'habilitation `parametrer` est contrôlée par le
     service. Un taux est une CHAÎNE décimale, jamais un nombre à virgule."""
 
-    LIMITE = 500
-
     def get(self, requete):
-        taux = Taux.objects.order_by("-date", "devise_id", "type_taux")
+        taux = Taux.objects.order_by("-date", "devise_id", "type_taux", "id")
         devise = requete.query_params.get("devise")
         if devise:
             taux = taux.filter(devise_id=devise)
         type_taux = requete.query_params.get("type_taux")
         if type_taux:
             taux = taux.filter(type_taux=type_taux)
-        return reponse([_taux(t) for t in taux[: self.LIMITE]])
+        return reponse_liste(requete, taux, _taux)
 
     def post(self, requete):
         d = corps(requete)

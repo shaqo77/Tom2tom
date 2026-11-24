@@ -1,5 +1,6 @@
 {
   "api.champ_invalide": "Le champ « {champ} » est invalide : {attendu} attendu",
   "api.champ_obligatoire": "Le champ « {champ} » est obligatoire",
-  "api.corps_objet": "Le corps de la requête doit être un objet JSON"
+  "api.corps_objet": "Le corps de la requête doit être un objet JSON",
+  "api.liste_trop_longue": "La liste compte {total} lignes, plus que le maximum de {plafond} : demandez-la par tranches avec « limite » et « decalage »"
 }
