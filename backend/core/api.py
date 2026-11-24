@@ -17,7 +17,7 @@ from typing import Any
 
 from django.db import DataError, IntegrityError
 from django.http import Http404
-from rest_framework.exceptions import ParseError
+from rest_framework.exceptions import AuthenticationFailed, ParseError
 from rest_framework.response import Response
 from rest_framework.views import APIView, exception_handler, set_rollback
 
@@ -232,6 +232,15 @@ def gestionnaire_exceptions(exc, contexte):
         return Response(
             {"code": CodeErreur.REGLE_INVALIDE.value, "message": texte(exc)}, status=422
         )
+    if isinstance(exc, AuthenticationFailed):
+        # Un jeton refusé : même forme que toute erreur de l'API, jamais le `{"detail"}` de DRF.
+        # DRF rend 403 quand la PREMIÈRE classe d'authentification (la session) n'a pas d'en-tête
+        # `WWW-Authenticate` ; or un jeton refusé est toujours un 401.
+        reponse_401 = Response(
+            {"code": "NON_AUTHENTIFIE", "message": texte(exc.detail)}, status=401
+        )
+        reponse_401["WWW-Authenticate"] = getattr(exc, "auth_header", None) or "Bearer"
+        return reponse_401
     if isinstance(exc, IntegrityError | DataError):
         # Filet de sécurité : un service qui n'a pas traduit sa contrainte ne produit pas un 500.
         # Seul le nom de la contrainte est rendu ; le détail SQL reste dans les journaux.

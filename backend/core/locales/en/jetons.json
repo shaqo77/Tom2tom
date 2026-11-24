@@ -1,0 +1,9 @@
+{
+  "jetons.compte_sans_organisation": "A platform account has no organisation: it cannot create a token",
+  "jetons.duree_limitee": "A token lasts from 1 to {maximum} days",
+  "jetons.jeton_d_un_autre": "This token belongs to someone else",
+  "jetons.jeton_expire": "This API token has expired",
+  "jetons.jeton_invalide": "Invalid API token",
+  "jetons.jeton_revoque": "This API token has been revoked",
+  "jetons.libelle_invalide": "The token label is required (at most {maximum} characters)"
+}
