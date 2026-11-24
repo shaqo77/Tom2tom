@@ -15,10 +15,11 @@ import uuid
 from decimal import Decimal
 from typing import Any
 
+from django.db import DataError, IntegrityError
 from django.http import Http404
 from rest_framework.exceptions import ParseError
 from rest_framework.response import Response
-from rest_framework.views import APIView, exception_handler
+from rest_framework.views import APIView, exception_handler, set_rollback
 
 from .erreurs import CodeErreur, ErreurMetier
 from .i18n import msg, texte
@@ -222,5 +223,18 @@ def gestionnaire_exceptions(exc, contexte):
     ):
         return Response(
             {"code": CodeErreur.REGLE_INVALIDE.value, "message": texte(exc)}, status=422
+        )
+    if isinstance(exc, IntegrityError | DataError):
+        # Filet de sécurité : un service qui n'a pas traduit sa contrainte ne produit pas un 500.
+        # Seul le nom de la contrainte est rendu ; le détail SQL reste dans les journaux.
+        set_rollback()
+        diag = getattr(exc.__cause__, "diag", None)
+        detail = getattr(diag, "constraint_name", None) or ""
+        return Response(
+            {
+                "code": CodeErreur.REGLE_INVALIDE.value,
+                "message": texte(msg("metier.integrite_refusee", detail=detail)),
+            },
+            status=422,
         )
     return exception_handler(exc, contexte)
