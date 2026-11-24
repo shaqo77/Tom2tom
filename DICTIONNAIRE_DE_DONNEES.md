@@ -896,6 +896,7 @@ Une dépense justifiée par une demande. Les valeurs sont celles du grand livre 
 | `taux_applique` | numeric(9, 6) | oui |  |  | — |
 | `piece` | varchar(100) | non |  |  | — |
 | `date_piece` | date | non |  |  | — |
+| `contrat_id` | uuid | oui |  | `marches_contrat.id` | — |
 | `etat` | varchar(6) | non |  |  | — |
 
 Contraintes : `lignedemande_etat_ferme` (verification), `lignedemande_montant_positif` (verification), `lignedemande_regle_profil_taux_ensemble` (verification), `lignedemande_retrait_dans_la_depense` (verification), `uq_lignedemande_une_demande_en_cours` (unicite), `uq_lignedemande_une_fois` (unicite)

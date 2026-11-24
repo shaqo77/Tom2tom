@@ -524,6 +524,26 @@ l'export (Lot 8) ; la justification seule reste une `JustificationCompteSpecial`
 un accord déjà utilisé en `standard` ne peut pas passer en `bad` (règle 7) : l'accord doit être configuré AVANT sa
 première demande ; la contrainte d'unicité par accord ne se retrouve pas dans l'export Excel.
 
+### Réalisation — Lot 3-B : lier une dépense à un contrat, « une seule devise par demande » (partie livrée)
+`LigneDemande.contrat` (clé étrangère facultative vers `marches.Contrat`) et `preparer_demande(..., contrats={ligne:
+contrat})`. Un déclencheur de base impose que le contrat soit du MÊME projet que la demande (le service le refuse
+déjà ; le témoin du test prouve que le refus de base vient bien du contrat). **Contrôle « une devise par demande »
+(manuel BAD, p. 25) :** les contrats d'une demande sont dans une seule devise ; refus 422 qui nomme les devises ;
+sans contrat, rien n'est contrôlé (état antérieur). Le profil BAD déclare désormais ce contrôle et le contrôle de
+numérotation comme appliqués par un nouveau type de branchement `service_decaissement` (la fonction citée existe,
+vérifié par test). Tests : `test_contrat_demande_bd.py` (8), `test_branchement_controles_bad_bd.py` mis à jour ;
+4 mutations tuées (devises, enregistrement, projet du contrat, ligne étrangère).
+**NON LIVRÉ — « même méthode pour toutes les demandes d'un contrat » (`BAD-CTRL-METHODE-PAR-CONTRAT`) :** il reste
+`non_branche`, et son texte le dit. Raison : une dérogation (`Derogation`) ne s'attache qu'à l'évaluation d'un
+contrôle de la bibliothèque, sur un objet. Il faut donc (1) un contrôle de bibliothèque évalué à la préparation
+sur l'objet « contrat », avec un champ de contexte « méthode identique à celle des demandes vivantes du contrat » ;
+(2) que l'évaluation bloquante survive au refus de la préparation (aujourd'hui l'exception défait la transaction,
+donc l'évaluation à laquelle la dérogation se rattacherait disparaît) ; (3) que la préparation consulte
+`controles_en_attente`. C'est un chantier de plusieurs jours qui touche le schéma des règles, le catalogue de la
+bibliothèque (20 contrôles figés par des tests) et le circuit de dérogation : je ne l'ai pas fait à la hâte.
+**Limites :** le contrat n'est pas encore proposé par l'API HTTP des demandes (il n'y en a pas) ; une demande dont
+les dépenses ne portent aucun contrat n'est pas contrôlée.
+
 ---
 
 *Retour : [guide de démarrage](03_GUIDE_DEMARRAGE.md) · [lots L5 à L10](05_PLAN_LOTS_L5_A_L10.md)*

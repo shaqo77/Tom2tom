@@ -855,10 +855,11 @@
         ],
         "branchement": [
           {
-            "type": "non_branche",
-            "raison": {
-              "fr": "Aucun champ de la demande ne porte une devise de paiement distincte de celle de l'accord : la règle n'a rien à contrôler tant que le modèle n'en distingue pas.",
-              "en": "No request field carries a payment currency distinct from the agreement's: the rule has nothing to check until the model distinguishes one."
+            "type": "service_decaissement",
+            "fonction": "_contrats_des_lignes",
+            "note": {
+              "fr": "À la préparation d'une demande, les contrats indiqués sur les dépenses doivent être dans UNE seule devise (la devise du contrat, qui suit celle de son marché). Une demande dont aucune dépense n'indique de contrat n'est pas contrôlée : la devise de paiement n'existe que par le contrat.",
+              "en": "When a request is prepared, the contracts given for its expenses must all be in ONE currency (the contract's, which follows its tender's). A request whose expenses give no contract is not checked: the payment currency only exists through the contract."
             }
           }
         ]
@@ -909,10 +910,11 @@
         ],
         "branchement": [
           {
-            "type": "non_branche",
-            "raison": {
-              "fr": "Le numéro d'une demande est libre (unique par organisation) : le format à 4 chiffres, le suffixe d'agence et le suffixe JUS ne sont pas contrôlés.",
-              "en": "A request number is free-form (unique per organisation): the 4-digit format, agency suffix and JUS suffix are not checked."
+            "type": "service_decaissement",
+            "fonction": "_numero_de_demande",
+            "note": {
+              "fr": "Un accord peut suivre le format BAD : séquence de 4 chiffres suivie du suffixe d'agence de 3 lettres, un compteur par accord (donc distinct pour un prêt et pour un don) qui ne décroît jamais (un numéro annulé n'est pas réattribué). Le suffixe JUS d'une justification seule n'est pas géré : une justification seule est une justification de compte spécial, pas une demande numérotée.",
+              "en": "An agreement can follow the BAD format: a 4-digit sequence followed by the 3-letter agency suffix, one counter per agreement (so separate for a loan and a grant) that never decreases (a cancelled number is not reassigned). The JUS suffix of a justification only is not handled: a justification only is a special-account justification, not a numbered request."
             }
           }
         ]
@@ -1044,8 +1046,8 @@
           {
             "type": "non_branche",
             "raison": {
-              "fr": "Une demande n'est pas rattachée à un contrat : la méthode ne peut pas être imposée contrat par contrat (le profil n'autorise que des méthodes par accord).",
-              "en": "A request is not linked to a contract: the method cannot be enforced per contract (the profile only enables methods per agreement)."
+              "fr": "Une dépense d'une demande peut maintenant porter son contrat, mais la méthode n'est pas encore imposée contrat par contrat : il faut un contrôle de la bibliothèque évalué à la préparation, dont le blocage se lève par une dérogation approuvée (le mécanisme existant). Tant que ce contrôle n'existe pas, la règle n'est pas appliquée.",
+              "en": "An expense of a request can now carry its contract, but the method is not yet enforced contract by contract: it needs a library control evaluated at preparation, whose block is lifted by an approved derogation (the existing mechanism). Until that control exists, the rule is not applied."
             }
           }
         ]

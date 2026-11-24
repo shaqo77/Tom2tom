@@ -36,6 +36,8 @@ BRANCHES = {
     "BAD-CTRL-ALLOCATIONS-CATEGORIES",
     "BAD-CTRL-DELAI-DEMANDES",
     "BAD-CTRL-PIECES-REMBOURSEMENT",
+    "BAD-CTRL-MONODEVISE",
+    "BAD-CTRL-NUMEROTATION",
 }
 
 
@@ -52,12 +54,18 @@ def test_chaque_controle_du_profil_dit_comment_il_est_applique():
     for code, e in controles.items():
         branchement = e["contenu"].get("branchement")
         assert branchement and all(
-            b["type"] in {"controle_bibliotheque", "profil_decaissement", "non_branche"}
+            b["type"]
+            in {
+                "controle_bibliotheque",
+                "profil_decaissement",
+                "service_decaissement",
+                "non_branche",
+            }
             for b in branchement
         ), code
 
 
-def test_seuls_quatre_controles_sont_branches_et_les_huit_autres_le_disent():
+def test_seuls_six_controles_sont_branches_et_les_six_autres_le_disent():
     controles = _controles()
     branches = {
         c
@@ -99,6 +107,19 @@ def test_un_champ_de_profil_de_decaissement_cite_existe_vraiment():
     }
     assert cites == {"eligibility_date", "regles", "disbursement_deadline", "methodes"}
     assert cites <= champs, cites - champs
+
+
+def test_un_service_de_decaissement_cite_existe_vraiment():
+    from niveau1_socle.decaissements import services
+
+    cites = {
+        b["fonction"]
+        for e in _controles().values()
+        for b in e["contenu"]["branchement"]
+        if b["type"] == "service_decaissement"
+    }
+    assert cites == {"_contrats_des_lignes", "_numero_de_demande"}
+    assert all(callable(getattr(services, nom, None)) for nom in cites), cites
 
 
 # --- le calcul des mois ---------------------------------------------------------------------------

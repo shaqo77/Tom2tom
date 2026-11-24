@@ -2,6 +2,8 @@
   "decaissements.accord_projet_tient_comptes_conversion": "L'accord {numero} est en {devise_id}, le projet tient ses comptes en {base} : la conversion des dépenses n'est pas disponible",
   "decaissements.aucun_profil_decaissement_vigueur_accord": "Aucun profil de décaissement n'est en vigueur pour l'accord {numero} le {date}",
   "decaissements.categorie_regle_financement_profil_v": "La catégorie {code} n'a pas de règle de financement dans le profil v{version}",
+  "decaissements.contrat_introuvable": "Le contrat {contrat_id} n'existe pas dans le projet de la demande",
+  "decaissements.contrat_sur_depense_inconnue": "Le contrat est indiqué pour la dépense {ligne_id}, qui ne fait pas partie de la demande",
   "decaissements.deja_justifiee_demande_cours": "déjà justifiée par une demande en cours",
   "decaissements.demande_elle_peut_passer": "La demande {numero} est {status} : elle ne peut pas passer à {nouveau}",
   "decaissements.demande_inferieure_minimum_profil": "La demande ({total}) est inférieure au minimum du profil : {explication}",
@@ -25,5 +27,6 @@
   "decaissements.sans_categorie_depenses": "sans catégorie de dépenses",
   "decaissements.sequence_bad_epuisee": "L'accord {numero} a atteint la dernière demande numérotable ({maximum}) au format BAD",
   "decaissements.type_demande_inconnu": "type de demande inconnu : {type}",
+  "decaissements.une_devise_par_demande": "Une demande ne porte que des contrats d'une seule devise : celle-ci en mélange plusieurs ({devises})",
   "decaissements.vous_etes_habilite_projet": "Vous n'êtes pas habilité à « {operation} » sur ce projet."
 }

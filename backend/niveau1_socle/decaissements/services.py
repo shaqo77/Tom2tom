@@ -34,6 +34,7 @@ from niveau1_socle.financements.models import (
 from niveau1_socle.financements.services import exiger_accord_actif
 from niveau1_socle.habilitations.permissions import est_habilite
 from niveau1_socle.habilitations.separation import exiger_separation_des_taches
+from niveau1_socle.marches.models import Contrat
 from niveau1_socle.organisations.models import Projet
 from niveau1_socle.referentiels.models import Devise
 from niveau3_config.services import decaissement as profil_services
@@ -332,6 +333,35 @@ def _numero_de_demande(accord: Accord) -> str:
     return f"{suivante:04d}{accord.suffixe_agence}"
 
 
+def _contrats_des_lignes(contrats: dict | None, lignes: list, accord: Accord) -> dict:
+    """`{ligne: Contrat}` après contrôle : contrats connus, du projet de l'accord, dans une seule
+    devise. Sans contrat, rien à contrôler (état antérieur)."""
+    if not contrats:
+        return {}
+    inconnues = set(contrats) - set(lignes)
+    if inconnues:
+        raise DemandeInvalide(
+            msg(
+                "decaissements.contrat_sur_depense_inconnue", ligne_id=sorted(inconnues, key=str)[0]
+            )
+        )
+    trouves = Contrat.objects.in_bulk({getattr(c, "pk", c) for c in contrats.values()})
+    resultat = {}
+    for ligne_id, cible in contrats.items():
+        contrat = trouves.get(getattr(cible, "pk", cible))
+        if contrat is None or contrat.project_id != accord.project_id:
+            raise DemandeInvalide(
+                msg("decaissements.contrat_introuvable", contrat_id=getattr(cible, "pk", cible))
+            )
+        resultat[ligne_id] = contrat
+    devises = sorted({c.devise for c in resultat.values()})
+    if len(devises) > 1:
+        raise DemandeInvalide(
+            msg("decaissements.une_devise_par_demande", devises=", ".join(devises))
+        )
+    return resultat
+
+
 def preparer_demande(
     *,
     utilisateur,
@@ -343,6 +373,7 @@ def preparer_demande(
     ecarts: dict | None = None,
     reprise_de: DemandeRetrait | None = None,
     date_demande: datetime.date | None = None,
+    contrats: dict | None = None,
 ) -> DemandeRetrait:
     """Produit une demande PRÉPARÉE à partir des dépenses choisies (`lignes` : identifiants de
     lignes d'écriture). `ecarts` : `{ligne: motif}`, dépenses éligibles écartées avec leur motif.
@@ -351,6 +382,10 @@ def preparer_demande(
     la demande est CONTRÔLÉE ET CALCULÉE par lui (L5-T03bis) : méthode autorisée, délai, date
     d'éligibilité, règle de financement de chaque catégorie, montant minimum, pièces exigées. Le
     profil est figé sur la demande, et sa règle sur chaque ligne.
+
+    `contrats` (facultatif) : `{ligne: contrat}`, le contrat que la dépense règle. Les contrats
+    d'une demande sont dans UNE seule devise (manuel BAD, p. 25) ; sans contrat, aucun contrôle de
+    devise (Lot 3-B).
     """
     _habilite(utilisateur, "saisir", accord.project_id)
     if type not in TypeDemande.values:
@@ -387,6 +422,7 @@ def preparer_demande(
                 raise DepenseNonSelectionnable(
                     msg("decaissements.depense_peut_etre_ecartee_elle", ligne_id=ligne_id)
                 )
+        contrats_des_lignes = _contrats_des_lignes(contrats, lignes, accord)
         profil, calcul, pieces_exigees = _appliquer_le_profil(
             accord, type, [choisies[i] for i in lignes], date_demande or datetime.date.today()
         )
@@ -417,6 +453,7 @@ def preparer_demande(
                 taux_applique=calcul[ligne_id][0].funding_rate if calcul[ligne_id][0] else None,
                 piece=depense.piece,
                 date_piece=depense.date,
+                contrat=contrats_des_lignes.get(ligne_id),
             )
         for ligne_id, motif in ecarts.items():
             MiseAEcart.objects.create(
