@@ -355,6 +355,11 @@ def preparer_demande(
         profil, calcul, pieces_exigees = _appliquer_le_profil(
             accord, type, [choisies[i] for i in lignes], date_demande or datetime.date.today()
         )
+        with connection.cursor() as cur:  # le numéro se déduit d'un décompte : on sérialise
+            cur.execute(
+                "SELECT pg_advisory_xact_lock(hashtextextended(%s, 0))",
+                [f"demande_retrait:{accord.pk}"],
+            )
         numero = (
             f"DRF-{accord.numero}-{DemandeRetrait.objects.filter(accord=accord).count() + 1:03d}"
         )
