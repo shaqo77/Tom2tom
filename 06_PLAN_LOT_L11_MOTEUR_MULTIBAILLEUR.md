@@ -525,6 +525,26 @@ qu'une fois par minute au plus ; aucune limitation de débit sur les essais de j
 jetons ; un jeton n'est pas lié à des projets ou des opérations précis (il a TOUS les droits de son propriétaire) ;
 pas de rotation. **À faire relire avant l'exploitation** (plan 07 §6.C).
 
+### Réalisation — Lot 3-A : numérotation des demandes au format BAD
+Règle du manuel des décaissements BAD (p. 24-25) : numérotation chronologique de 4 chiffres au plus, suffixe
+d'agence de 3 lettres, un numéro annulé n'est jamais réattribué, une suite distincte par accord (prêt, don).
+`Accord.format_numero_demande` (`standard` par défaut, ou `bad`) et `Accord.suffixe_agence` (3 lettres majuscules,
+obligatoire en `bad`, interdit en `standard`) ; table `CompteurDemande` (un compteur par accord, ligne verrouillée à
+l'attribution, déclencheur : ne décroît jamais, ne se supprime pas) ; le numéro `bad` est `{séquence sur 4 chiffres}
+{suffixe}` (par exemple `0001ADB`), refus net au-delà de 9999. Le format `standard` (`DRF-<accord>-<n>`) ne change pas.
+Règle 7 : le format ne se change plus dès qu'une demande existe (service ET déclencheur de base ; la garde de l'accord
+activé laisse passer ces deux colonnes seulement). API : `numerotation` sur chaque accord (lecture) et
+`POST /projets/<id>/accords/<id>/numerotation/` (`parametrer`, 422 au format `{code, message}`, 403 sans droit).
+**Changement de contrainte :** `uq_demande_numero` devient unique PAR ACCORD (`org_id, accord, numero`) : deux accords
+au format BAD ont chacun leur suite « 0001ABC ». Le format standard, qui contient le numéro d'accord, n'est pas touché.
+Tests : `test_numerotation_bad_bd.py` (17, dont deux préparations simultanées sur de vrais fils),
+`test_numerotation_demandes_bd.py` (numérotation `standard` sérialisée par un verrou par accord, constat 4 de la revue),
+3 tests d'API ; 5 mutations tuées (verrous, plafond, format, gel après demandes, validation du suffixe).
+**Limites assumées :** le type BAD d'une demande (avance initiale, reconstitution, remboursement) se déduira à
+l'export (Lot 8) ; la justification seule reste une `JustificationCompteSpecial` (pas de suffixe `JUS` pour l'instant) ;
+un accord déjà utilisé en `standard` ne peut pas passer en `bad` (règle 7) : l'accord doit être configuré AVANT sa
+première demande ; la contrainte d'unicité par accord ne se retrouve pas dans l'export Excel.
+
 ---
 
 *Retour : [guide de démarrage](03_GUIDE_DEMARRAGE.md) · [lots L5 à L10](05_PLAN_LOTS_L5_A_L10.md)*

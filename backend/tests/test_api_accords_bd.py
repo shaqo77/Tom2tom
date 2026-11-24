@@ -412,3 +412,53 @@ def test_les_categories_se_lisent_racines_d_abord_puis_sous_categories(cadre):
         _categorie(profils, projet, accord, code=code, **({"parent": parent} if parent else {}))
     detail = appeler(profils["dora"], "get", _accords(projet, f"{accord['id']}/")).json()
     assert [c["code"] for c in detail["categories"]] == ["B-RACINE", "Z-RACINE", "A-ENFANT"]
+
+
+# --- numérotation des demandes (Lot 3-A) -----------------------------------------------------------
+
+
+def _numerotation(projet, accord_id):
+    return f"/projets/{projet.id}/accords/{accord_id}/numerotation/"
+
+
+def test_un_accord_est_au_format_standard_par_defaut_et_passe_au_format_bad(cadre):
+    _, projet, profils, _ = cadre
+    accord = _creer(profils, projet)
+    assert accord["format_numero_demande"] == "standard" and accord["suffixe_agence"] == ""
+    r = appeler(
+        profils["dora"],
+        "post",
+        _numerotation(projet, accord["id"]),
+        {"format": "bad", "suffixe_agence": "ADB"},
+    )
+    assert r.status_code == 200, r.content
+    assert (r.json()["format_numero_demande"], r.json()["suffixe_agence"]) == ("bad", "ADB")
+
+
+@pytest.mark.parametrize(
+    "corps",
+    [
+        {"format": "bad"},
+        {"format": "bad", "suffixe_agence": "ab"},
+        {"format": "inconnu"},
+        {"format": "standard", "suffixe_agence": "ABC"},
+        {},
+    ],
+)
+def test_une_numerotation_invalide_est_refusee_au_format_stable(cadre, corps):
+    _, projet, profils, _ = cadre
+    accord = _creer(profils, projet)
+    r = appeler(profils["dora"], "post", _numerotation(projet, accord["id"]), corps)
+    assert r.status_code == 422 and set(r.json()) == {"code", "message"}
+
+
+def test_seul_un_administrateur_regle_la_numerotation(cadre):
+    _, projet, profils, _ = cadre
+    accord = _creer(profils, projet)
+    r = appeler(
+        profils["amina"],
+        "post",
+        _numerotation(projet, accord["id"]),
+        {"format": "bad", "suffixe_agence": "ADB"},
+    )
+    assert r.status_code == 403

@@ -25,3 +25,8 @@ export function seDeconnecter(): Promise<void> {
 export function enregistrerLangue(langue: string): Promise<Moi> {
   return appeler<Moi>("/session/moi/", { methode: "PATCH", corps: { langue } });
 }
+
+/** Change le mot de passe de la personne connectée ; sa session en cours survit (204). */
+export function changerMotDePasse(actuel: string, nouveau: string): Promise<void> {
+  return appeler<void>("/session/mot-de-passe/", { methode: "POST", corps: { actuel, nouveau } });
+}

@@ -25,7 +25,12 @@ from rest_framework.exceptions import PermissionDenied
 from core.audit import journaliser
 from core.i18n import Liste, libelle, msg
 from niveau1_socle.exercices.services import TransitionInterdite
-from niveau1_socle.financements.models import Accord, Categorie
+from niveau1_socle.financements.models import (
+    Accord,
+    Categorie,
+    CompteurDemande,
+    FormatNumeroDemande,
+)
 from niveau1_socle.financements.services import exiger_accord_actif
 from niveau1_socle.habilitations.permissions import est_habilite
 from niveau1_socle.habilitations.separation import exiger_separation_des_taches
@@ -42,6 +47,9 @@ from .models import (
 )
 
 ZERO = Decimal(0)
+
+
+SEQUENCE_BAD_MAX = 9999
 
 
 class DemandeInvalide(ValueError):
@@ -297,6 +305,33 @@ def _appliquer_le_profil(accord: Accord, type_demande: str, depenses: list, date
     return profil, calcul, pieces
 
 
+def _numero_de_demande(accord: Accord) -> str:
+    """Le numéro de la prochaine demande de l'accord, pris sous verrou (règle 3 par analogie).
+
+    `bad` : séquence de 4 chiffres + suffixe d'agence, tirée d'un compteur verrouillé qui ne décroît
+    jamais (une demande annulée garde son numéro). `standard` : `DRF-<accord>-<n>`.
+    """
+    with connection.cursor() as cur:  # le numéro se déduit d'un décompte : on sérialise
+        cur.execute(
+            "SELECT pg_advisory_xact_lock(hashtextextended(%s, 0))",
+            [f"demande_retrait:{accord.pk}"],
+        )
+    if accord.format_numero_demande != FormatNumeroDemande.BAD:
+        return f"DRF-{accord.numero}-{DemandeRetrait.objects.filter(accord=accord).count() + 1:03d}"
+    compteur, _ = CompteurDemande.objects.select_for_update().get_or_create(
+        accord=accord, defaults={"org_id": accord.org_id}
+    )
+    suivante = compteur.derniere_sequence + 1
+    if suivante > SEQUENCE_BAD_MAX:
+        raise DemandeInvalide(
+            msg(
+                "decaissements.sequence_bad_epuisee", numero=accord.numero, maximum=SEQUENCE_BAD_MAX
+            )
+        )
+    CompteurDemande.objects.filter(pk=compteur.pk).update(derniere_sequence=suivante)
+    return f"{suivante:04d}{accord.suffixe_agence}"
+
+
 def preparer_demande(
     *,
     utilisateur,
@@ -355,14 +390,7 @@ def preparer_demande(
         profil, calcul, pieces_exigees = _appliquer_le_profil(
             accord, type, [choisies[i] for i in lignes], date_demande or datetime.date.today()
         )
-        with connection.cursor() as cur:  # le numéro se déduit d'un décompte : on sérialise
-            cur.execute(
-                "SELECT pg_advisory_xact_lock(hashtextextended(%s, 0))",
-                [f"demande_retrait:{accord.pk}"],
-            )
-        numero = (
-            f"DRF-{accord.numero}-{DemandeRetrait.objects.filter(accord=accord).count() + 1:03d}"
-        )
+        numero = _numero_de_demande(accord)
         demande = DemandeRetrait.objects.create(
             org_id=utilisateur.org_id,
             project_id=accord.project_id,

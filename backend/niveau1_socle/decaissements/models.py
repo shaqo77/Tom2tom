@@ -90,7 +90,10 @@ class DemandeRetrait(ModeleOrganisation):
 
     class Meta:
         constraints = [
-            models.UniqueConstraint(fields=["org_id", "numero"], name="uq_demande_numero"),
+            # Unique PAR ACCORD : deux accords au format BAD ont chacun leur suite « 0001ABC… ».
+            models.UniqueConstraint(
+                fields=["org_id", "accord", "numero"], name="uq_demande_numero"
+            ),
             models.UniqueConstraint(
                 fields=["org_id", "cle_idempotence"],
                 condition=Q(cle_idempotence__isnull=False),

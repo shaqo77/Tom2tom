@@ -36,6 +36,7 @@ from niveau1_socle.decaissements.services import (
     soumettre_demande,
 )
 from niveau1_socle.financements.cles import creer_cle, creer_version_cle
+from niveau1_socle.financements.models import CompteurDemande
 from niveau1_socle.financements.services import (
     creer_avenant,
     creer_compte_bancaire,
@@ -294,6 +295,7 @@ def _peupler(organisation, projet, profils, accord, categories):
         utilisateur=claire, compte=compte, mouvements=[_mouvement(compte, "R2", "20")]
     )[0]
     creer_jeton(utilisateur=amina, libelle="Intégration", duree_jours=30)
+    CompteurDemande.objects.create(org_id=organisation.id, accord=accord, derniere_sequence=1)
     compte_special = creer_compte_bancaire(
         utilisateur=dora,
         project_id=projet.id,

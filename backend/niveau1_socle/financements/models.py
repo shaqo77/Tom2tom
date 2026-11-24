@@ -49,6 +49,11 @@ class StatutAccord(models.TextChoices):
     ANNULE = "annule", "Annulé"
 
 
+class FormatNumeroDemande(models.TextChoices):
+    STANDARD = "standard", "DRF-<accord>-<n>"
+    BAD = "bad", "n sur 4 chiffres + suffixe d'agence (BAD)"
+
+
 class Accord(ModeleOrganisation):
     """Un accord de financement. Le montant COURANT est celui du dernier avenant, sinon le montant
     initial : l'accord lui-même ne change pas de montant (voir `montant_courant`).
@@ -71,10 +76,26 @@ class Accord(ModeleOrganisation):
     date_fin_eligibilite = models.DateField(null=True, blank=True)
     date_cloture = models.DateField(null=True, blank=True)
     date_limite_decaissement = models.DateField(null=True, blank=True)
+    # Numérotation des demandes de retrait : `standard` (DRF-<accord>-<n>) ou `bad` (n sur 4
+    # chiffres suivi du suffixe d'agence de 3 lettres, manuel BAD). Voir L11 Lot 3-A.
+    format_numero_demande = models.CharField(
+        max_length=8,
+        choices=FormatNumeroDemande.choices,
+        default=FormatNumeroDemande.STANDARD,
+        db_default=FormatNumeroDemande.STANDARD,
+    )
+    suffixe_agence = models.CharField(max_length=3, blank=True, default="", db_default="")
 
     class Meta:
         constraints = [
             models.UniqueConstraint(fields=["org_id", "numero"], name="uq_accord_numero"),
+            models.CheckConstraint(
+                condition=(
+                    Q(format_numero_demande="standard", suffixe_agence="")
+                    | Q(format_numero_demande="bad", suffixe_agence__regex=r"^[A-Z]{3}$")
+                ),
+                name="accord_format_numero_coherent",
+            ),
             models.CheckConstraint(
                 condition=Q(montant_initial__gte=0), name="accord_montant_positif"
             ),
@@ -305,3 +326,22 @@ class PartCle(ModeleOrganisation):
 
     def __str__(self) -> str:
         return f"{self.accord.numero} {self.share}"
+
+
+class CompteurDemande(ModeleOrganisation):
+    """La dernière séquence attribuée à une demande d'un accord au format `bad`. Lot 3-A.
+
+    La ligne est verrouillée à l'attribution et la séquence NE DÉCROÎT JAMAIS : annuler une demande
+    ne rend pas son numéro (règle du manuel BAD). Un déclencheur de base l'impose.
+    """
+
+    accord = models.OneToOneField(Accord, on_delete=models.PROTECT, related_name="+")
+    derniere_sequence = models.PositiveIntegerField(default=0)
+
+    class Meta:
+        constraints = [
+            models.CheckConstraint(
+                condition=Q(derniere_sequence__gte=0, derniere_sequence__lte=9999),
+                name="compteur_demande_borne",
+            ),
+        ]

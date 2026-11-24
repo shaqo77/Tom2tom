@@ -3,6 +3,7 @@ import { createRootRouteWithContext, createRoute, createRouter, redirect } from 
 
 import { Accueil } from "../features/accueil/Accueil";
 import { Conception } from "../features/accueil/Conception";
+import { ChangerMotDePasse } from "../features/connexion/ChangerMotDePasse";
 import { Connexion } from "../features/connexion/Connexion";
 import { ReglagesDevises } from "../features/devises/ReglagesDevises";
 import { ProjetPage } from "../features/projets/ProjetPage";
@@ -109,6 +110,12 @@ const descente = createRoute({
   component: Descente,
 });
 
+const motDePasse = createRoute({
+  getParentRoute: () => protege,
+  path: "/mot-de-passe",
+  component: ChangerMotDePasse,
+});
+
 const reglagesDevises = createRoute({
   getParentRoute: () => protege,
   path: "/parametres-devises",
@@ -124,7 +131,7 @@ const conception = createRoute({ getParentRoute: () => racine, path: "/conceptio
 
 export const arbre = racine.addChildren([
   connexion,
-  protege.addChildren([accueil, tableau, descente, reglagesDevises, projet]),
+  protege.addChildren([accueil, tableau, descente, reglagesDevises, motDePasse, projet]),
   ...(import.meta.env.DEV ? [conception] : []),
 ]);
 

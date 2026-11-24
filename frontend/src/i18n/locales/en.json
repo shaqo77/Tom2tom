@@ -236,5 +236,16 @@
   "tableau.descente.type_piece.bon_de_commande": "Purchase order",
   "tableau.descente.type_piece.contrat": "Contract",
   "tableau.descente.type_piece.preuve_de_paiement": "Proof of payment",
-  "tableau.descente.type_piece.autre": "Other"
+  "tableau.descente.type_piece.autre": "Other",
+  "mdp.nav": "Password",
+  "mdp.titre": "Change password",
+  "mdp.sous_titre": "Choose a new password. Your current session stays open.",
+  "mdp.actuel": "Current password",
+  "mdp.nouveau": "New password",
+  "mdp.confirmation": "Confirm the new password",
+  "mdp.valider": "Change password",
+  "mdp.actuel_requis": "Enter your current password.",
+  "mdp.nouveau_requis": "Enter the new password.",
+  "mdp.confirmation_differente": "The confirmation does not match the new password.",
+  "mdp.change": "Your password has been changed."
 }

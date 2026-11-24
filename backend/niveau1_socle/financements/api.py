@@ -46,6 +46,7 @@ from .services import (
     creer_bailleur,
     creer_categorie,
     montant_courant,
+    parametrer_numerotation_demandes,
     situation_avant_apres,
 )
 
@@ -235,6 +236,8 @@ def _accord(a: Accord, jour: datetime.date | None = None) -> dict:
         "date_fin_eligibilite": a.date_fin_eligibilite,
         "date_cloture": a.date_cloture,
         "date_limite_decaissement": a.date_limite_decaissement,
+        "format_numero_demande": a.format_numero_demande,
+        "suffixe_agence": a.suffixe_agence,
     }
 
 
@@ -329,6 +332,22 @@ class AccordStatut(VueMetier):
             champ_texte(d, "statut"),
             utilisateur=requete.user,
             motif=champ_texte(d, "motif", obligatoire=False, defaut=""),
+        )
+        return reponse(_accord(accord))
+
+
+class AccordNumerotation(VueMetier):
+    """Le format de numérotation des demandes de retrait de l'accord (`standard` ou `bad` + suffixe
+    d'agence). Il ne change plus dès qu'une demande existe."""
+
+    def post(self, requete, project_id, accord_id):
+        accord = _accord_du_projet(project_id, accord_id)
+        d = corps(requete)
+        accord = parametrer_numerotation_demandes(
+            accord,
+            format=champ_texte(d, "format"),
+            suffixe_agence=champ_texte(d, "suffixe_agence", obligatoire=False, defaut=""),
+            utilisateur=requete.user,
         )
         return reponse(_accord(accord))
 

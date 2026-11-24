@@ -8,6 +8,10 @@ urlpatterns = [
     path("projets/<uuid:project_id>/accords/<uuid:accord_id>/", api.AccordDetail.as_view()),
     path("projets/<uuid:project_id>/accords/<uuid:accord_id>/statut/", api.AccordStatut.as_view()),
     path(
+        "projets/<uuid:project_id>/accords/<uuid:accord_id>/numerotation/",
+        api.AccordNumerotation.as_view(),
+    ),
+    path(
         "projets/<uuid:project_id>/accords/<uuid:accord_id>/categories/",
         api.AccordCategories.as_view(),
     ),
