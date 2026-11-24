@@ -79,6 +79,8 @@
   "enum.exercices.statut_periode.close": "Closed",
   "enum.exercices.statut_periode.ouverte": "Open",
   "enum.exercices.statut_periode.verrouillee": "Locked",
+  "enum.financements.format_numero_demande.bad": "BAD (4-digit n + agency)",
+  "enum.financements.format_numero_demande.standard": "Standard (DRF-agreement-n)",
   "enum.financements.nature_accord.contrepartie": "Counterpart funding",
   "enum.financements.nature_accord.don": "Grant",
   "enum.financements.nature_accord.pret": "Loan",
