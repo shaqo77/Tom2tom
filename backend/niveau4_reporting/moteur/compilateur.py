@@ -4,6 +4,8 @@ La sélection du modèle et la matérialisation des règles Django ont lieu avan
 l'appel : `generer` n'exécute qu'une requête sur les lignes d'écriture.
 """
 
+import datetime
+import re
 from collections.abc import Iterable, Mapping
 from dataclasses import dataclass
 from decimal import Decimal
@@ -33,8 +35,14 @@ from .sources_externes import verifier
 
 ZERO = Decimal(0)
 COLONNES_SOURCE = (
-    "compte, fiscal_year, period, debit, credit, dim1, dim2, dim3, dim4, accord, categorie, site"
+    "compte, fiscal_year, period, accounting_date, debit, credit, "
+    "dim1, dim2, dim3, dim4, accord, categorie, site"
 )
+# Les paramètres d'une plage libre : une liste blanche de DEUX noms (distincts de `date_debut` et
+# `date_fin`, que les sources externes de trésorerie emploient déjà) ; leurs valeurs sont des
+# paramètres SQL, jamais du texte collé dans la requête.
+PARAMETRES_PLAGE = ("plage_debut", "plage_fin")
+_DATE_ISO = re.compile(r"\d{4}-\d{2}-\d{2}")
 
 
 class ModeleEtatInvalide(ValueError):
@@ -132,7 +140,46 @@ def _valider_modele(
     return lignes, colonnes, agregats, formules, assertions
 
 
-def _parametres_source(parametres: Mapping[str, Any]) -> tuple[str, tuple, int, int]:
+def _date_de_plage(valeur: Any, nom: str) -> datetime.date:
+    """Une date de plage : un objet `date` ou une chaîne ISO `AAAA-MM-JJ`, rien d'autre."""
+    if isinstance(valeur, datetime.datetime):
+        valeur = None  # un horodatage n'est pas une date : on ne tronque pas en silence
+    if isinstance(valeur, datetime.date):
+        return valeur
+    if isinstance(valeur, str) and _DATE_ISO.fullmatch(valeur):
+        try:
+            return datetime.date.fromisoformat(valeur)
+        except ValueError:
+            pass
+    raise ModeleEtatInvalide(msg("compilateur.plage_date_illisible", champ=nom))
+
+
+def plage_libre(parametres: Mapping[str, Any]) -> tuple[datetime.date, datetime.date] | None:
+    """La plage `[plage_debut, plage_fin]` (bornes INCLUSES) demandée, ou `None` si aucune.
+
+    Dès que l'un des deux paramètres figure, les deux sont exigés et doivent être lisibles."""
+    if not any(nom in parametres for nom in PARAMETRES_PLAGE):
+        return None
+    debut = _date_de_plage(parametres.get("plage_debut"), "plage_debut")
+    fin = _date_de_plage(parametres.get("plage_fin"), "plage_fin")
+    if fin < debut:
+        raise ModeleEtatInvalide(
+            msg("compilateur.plage_inversee", debut=debut.isoformat(), fin=fin.isoformat())
+        )
+    return debut, fin
+
+
+def _parametres_source(parametres: Mapping[str, Any]) -> tuple[str, tuple, int | None, int | None]:
+    plage = plage_libre(parametres)
+    if plage is not None:  # plage libre : ni exercice ni période courante
+        try:
+            project_id = parametres["project_id"]
+        except KeyError as e:
+            raise ModeleEtatInvalide(
+                msg("compilateur.parametre_obligatoire_manquant", v1=e.args[0])
+            ) from e
+        where = "project_id = %s AND accounting_date BETWEEN %s AND %s"
+        return where, (project_id, *plage), None, None
     try:
         project_id = parametres["project_id"]
         annee = parametres["fiscal_year"]
@@ -147,8 +194,19 @@ def _parametres_source(parametres: Mapping[str, Any]) -> tuple[str, tuple, int, 
     return where, (project_id, annee, annee, courante), annee, courante
 
 
-def _condition_colonne(colonne: Mapping[str, Any], annee: int, courante: int) -> tuple[str, tuple]:
+def _condition_colonne(
+    colonne: Mapping[str, Any],
+    annee: int | None,
+    courante: int | None,
+    plage: tuple[datetime.date, datetime.date] | None = None,
+) -> tuple[str, tuple]:
     periode = colonne.get("period")
+    if periode == "range":
+        if plage is None:
+            raise ModeleEtatInvalide(msg("compilateur.plage_parametres_manquants"))
+        return "accounting_date BETWEEN %s AND %s", plage
+    if plage is not None:  # une plage libre ne se mélange pas aux périodes de l'exercice
+        raise ModeleEtatInvalide(msg("compilateur.plage_colonnes_exclusives"))
     if periode == "current_quarter":
         debut = ((courante - 1) // 3) * 3 + 1
     elif periode == "year_to_date":
@@ -258,6 +316,7 @@ def compiler(
     """Compile tout l'état sans exécuter de requête."""
     lignes, colonnes, agregats, formules, assertions_brutes = _valider_modele(modele)
     source_where, source_params, annee, courante = _parametres_source(parametres)
+    plage_demandee = plage_libre(parametres)
     codes_connus = [ligne["code"] for ligne in lignes]
     ordre_formules = tuple(ordonner(formules, codes_connus))
     assertions = {
@@ -294,7 +353,8 @@ def compiler(
         for ligne in agregats
     }
     conditions_colonnes = {
-        colonne["code"]: _condition_colonne(colonne, annee, courante) for colonne in colonnes
+        colonne["code"]: _condition_colonne(colonne, annee, courante, plage_demandee)
+        for colonne in colonnes
     }
 
     colonnes_mapping = [

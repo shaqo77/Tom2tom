@@ -1,5 +1,6 @@
 {
   "rapports.habilitation_publier": "You are not authorised to publish a report on this project",
   "rapports.jeu_en_mouvement": "The ledger changed repeatedly during generation: try again",
+  "rapports.periode_hors_plage": "The report period ({du} to {au}) must be the requested range ({debut} to {fin})",
   "rapports.periode_incoherente": "The report period ({du} to {au}) does not match the parameters: fiscal year {annee}, period {periode}"
 }
