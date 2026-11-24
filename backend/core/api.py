@@ -23,6 +23,7 @@ from rest_framework.views import APIView, exception_handler, set_rollback
 
 from .erreurs import CodeErreur, ErreurMetier
 from .i18n import msg, texte
+from .pagination import paginer
 
 
 class VueMetier(APIView):
@@ -171,8 +172,15 @@ def recharge(objet):
     return objet
 
 
-def reponse(donnees: Any, statut: int = 200) -> Response:
-    return Response(serialiser(donnees), status=statut)
+def reponse(donnees: Any, statut: int = 200, en_tetes: dict[str, str] | None = None) -> Response:
+    return Response(serialiser(donnees), status=statut, headers=en_tetes)
+
+
+def reponse_liste(requete, liste: Any, convertir) -> Response:
+    """Une liste paginée à la demande (`?limite=`, `?decalage=`) : le corps reste un tableau JSON,
+    le total et la suite passent par les en-têtes `X-Total-Count` et `X-Decalage-Suivant`."""
+    tranche, en_tetes = paginer(liste, requete)
+    return reponse([convertir(x) for x in tranche], en_tetes=en_tetes)
 
 
 # --- erreurs -----------------------------------------------------------------------------------

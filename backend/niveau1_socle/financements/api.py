@@ -22,6 +22,7 @@ from core.api import (
     parametre_date,
     recharge,
     reponse,
+    reponse_liste,
 )
 from core.metier import decimal as decimal_exact
 from core.metier import habilite, refuser, traduire_integrite
@@ -199,7 +200,7 @@ def _bailleur(b: Bailleur) -> dict:
 
 class Bailleurs(VueMetier):
     def get(self, requete):
-        return reponse([_bailleur(b) for b in Bailleur.objects.order_by("code")])
+        return reponse_liste(requete, Bailleur.objects.order_by("code", "id"), _bailleur)
 
     def post(self, requete):
         d = corps(requete)
@@ -267,7 +268,7 @@ class Accords(VueMetier):
     def get(self, requete, project_id):
         habilite(requete.user, "consulter", project_id)
         accords = Accord.objects.filter(project_id=project_id).select_related("bailleur")
-        return reponse([_accord(a) for a in accords.order_by("numero")])
+        return reponse_liste(requete, accords.order_by("numero", "id"), _accord)
 
     def post(self, requete, project_id):
         d = corps(requete)

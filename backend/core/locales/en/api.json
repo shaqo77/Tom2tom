@@ -1,5 +1,6 @@
 {
   "api.champ_invalide": "The field “{champ}” is invalid: {attendu} expected",
   "api.champ_obligatoire": "The field “{champ}” is required",
-  "api.corps_objet": "The request body must be a JSON object"
+  "api.corps_objet": "The request body must be a JSON object",
+  "api.liste_trop_longue": "The list has {total} rows, more than the maximum of {plafond}: request it in slices with \"limite\" and \"decalage\""
 }
