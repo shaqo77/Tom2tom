@@ -8,4 +8,6 @@ urlpatterns = [
     path("session/moi/", api.Moi.as_view()),
     path("session/mot-de-passe/", api.MotDePasse.as_view()),
     path("session/deconnexion/", api.Deconnexion.as_view()),
+    path("jetons/", api.Jetons.as_view()),
+    path("jetons/<uuid:jeton_id>/revocation/", api.RevocationJeton.as_view()),
 ]

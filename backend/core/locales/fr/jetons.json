@@ -1,0 +1,9 @@
+{
+  "jetons.compte_sans_organisation": "Un compte de plateforme n'a pas d'organisation : il ne peut pas créer de jeton",
+  "jetons.duree_limitee": "La durée d'un jeton est de 1 à {maximum} jours",
+  "jetons.jeton_d_un_autre": "Ce jeton appartient à une autre personne",
+  "jetons.jeton_expire": "Ce jeton d'API a expiré",
+  "jetons.jeton_invalide": "Jeton d'API invalide",
+  "jetons.jeton_revoque": "Ce jeton d'API a été révoqué",
+  "jetons.libelle_invalide": "Le libellé du jeton est obligatoire (au plus {maximum} caractères)"
+}

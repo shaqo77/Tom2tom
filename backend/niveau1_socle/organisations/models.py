@@ -119,3 +119,26 @@ class Utilisateur(AbstractUser):
 
     def __str__(self) -> str:
         return self.username
+
+
+class JetonApi(ModeleOrganisation):
+    """Un jeton d'API : un programme appelle l'API avec les droits de son propriétaire. Lot 2-C.
+
+    Le secret n'est JAMAIS stocké : seul son SHA-256 (`empreinte`) l'est, et `prefixe` (les 8
+    premiers caractères du secret) sert à l'affichage et à la recherche. Un jeton expire et se
+    révoque ; il ne se prolonge pas ni ne se modifie (un déclencheur de base l'impose, sauf
+    `revoque_le` et `dernier_usage`). Il porte `org_id` comme toute table : il est ISOLÉ par RLS.
+    """
+
+    utilisateur = models.ForeignKey(Utilisateur, on_delete=models.PROTECT, related_name="+")
+    libelle = models.CharField(max_length=200)
+    prefixe = models.CharField(max_length=8, db_index=True)
+    empreinte = models.BinaryField()
+    expire_le = models.DateTimeField()
+    revoque_le = models.DateTimeField(null=True, blank=True)
+    dernier_usage = models.DateTimeField(null=True, blank=True)
+
+    class Meta:
+        constraints = [
+            models.UniqueConstraint(fields=["empreinte"], name="uq_jeton_api_empreinte"),
+        ]

@@ -18,16 +18,18 @@ from django.db import connection
 from django.middleware.csrf import get_token
 from django.utils.decorators import method_decorator
 from django.views.decorators.csrf import csrf_protect
+from rest_framework.authentication import SessionAuthentication
 from rest_framework.permissions import AllowAny
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
-from core.api import champ_texte, corps, reponse
+from core.api import VueMetier, champ_texte, corps, objet_ou_404, reponse
 from core.i18n import msg
 from core.metier import refuser
 from niveau1_socle.habilitations.models import OPERATIONS, Habilitation
 
-from .models import Organisation, Projet
+from . import jetons
+from .models import JetonApi, Organisation, Projet
 
 LANGUES = ("fr", "en")
 
@@ -236,3 +238,45 @@ class Deconnexion(APIView):
         if requete.user.is_authenticated:
             logout(requete._request)
         return Response(status=204)
+
+
+# --- les jetons d'API (Lot 2-C) -------------------------------------------------------------------
+
+
+def _jeton(j) -> dict:
+    return {
+        "id": j.id,
+        "libelle": j.libelle,
+        "prefixe": j.prefixe,
+        "expire_le": j.expire_le,
+        "revoque_le": j.revoque_le,
+        "dernier_usage": j.dernier_usage,
+        "created_at": j.created_at,
+    }
+
+
+class Jetons(VueMetier):
+    """Créer et lister SES jetons. Session obligatoire : un jeton ne sert jamais à en créer un."""
+
+    authentication_classes = [SessionAuthentication]
+
+    def get(self, requete):
+        return reponse([_jeton(j) for j in jetons.jetons_de(requete.user)])
+
+    def post(self, requete):
+        donnees = corps(requete)
+        jeton, en_clair = jetons.creer_jeton(
+            utilisateur=requete.user,
+            libelle=donnees.get("libelle"),
+            duree_jours=donnees.get("duree_jours"),
+        )
+        # Le seul moment où le secret existe hors de la base : il ne se relira plus.
+        return reponse(_jeton(jeton) | {"jeton": en_clair}, 201)
+
+
+class RevocationJeton(VueMetier):
+    authentication_classes = [SessionAuthentication]
+
+    def post(self, requete, jeton_id):
+        jeton = objet_ou_404(JetonApi, pk=jeton_id, utilisateur_id=requete.user.id)
+        return reponse(_jeton(jetons.revoquer_jeton(utilisateur=requete.user, jeton=jeton)))

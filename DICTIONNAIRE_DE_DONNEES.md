@@ -3,7 +3,7 @@
 Généré depuis les modèles (`python manage.py generer_dictionnaire`). Ne le modifiez pas
 à la main : un test échoue si ce fichier n'est plus celui que les modèles produisent.
 
-102 tables. « Isolée » : la table porte `org_id` et sa politique de
+103 tables. « Isolée » : la table porte `org_id` et sa politique de
 sécurité par ligne (RLS). Les contraintes nommées sont contrôlées par la base.
 
 ## Index
@@ -81,6 +81,7 @@ sécurité par ligne (RLS). Les contraintes nommées sont contrôlées par la ba
 - [`niveau3_config_reallocation`](#niveau3_config_reallocation) — niveau3_config.Reallocation
 - [`niveau3_config_reglecomptedesigne`](#niveau3_config_reglecomptedesigne) — niveau3_config.RegleCompteDesigne
 - [`niveau3_config_reglefinancementcategorie`](#niveau3_config_reglefinancementcategorie) — niveau3_config.RegleFinancementCategorie
+- [`organisations_jetonapi`](#organisations_jetonapi) — organisations.JetonApi
 - [`organisations_organisation`](#organisations_organisation) — organisations.Organisation
 - [`organisations_projet`](#organisations_projet) — organisations.Projet
 - [`organisations_utilisateur`](#organisations_utilisateur) — organisations.Utilisateur
@@ -1892,6 +1893,30 @@ Allocation ET taux de financement d'une catégorie, versionnés avec le profil.
 | `fin_propre_a_la_categorie` | boolean | non |  |  | — |
 
 Contraintes : `regle_allocation_positive` (verification), `regle_assiette_fermee` (verification), `regle_eligibilite_coherente` (verification), `regle_fin_propre_exige_une_fin` (verification), `regle_plafond_contrat_positif` (verification), `regle_taux_dans_0_1` (verification), `uq_regle_categorie` (unicite)
+
+## organisations_jetonapi
+
+Modèle `organisations.JetonApi` — isolée par organisation.
+
+Un jeton d'API : un programme appelle l'API avec les droits de son propriétaire. Lot 2-C.
+
+| Colonne | Type | Null | Clé | Relation | Description |
+|---|---|---|---|---|---|
+| `id` | uuid | non | PK |  | Identifiant unique (UUID) de la ligne. |
+| `created_at` | timestamp with time zone | non |  |  | Date et heure de création de la ligne. |
+| `created_by` | uuid | oui |  |  | Identifiant de l'utilisateur qui a créé la ligne. |
+| `updated_at` | timestamp with time zone | non |  |  | Date et heure de la dernière modification. |
+| `updated_by` | uuid | oui |  |  | Identifiant de l'utilisateur qui l'a modifiée en dernier. |
+| `org_id` | uuid | non |  |  | Organisation propriétaire : l'isolation des données repose dessus (RLS). |
+| `utilisateur_id` | uuid | non |  | `organisations_utilisateur.id` | — |
+| `libelle` | varchar(200) | non |  |  | — |
+| `prefixe` | varchar(8) | non |  |  | — |
+| `empreinte` | bytea | non |  |  | — |
+| `expire_le` | timestamp with time zone | non |  |  | — |
+| `revoque_le` | timestamp with time zone | oui |  |  | — |
+| `dernier_usage` | timestamp with time zone | oui |  |  | — |
+
+Contraintes : `uq_jeton_api_empreinte` (unicite)
 
 ## organisations_organisation
 

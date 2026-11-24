@@ -84,7 +84,11 @@ AUTH_PASSWORD_VALIDATORS = [
 
 # Un point d'accès sans authentification explicite est refusé, pas ouvert.
 REST_FRAMEWORK = {
-    "DEFAULT_AUTHENTICATION_CLASSES": ["rest_framework.authentication.SessionAuthentication"],
+    # La session d'abord (CSRF contrôlé), puis le jeton d'API (`Authorization: Bearer`, sans CSRF).
+    "DEFAULT_AUTHENTICATION_CLASSES": [
+        "rest_framework.authentication.SessionAuthentication",
+        "niveau1_socle.organisations.jetons.AuthentificationJeton",
+    ],
     "DEFAULT_PERMISSION_CLASSES": ["rest_framework.permissions.IsAuthenticated"],
     "DEFAULT_RENDERER_CLASSES": ["rest_framework.renderers.JSONRenderer"],
     "DEFAULT_PARSER_CLASSES": ["rest_framework.parsers.JSONParser"],

@@ -54,6 +54,7 @@ from niveau1_socle.marches.models import (
     PieceAvis,
     PlanPassation,
 )
+from niveau1_socle.organisations.jetons import creer_jeton
 from niveau1_socle.rapprochement.services import importer_mouvements, rapprocher
 from niveau1_socle.referentiels.models import Tiers
 from niveau1_socle.reprise.models import (
@@ -293,6 +294,7 @@ def _peupler(organisation, projet, profils, accord, categories):
     (encaissement,) = importer_mouvements(
         utilisateur=claire, compte=compte, mouvements=[_mouvement(compte, "R2", "20")]
     )[0]
+    creer_jeton(utilisateur=amina, libelle="Intégration", duree_jours=30)
     CompteurDemande.objects.create(org_id=organisation.id, accord=accord, derniere_sequence=1)
     compte_special = creer_compte_bancaire(
         utilisateur=dora,

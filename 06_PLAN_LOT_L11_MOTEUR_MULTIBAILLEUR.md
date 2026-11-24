@@ -504,6 +504,27 @@ demandes de retrait, listes de marchés et de trésorerie. Elles restent non bor
 Tests : `test_pagination.py` (logique), `test_api_pagination_bd.py`, `test_api_pagination_financements_bd.py` ;
 mutation vérifiée (sans la limite, les 4 tests d'API échouent).
 
+### Réalisation — Lot 2-C : jeton d'API
+Un programme appelle l'API sans mot de passe : `Authorization: Bearer <organisation>.<secret>`, comme l'accès
+auditeur (l'organisation, en clair, pose `app.org_id` pour la transaction, PUIS on cherche sous la RLS ; aucune
+exception à l'isolation). Table `organisations_jetonapi` (migrations 0006/0007) : empreinte SHA-256 du secret
+(jamais le secret), préfixe de 8 caractères, expiration, révocation, dernier usage ; RLS ; un déclencheur interdit
+toute modification hors `revoque_le` (une fois) et `dernier_usage`, et toute suppression.
+API : `POST /api/v1/jetons/` (session obligatoire ; `libelle`, `duree_jours` 1 à 365 ; le jeton n'est rendu qu'UNE
+fois), `GET /api/v1/jetons/` (les siens, sans secret), `POST /api/v1/jetons/<id>/revocation/` (idempotent ; le
+jeton d'autrui est introuvable). Le jeton agit avec les droits de son propriétaire : les habilitations
+s'appliquent comme en session. Pas de CSRF pour un jeton (aucun cookie), CSRF conservé pour la session.
+Journal : `api_token_created`, `api_token_revoked`. Un jeton refusé rend toujours 401 `{code, message}`
+(`NON_AUTHENTIFIE`, `WWW-Authenticate: Bearer`), jamais 500 ni le `{"detail"}` de DRF (même changement de forme
+pour l'accès auditeur).
+Tests : `test_jetons_api_bd.py` (21) ; 7 mutations tuées (comparaison d'empreinte, révocation, expiration,
+propriétaire inactif, création par jeton, révocation d'autrui, dernier usage) ; table ajoutée au test d'isolation.
+**Limites assumées :** la comparaison en temps constant porte sur les jetons de même préfixe, pas sur la recherche
+du préfixe ; la « deuxième requête simultanée » n'est pas testée avec de vrais fils ; le dernier usage n'est écrit
+qu'une fois par minute au plus ; aucune limitation de débit sur les essais de jeton ; pas d'écran de gestion des
+jetons ; un jeton n'est pas lié à des projets ou des opérations précis (il a TOUS les droits de son propriétaire) ;
+pas de rotation. **À faire relire avant l'exploitation** (plan 07 §6.C).
+
 ### Réalisation — Lot 3-A : numérotation des demandes au format BAD
 Règle du manuel des décaissements BAD (p. 24-25) : numérotation chronologique de 4 chiffres au plus, suffixe
 d'agence de 3 lettres, un numéro annulé n'est jamais réattribué, une suite distincte par accord (prêt, don).
