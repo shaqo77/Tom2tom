@@ -172,6 +172,11 @@ class LigneDemande(ModeleOrganisation):
     taux_applique = models.DecimalField(max_digits=9, decimal_places=6, null=True, blank=True)
     piece = models.CharField(max_length=100, blank=True, default="")  # numéro de la pièce
     date_piece = models.DateField()
+    # Le contrat que la dépense règle, quand elle en règle un (Lot 3-B) : il permet « une seule
+    # devise par demande » et « même méthode pour les demandes d'un contrat » (manuel BAD, p. 25).
+    contrat = models.ForeignKey(
+        "marches.Contrat", null=True, blank=True, on_delete=models.PROTECT, related_name="+"
+    )
     etat = models.CharField(
         max_length=6, choices=EtatLigneDemande.choices, default=EtatLigneDemande.ACTIF
     )

@@ -2,6 +2,8 @@
   "decaissements.accord_projet_tient_comptes_conversion": "Agreement {numero} is in {devise_id}, the project keeps its accounts in {base}: conversion of expenses is not available",
   "decaissements.aucun_profil_decaissement_vigueur_accord": "No disbursement profile is in force for agreement {numero} on {date}",
   "decaissements.categorie_regle_financement_profil_v": "Category {code} has no funding rule in profile v{version}",
+  "decaissements.contrat_introuvable": "Contract {contrat_id} does not exist in the request's project",
+  "decaissements.contrat_sur_depense_inconnue": "A contract is given for expense {ligne_id}, which is not part of the request",
   "decaissements.deja_justifiee_demande_cours": "already justified by an application in progress",
   "decaissements.demande_elle_peut_passer": "Application {numero} is {status}: it cannot move to {nouveau}",
   "decaissements.demande_inferieure_minimum_profil": "The application ({total}) is below the profile's minimum: {explication}",
@@ -25,5 +27,6 @@
   "decaissements.sans_categorie_depenses": "without an expense category",
   "decaissements.sequence_bad_epuisee": "Agreement {numero} reached the last numberable request ({maximum}) in the BAD format",
   "decaissements.type_demande_inconnu": "unknown application type: {type}",
+  "decaissements.une_devise_par_demande": "A request only carries contracts in a single currency: this one mixes several ({devises})",
   "decaissements.vous_etes_habilite_projet": "You are not authorised to “{operation}” on this project."
 }
