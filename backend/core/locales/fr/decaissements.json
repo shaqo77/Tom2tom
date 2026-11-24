@@ -23,6 +23,7 @@
   "decaissements.plafond_categorie_depasse": "catégorie {code} : plafond {plafond}, déjà demandé {utilise}, cette demande {demande}",
   "decaissements.rejetee_demande_reprendre_demande_represente": "rejetée dans une demande : à reprendre par une demande qui la représente",
   "decaissements.sans_categorie_depenses": "sans catégorie de dépenses",
+  "decaissements.sequence_bad_epuisee": "L'accord {numero} a atteint la dernière demande numérotable ({maximum}) au format BAD",
   "decaissements.type_demande_inconnu": "type de demande inconnu : {type}",
   "decaissements.vous_etes_habilite_projet": "Vous n'êtes pas habilité à « {operation} » sur ce projet."
 }

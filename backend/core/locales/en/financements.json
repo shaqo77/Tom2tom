@@ -12,6 +12,8 @@
   "financements.dates_incoherentes": "The agreement's dates must follow each other: effect, end of eligibility, closing, disbursement deadline",
   "financements.devise_inconnue": "Unknown currency: {devise}",
   "financements.document_inconnu": "No reference document has this identifier",
+  "financements.format_numero_fige": "Agreement {numero} already has requests: its numbering format can no longer change",
+  "financements.format_numero_invalide": "Unknown numbering format: \"{format}\" (standard or bad)",
   "financements.montant_negatif": "An amount cannot be negative",
   "financements.motif_obligatoire_suspendre_clore_annuler": "A reason is required to suspend, close or cancel",
   "financements.nature_accord_inconnue": "Unknown agreement nature: {nature} (pret, don or contrepartie)",
@@ -19,6 +21,8 @@
   "financements.numero_compte_obligatoire": "The account number is required",
   "financements.pays_invalide": "The country is given as its two-letter uppercase ISO code (for example DJ)",
   "financements.statut_accord_inconnu": "unknown agreement status: {nouveau}",
+  "financements.suffixe_agence_invalide": "The BAD format agency suffix is 3 capital letters (for example ABC)",
+  "financements.suffixe_agence_seulement_bad": "An agency suffix only applies to the BAD format",
   "financements.vous_etes_habilite": "You are not authorised to “{operation}”.",
   "financements.vous_etes_habilite_projet": "You are not authorised to “{operation}” on this project."
 }

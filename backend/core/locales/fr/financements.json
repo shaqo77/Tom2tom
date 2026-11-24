@@ -12,6 +12,8 @@
   "financements.dates_incoherentes": "Les dates de l'accord doivent se suivre : effet, fin d'éligibilité, clôture, limite de décaissement",
   "financements.devise_inconnue": "Devise inconnue : {devise}",
   "financements.document_inconnu": "Aucun document de référence ne porte cet identifiant",
+  "financements.format_numero_fige": "L'accord {numero} a déjà des demandes : son format de numérotation ne change plus",
+  "financements.format_numero_invalide": "Format de numérotation inconnu : « {format} » (standard ou bad)",
   "financements.montant_negatif": "Un montant ne peut pas être négatif",
   "financements.motif_obligatoire_suspendre_clore_annuler": "Le motif est obligatoire pour suspendre, clore ou annuler",
   "financements.nature_accord_inconnue": "Nature d'accord inconnue : {nature} (pret, don ou contrepartie)",
@@ -19,6 +21,8 @@
   "financements.numero_compte_obligatoire": "Le numéro de compte est obligatoire",
   "financements.pays_invalide": "Le pays se donne par son code ISO à deux lettres majuscules (par exemple DJ)",
   "financements.statut_accord_inconnu": "statut d'accord inconnu : {nouveau}",
+  "financements.suffixe_agence_invalide": "Le suffixe d'agence du format BAD est de 3 lettres majuscules (par exemple ABC)",
+  "financements.suffixe_agence_seulement_bad": "Un suffixe d'agence n'a de sens que pour le format BAD",
   "financements.vous_etes_habilite": "Vous n'êtes pas habilité à « {operation} ».",
   "financements.vous_etes_habilite_projet": "Vous n'êtes pas habilité à « {operation} » sur ce projet."
 }
