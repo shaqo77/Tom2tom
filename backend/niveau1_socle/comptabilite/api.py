@@ -18,7 +18,7 @@ from core.api import (
     reponse_liste,
 )
 from core.metier import habilite, refuser
-from niveau1_socle.financements.models import Accord
+from niveau1_socle.financements.models import Accord, Categorie
 from niveau1_socle.referentiels.models import Tiers
 
 from . import services
@@ -46,7 +46,7 @@ def _ligne_saisie(donnees, rang: int, project_id) -> dict:
         if not Tiers.objects.filter(code=code_tiers).exists():
             refuser("comptabilite.tiers_inconnu", code=code_tiers)
         ligne["tiers"] = code_tiers
-    for nom in ("label", "cle", *AXES):
+    for nom in ("label", "cle", "categorie", *AXES):
         valeur = champ_texte(donnees, nom, obligatoire=False)
         if valeur:
             ligne[nom] = valeur
@@ -59,7 +59,7 @@ def _ligne_saisie(donnees, rang: int, project_id) -> dict:
     return ligne
 
 
-def _ligne(ligne, numeros: dict) -> dict:
+def _ligne(ligne, numeros: dict, categories: dict) -> dict:
     return projeter(
         ligne,
         "line_no",
@@ -68,6 +68,7 @@ def _ligne(ligne, numeros: dict) -> dict:
         "label",
         compte=ligne.account.code,
         accord=numeros.get(ligne.agreement_id),
+        categorie=categories.get(ligne.category_id),
         cle_version=ligne.cofunding_key_version_id,
     )
 
@@ -90,7 +91,9 @@ def _ecriture(e: Ecriture, *, avec_lignes: bool = False) -> dict:
         lignes = list(e.lignes.select_related("account").order_by("line_no", "id"))
         ids = {x.agreement_id for x in lignes if x.agreement_id}
         numeros = dict(Accord.objects.filter(pk__in=ids).values_list("pk", "numero"))
-        sortie["lignes"] = [_ligne(x, numeros) for x in lignes]
+        ids_categories = {x.category_id for x in lignes if x.category_id}
+        categories = dict(Categorie.objects.filter(pk__in=ids_categories).values_list("pk", "code"))
+        sortie["lignes"] = [_ligne(x, numeros, categories) for x in lignes]
         sortie["total_debit"] = str(sum(x.debit for x in lignes))
         sortie["total_credit"] = str(sum(x.credit for x in lignes))
     return sortie

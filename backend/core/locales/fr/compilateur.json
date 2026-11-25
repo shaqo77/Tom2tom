@@ -12,7 +12,7 @@
   "compilateur.mapping_cible_invalide": "mapping ou cible invalide pour {v1}",
   "compilateur.materialisez_regles_list_avant_generation": "matérialisez les règles avec list(...) avant la génération",
   "compilateur.parametre_obligatoire_manquant": "paramètre obligatoire manquant : {v1}",
-  "compilateur.parametre_selection_manquant": "paramètre de sélection manquant : {cle}",
+  "compilateur.parametre_selection_manquant": "paramètre de sélection manquant : {parametre}",
   "compilateur.parametre_source_invalide": "paramètre de source externe invalide ou absent : {nom}",
   "compilateur.plage_colonnes_exclusives": "Une plage libre ne se mélange pas aux autres périodes de colonne dans un même état",
   "compilateur.plage_date_illisible": "La date « {champ} » de la plage est illisible : une date AAAA-MM-JJ est attendue",

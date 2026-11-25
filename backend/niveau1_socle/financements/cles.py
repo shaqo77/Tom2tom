@@ -17,7 +17,7 @@ from niveau1_socle.habilitations.permissions import est_habilite
 from niveau1_socle.referentiels.models import Devise
 
 from .cofinancement import normaliser_parts, pas_de_devise, ventiler
-from .models import Accord, CleCofinancement, PartCle, StatutAccord, VersionCle
+from .models import Accord, Categorie, CleCofinancement, PartCle, StatutAccord, VersionCle
 
 
 class CleInvalide(ValueError):
@@ -229,4 +229,37 @@ def developper_cles(
                     "cofunding_key_version_id": version.pk,
                 }
             )
+    return resultat
+
+
+def resoudre_categories(lignes: list[dict]) -> list[dict]:
+    """Remplace `"categorie": <code>` par `category_id`, accord par accord.
+
+    Une catégorie appartient à UN accord : son identité est `(accord, code)`. Une dépense saisie
+    une seule fois et ventilée entre plusieurs accords doit donc recevoir, sur la ligne de chaque
+    accord, la catégorie DE CE accord qui porte ce code ; sinon une demande de retrait ne pourrait
+    en sortir que pour l'accord dont la catégorie a été choisie. Un accord qui n'a pas ce code
+    refuse toute la saisie.
+    Les lignes de l'appelant ne sont pas modifiées ; sans `categorie`, rien ne change.
+    """
+    if not any(ligne.get("categorie") for ligne in lignes):
+        return lignes
+    resultat: list[dict] = []
+    for ligne in lignes:
+        code = ligne.get("categorie")
+        if not code:
+            resultat.append(ligne)
+            continue
+        accord_id = ligne.get("agreement_id")
+        if not accord_id:
+            raise CleInvalide(
+                msg("cles.categorie_sans_accord", code=code, compte=ligne.get("compte", ""))
+            )
+        categorie = Categorie.objects.filter(accord_id=accord_id, code=code).first()
+        if categorie is None:
+            numero = Accord.objects.filter(pk=accord_id).values_list("numero", flat=True).first()
+            raise CleInvalide(msg("cles.categorie_absente_de_l_accord", code=code, accord=numero))
+        resultat.append(
+            {**{k: v for k, v in ligne.items() if k != "categorie"}, "category_id": categorie.pk}
+        )
     return resultat

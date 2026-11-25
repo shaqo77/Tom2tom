@@ -3,6 +3,8 @@
   "cles.accord_appartient_projet_cle": "Agreement {numero} does not belong to the key's project",
   "cles.accord_inconnu": "No agreement has number “{numero}” in this project",
   "cles.aucune_version_en_vigueur": "Key “{code}” has no version in force on {jour}",
+  "cles.categorie_absente_de_l_accord": "Agreement {accord} has no category “{code}”: the whole entry is refused.",
+  "cles.categorie_sans_accord": "The line of account {compte} asks for category “{code}” but names neither an agreement nor a key: a category belongs to an agreement.",
   "cles.cle_inconnue": "The cofunding key “{code}” does not exist for this project",
   "cles.cle_moins_part": "A key has at least one share",
   "cles.code_deja_utilise": "A key “{code}” already exists for this project",

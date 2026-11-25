@@ -213,3 +213,79 @@ def test_une_part_nulle_apres_arrondi_ne_produit_pas_de_ligne_a_la_saisie(cles):
     ecriture = _saisie(profils, projet, _charge_avec_cle("1"))
     charges = ecriture.lignes.filter(account__code="6011")
     assert [(ligne.agreement_id, ligne.debit) for ligne in charges] == [(accords["IDA"].pk, D(1))]
+
+
+# --- la catégorie se choisit PAR CODE, accord par accord (recette multibailleur, L6) --------------
+
+
+def _categories_par_accord(profils, accords, code="SERV"):
+    from niveau1_socle.financements.services import creer_categorie
+
+    return {
+        nom: creer_categorie(
+            utilisateur=profils["dora"],
+            accord=accord,
+            code=code,
+            label={"fr": "Services"},
+            plafond="1000000",
+        )
+        for nom, accord in accords.items()
+    }
+
+
+def test_une_ligne_a_cle_recoit_pour_chaque_accord_la_categorie_de_cet_accord(cles):
+    """Avant : la ligne ventilée gardait UNE catégorie (celle d'un seul accord), donc aucune demande de
+    retrait ne pouvait en sortir pour les autres accords. Maintenant : le code est résolu par accord."""
+    _, projet, profils, accords, cle = cles
+    categories = _categories_par_accord(profils, accords)
+    _version(profils, cle, accords, {"IDA": 60, "GOV": 30, "UE": 10})
+    lignes = _charge_avec_cle("1000")
+    lignes[0]["categorie"] = "SERV"
+    ecriture = _saisie(profils, projet, lignes)
+    charges = ecriture.lignes.filter(account__code="6011")
+    assert {ligne.agreement_id: ligne.category_id for ligne in charges} == {
+        accords[nom].pk: categories[nom].pk for nom in accords
+    }
+    assert (
+        ecriture.lignes.get(account__code="5211").category_id is None
+    )  # la contrepartie ne bouge pas
+
+
+def test_la_categorie_d_une_ligne_a_un_seul_accord_se_resout_aussi_par_code(cles):
+    _, projet, profils, accords, cle = cles
+    categories = _categories_par_accord(profils, accords)
+    lignes = [
+        {"compte": "6011", "debit": "10", "agreement_id": accords["GOV"].pk, "categorie": "SERV"},
+        {"compte": "5211", "credit": "10"},
+    ]
+    ecriture = _saisie(profils, projet, lignes)
+    assert ecriture.lignes.get(account__code="6011").category_id == categories["GOV"].pk
+
+
+def test_un_accord_sans_cette_categorie_refuse_toute_la_saisie_en_le_nommant(cles):
+    _, projet, profils, accords, cle = cles
+    from niveau1_socle.financements.services import creer_categorie
+
+    creer_categorie(
+        utilisateur=profils["dora"], accord=accords["IDA"], code="SERV", label={"fr": "S"}
+    )  # GOV et UE n'ont pas « SERV »
+    _version(profils, cle, accords, {"IDA": 60, "GOV": 40})
+    lignes = _charge_avec_cle("100")
+    lignes[0]["categorie"] = "SERV"
+    with pytest.raises(CleInvalide, match="SERV"):
+        _saisie(profils, projet, lignes)
+
+
+def test_un_refus_de_categorie_ne_laisse_aucune_piece(cles):
+    from niveau1_socle.comptabilite.models import Ecriture
+
+    organisation, projet, profils, accords, cle = cles
+    _version(profils, cle, accords, {"IDA": 60, "GOV": 40})
+    lignes = _charge_avec_cle("100")
+    lignes[0]["categorie"] = "INCONNUE"
+    with pytest.raises(CleInvalide):
+        _saisie(profils, projet, lignes)
+    from tests.test_organisations_bd import _poser
+
+    _poser(organisation.id)
+    assert Ecriture.objects.count() == 0
