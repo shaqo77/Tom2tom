@@ -26,6 +26,10 @@ describe("catalogues", () => {
   it("aucune traduction n'est identique au français, sauf les noms propres", () => {
     const IDENTIQUES = new Set([ // mots identiques dans les deux langues
       "accueil.titre",
+      "ecritures.col_journal",
+      "ecritures.col_date",
+      "ecritures.col_action",
+      "ecritures.form.journal",
       "conception.messages",
       "message.info",
       "session.organisation",

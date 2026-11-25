@@ -5,6 +5,7 @@ import { Accueil } from "../features/accueil/Accueil";
 import { Conception } from "../features/accueil/Conception";
 import { ChangerMotDePasse } from "../features/connexion/ChangerMotDePasse";
 import { Cles } from "../features/cles/Cles";
+import { Ecritures } from "../features/ecritures/Ecritures";
 import { Accords } from "../features/accords/Accords";
 import { CompteSpecial } from "../features/compte-special/CompteSpecial";
 import { Connexion } from "../features/connexion/Connexion";
@@ -194,6 +195,17 @@ const clesCofinancement = createRoute({
   component: Cles,
 });
 
+const ecritures = createRoute({
+  getParentRoute: () => protege,
+  path: "/ecritures",
+  // (valeur invalide écrasée par `undefined` : le routeur fusionne la recherche brute avec ce validateur)
+  validateSearch: (recherche: Record<string, unknown>): { projet?: string | undefined; ecriture?: string | undefined } => ({
+    projet: texteNonVide(recherche.projet) ? recherche.projet : undefined,
+    ecriture: texteNonVide(recherche.ecriture) ? recherche.ecriture : undefined,
+  }),
+  component: Ecritures,
+});
+
 const evaluations = createRoute({
   getParentRoute: () => protege,
   path: "/evaluations",
@@ -226,7 +238,7 @@ const conception = createRoute({ getParentRoute: () => racine, path: "/conceptio
 
 export const arbre = racine.addChildren([
   connexion,
-  protege.addChildren([accueil, tableau, descente, reglagesDevises, tauxDeChange, profilsDecaissement, accords, clesCofinancement, documents, compteSpecial, controles, evaluations, motDePasse, projet]),
+  protege.addChildren([accueil, tableau, descente, reglagesDevises, tauxDeChange, profilsDecaissement, accords, clesCofinancement, ecritures, documents, compteSpecial, controles, evaluations, motDePasse, projet]),
   ...(import.meta.env.DEV ? [conception] : []),
 ]);
 
