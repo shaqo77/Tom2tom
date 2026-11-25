@@ -16,6 +16,7 @@ import { Pastille } from "../../shared/ui/Pastille";
 import { Selecteur } from "../../shared/ui/Selecteur";
 import { aujourdhui } from "../tableau/api";
 import { libelleProjet } from "../projets/libelle";
+import { FormulaireJustification } from "./FormulaireJustification";
 import { annulerJustification, lireComptes, lireJustifications, lireSituation, publierRapport } from "./api";
 import { NOTE_MAX } from "./types";
 import type { JustificationBanque, RapportPublie } from "./types";
@@ -85,7 +86,7 @@ export function CompteSpecial() {
             surDate={(d) => aller({ projet: projetId, compte: compteId, ...(d ? { date: d } : {}) })}
             surDemande={definirDemande}
           />
-          <Justifications compteId={compteId} peutSaisir={peut(projet, "saisir")} />
+          <Justifications projetId={projetId} compteId={compteId} peutSaisir={peut(projet, "saisir")} />
           <Publication compteId={compteId} date={date} demande={demande} peutPublier={peut(projet, "publier")} />
         </>
       )}
@@ -196,7 +197,7 @@ function Situation({ compteId, date, demande, surDate, surDemande }: { compteId:
   );
 }
 
-function Justifications({ compteId, peutSaisir }: { compteId: string; peutSaisir: boolean }) {
+function Justifications({ projetId, compteId, peutSaisir }: { projetId: string; compteId: string; peutSaisir: boolean }) {
   const { t } = useTranslation();
   const queryClient = useQueryClient();
   const liste = useQuery({ queryKey: ["justifications-banque", compteId], queryFn: () => lireJustifications(compteId) });
@@ -273,6 +274,7 @@ function Justifications({ compteId, peutSaisir }: { compteId: string; peutSaisir
           </tbody>
         </table>
       )}
+      {peutSaisir && <FormulaireJustification projetId={projetId} compteId={compteId} />}
       {annulation && (
         <form className="special__formulaire" onSubmit={confirmer} noValidate aria-label={t("special.annuler", { demande: annulation.demande })}>
           <Champ etiquette={t("special.motif_annulation")} value={motif} onChange={(e) => definirMotif(e.target.value)} {...(motifManquant ? { erreur: t("special.motif_requis") } : {})} />

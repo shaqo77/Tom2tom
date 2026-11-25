@@ -67,3 +67,15 @@ export interface DemandePublication {
 
 /** La taille maximale de la note qui explique l'écart, comme le serveur. */
 export const NOTE_MAX = 4000;
+
+/** Une demande de retrait, telle que la liste l'offre au choix. Voir backend/niveau1_socle/decaissements/api.py. */
+export interface DemandeRetrait {
+  id: string;
+  numero: string;
+  type: string;
+  statut: "preparee" | "soumise" | "acceptee" | "rejetee" | "contestee" | "remboursee" | "annulee";
+  accord: string;
+  periode_debut: string;
+  periode_fin: string;
+  montant_total: string;
+}
