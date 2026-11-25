@@ -751,6 +751,8 @@
   "profils.faute.plafond": "Account {{compte}} with a fixed ceiling requires a valid ceiling amount.",
   "profils.faute.plafond_variable": "Account {{compte}} with a variable ceiling has no ceiling amount.",
   "profils.faute.seuil_compte": "The replenishment threshold of account {{compte}} must be between 0 and 100.",
+  "profils.form.nouvelle_version": "New version from this one",
+  "profils.form.titre_version": "New profile version (draft)",
   "accords.form.nouveau": "New agreement",
   "accords.form.accord_cree": "Agreement {{numero}} created as a draft.",
   "accords.form.titre_accord": "New agreement (draft)",
