@@ -750,6 +750,19 @@ idempotence retirée, bouton « Valider » sans droit, double envoi (garde et bo
 **Limites** : le journal se saisit en code libre (aucune liste de journaux n'est exposée), le compte et le tiers en code libre aussi (pas de
 recherche), pas de catégorie/contrat/site par ligne, pas de pièces jointes ni de contre-passation, pas de modification d'un brouillon.
 
+### Lot 5 · E9a — Réalisation : l'API des écritures (saisie avec clé de cofinancement)
+
+Jusqu'ici aucune API HTTP n'existait pour la comptabilité. `POST /projets/<id>/ecritures/` saisit un **brouillon** (appelle
+`saisir_ecriture`, donc équilibre, période ouverte, comptes imputables, accord actif, devise autorisée et idempotence restent ceux
+du service) ; une ligne peut porter `"cle": "<code>"` : le serveur la ventile par accord (L11-A2), l'appelant ne calcule aucune part.
+`GET` liste (filtre `?statut=`, paginée) et détail (lignes, totaux, accord de chaque ligne) ; `POST …/valider/` et `…/comptabiliser/`
+appellent les services du même nom (séparation des tâches : l'auteur ne valide pas sa pièce, 403).
+Comptes, tiers, axes, clés et accords se désignent par **code ou numéro**, jamais par identifiant ; les montants sont des chaînes
+(un nombre à virgule JSON est refusé). Des refus métier qui partaient en **500** (compte ou axe inconnu/inactif, période introuvable
+ou close, contre-passation impossible) sont maintenant des **422 `{code, message}`** : sans cette correction, deux des tests échouent.
+15 tests. **Limites** : pas de catégorie ni de contrat ni de site sur une ligne, pas de contre-passation ni de modification d'un
+brouillon (on le recrée), pas de pièces jointes, pas d'écran (E9b).
+
 ---
 
 *Retour : [guide de démarrage](03_GUIDE_DEMARRAGE.md) · [lots L5 à L10](05_PLAN_LOTS_L5_A_L10.md)*

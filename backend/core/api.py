@@ -197,12 +197,29 @@ STATUTS = {CodeErreur.TRANSITION_INTERDITE: 409}
 def gestionnaire_exceptions(exc, contexte):
     """Les refus métier deviennent `{"code", "message"}` ; le reste suit le gestionnaire de DRF."""
     from niveau1_socle.budget.services import BudgetInvalide
-    from niveau1_socle.comptabilite.services import EcritureInvalide, JournalIntrouvable
+    from niveau1_socle.comptabilite.services import (
+        ContrepassationImpossible,
+        DejaContrepassee,
+        EcritureInvalide,
+        JournalIntrouvable,
+        PeriodeIntrouvable,
+        PeriodeNonOuverte,
+    )
     from niveau1_socle.exercices.services import TransitionInterdite
     from niveau1_socle.financements.cles import CleInvalide
     from niveau1_socle.financements.cofinancement import VentilationImpossible
     from niveau1_socle.financements.services import AccordNonActif, FinancementInvalide
     from niveau1_socle.rapprochement.services import ReleveInvalide
+    from niveau1_socle.referentiels.axes import (
+        ValeurInactive,
+        ValeurIntrouvable,
+        ValeurNonImputable,
+    )
+    from niveau1_socle.referentiels.comptes import (
+        CompteInactif,
+        CompteIntrouvable,
+        CompteNonImputable,
+    )
     from niveau3_config.services.activation import ActivationRefusee
     from niveau3_config.services.documents import DocumentInvalide
     from niveau3_config.services.profils_decaissement import ProfilDecaissementInvalide
@@ -230,6 +247,16 @@ def gestionnaire_exceptions(exc, contexte):
         | VentilationImpossible
         | EcritureInvalide
         | JournalIntrouvable
+        | PeriodeIntrouvable
+        | PeriodeNonOuverte
+        | DejaContrepassee
+        | ContrepassationImpossible
+        | CompteIntrouvable
+        | CompteNonImputable
+        | CompteInactif
+        | ValeurIntrouvable
+        | ValeurNonImputable
+        | ValeurInactive
         | ReleveInvalide
         | AssertionsViolees
         | ModeleEtatInvalide
