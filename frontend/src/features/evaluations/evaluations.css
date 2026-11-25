@@ -1,0 +1,42 @@
+.evaluations__filtres {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: var(--esp-4);
+  margin-block-end: var(--esp-3);
+}
+.evaluations__defilement {
+  overflow-x: auto;
+}
+.evaluations__tableau {
+  inline-size: 100%;
+  border-collapse: collapse;
+}
+.evaluations__tableau th,
+.evaluations__tableau td {
+  padding: var(--esp-2) var(--esp-3);
+  text-align: start;
+  vertical-align: top;
+  border-block-end: 1px solid var(--bordure);
+}
+.evaluations__ligne {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--esp-3);
+}
+.evaluations__liste {
+  margin-block: var(--esp-2);
+  padding-inline-start: var(--esp-5);
+}
+.evaluations__formulaire {
+  display: grid;
+  gap: var(--esp-3);
+  max-inline-size: 36rem;
+  margin-block-start: var(--esp-3);
+}
+.evaluations__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--esp-3);
+}
