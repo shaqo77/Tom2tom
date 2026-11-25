@@ -737,6 +737,19 @@ l'enregistrement est un `POST` qui crée un brouillon, la version source n'est j
 Mutation vérifiée : sans le vidage de la date, le test échoue. **Limites** : pas de comparaison côté à côté de deux versions
 ni de gabarit BAD (le gabarit exige de lire le profil BAD livré en bibliothèque : à faire avec le bouton d'installation).
 
+### Lot 5 · E9b — Réalisation : l'écran de saisie d'écriture avec clé de cofinancement
+
+`/ecritures` : liste filtrable par état, détail (accord de chaque ligne ventilée, totaux tels que le serveur les rend), saisie d'un
+brouillon (droit `saisir`), « Valider » (droit `valider`) et « Comptabiliser » (droit `comptabiliser`). Une ligne choisit une **clé de
+cofinancement** (liste des clés du projet) ou un accord, jamais les deux ; le serveur la ventile. Montants lus selon la langue
+(« 1 001,50 » → « 1001.50 »), totaux en décimaux exacts (0,1 + 0,2 = 0,3), pièce déséquilibrée refusée avant l'envoi, négatif ou ambigu
+refusé. Une clé d'idempotence est posée par formulaire : un envoi répété ne crée qu'une pièce. Le refus du serveur (période close,
+séparation des tâches, accord non actif) s'affiche tel quel, et les avertissements de validation (budget, contrôles) sont listés.
+8 tests de logique, 15 de composant ; mutations tuées : équilibre non vérifié, négatif accepté, débit+crédit accepté, clé+accord accepté,
+idempotence retirée, bouton « Valider » sans droit, double envoi (garde et bouton désactivé retirés ensemble).
+**Limites** : le journal se saisit en code libre (aucune liste de journaux n'est exposée), le compte et le tiers en code libre aussi (pas de
+recherche), pas de catégorie/contrat/site par ligne, pas de pièces jointes ni de contre-passation, pas de modification d'un brouillon.
+
 ---
 
 *Retour : [guide de démarrage](03_GUIDE_DEMARRAGE.md) · [lots L5 à L10](05_PLAN_LOTS_L5_A_L10.md)*

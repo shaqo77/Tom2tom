@@ -1,0 +1,42 @@
+.ecritures__defilement {
+  overflow-x: auto;
+}
+.ecritures__tableau {
+  inline-size: 100%;
+  border-collapse: collapse;
+}
+.ecritures__tableau th,
+.ecritures__tableau td {
+  padding: var(--esp-2) var(--esp-3);
+  border-block-end: 1px solid var(--bordure);
+  text-align: start;
+}
+.ecritures__montant {
+  text-align: end;
+  font-variant-numeric: tabular-nums;
+}
+.ecritures__ligne {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--esp-3);
+  align-items: center;
+}
+.ecritures__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--esp-3);
+}
+.ecritures__form {
+  display: grid;
+  gap: var(--esp-3);
+}
+.ecritures__groupe {
+  display: grid;
+  gap: var(--esp-3);
+  margin: 0;
+  padding: var(--esp-3);
+  border: 1px solid var(--bordure);
+}
+.ecritures__totaux {
+  font-variant-numeric: tabular-nums;
+}
