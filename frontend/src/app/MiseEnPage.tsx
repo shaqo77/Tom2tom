@@ -71,6 +71,9 @@ export function MiseEnPage() {
               <Link to="/parametres-devises" className="navigation__lien" activeProps={{ className: "navigation__lien navigation__lien--actif" }}>
                 {t("devises.nav")}
               </Link>
+              <Link to="/compte-special" className="navigation__lien" activeProps={{ className: "navigation__lien navigation__lien--actif" }}>
+                {t("special.nav")}
+              </Link>
               <Link to="/accords" className="navigation__lien" activeProps={{ className: "navigation__lien navigation__lien--actif" }}>
                 {t("accords.nav")}
               </Link>
