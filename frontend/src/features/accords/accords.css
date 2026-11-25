@@ -1,0 +1,54 @@
+.accords__defilement {
+  overflow-x: auto;
+}
+.accords__tableau {
+  inline-size: 100%;
+  border-collapse: collapse;
+}
+.accords__tableau th,
+.accords__tableau td {
+  padding: var(--esp-2) var(--esp-3);
+  text-align: start;
+  border-block-end: 1px solid var(--bordure);
+}
+.accords__montant {
+  font-variant-numeric: tabular-nums;
+}
+.accords__ligne {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--esp-3);
+}
+.accords__dates {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(13rem, 1fr));
+  gap: var(--esp-3);
+  margin: 0;
+}
+.accords__dates dt {
+  font-size: var(--texte-s);
+  color: var(--texte-2);
+}
+.accords__dates dd {
+  margin: 0;
+  font-weight: 600;
+}
+.accords__enfant th {
+  padding-inline-start: var(--esp-6);
+}
+.accords__parent {
+  display: block;
+  color: var(--texte-2);
+}
+.accords__formulaires {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(18rem, 1fr));
+  gap: var(--esp-5);
+  margin-block-start: var(--esp-4);
+}
+.accords__formulaire {
+  display: grid;
+  gap: var(--esp-3);
+  align-content: start;
+}
