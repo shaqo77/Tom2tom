@@ -17,8 +17,8 @@ de la Banque (citations vérifiables, D1) ; les profils UE, FIDA, Fonds mondial,
 des **squelettes sourcés**, sans règle inventée : les remplir demande les documents des bailleurs. **L11 est en cours** (`06_PLAN_LOT_L11_MOTEUR_MULTIBAILLEUR.md`, issu d'un
 audit de 58 questions) : le branchement de l'existant (A1 à A6) est fait ; restent l'administration sans
 développeur (phase B), les rapports par bailleur, l'IA. Écarts connus, à ne pas supposer comblés : la
-répartition entre bailleurs se déclenche à la saisie (`"cle"` sur une ligne d'écriture) mais n'a ni API ni
-écran de saisie ; les contrôles de la bibliothèque s'exécutent à la **validation d'une écriture**
+répartition entre bailleurs se déclenche à la saisie (`"cle"` sur une ligne d'écriture) ; l'API de saisie existe
+(`/api/v1/projets/<id>/ecritures/`, E9a) mais pas encore l'écran ; les contrôles de la bibliothèque s'exécutent à la **validation d'une écriture**
 (codification, pièces, éligibilité), pas à la génération d'un rapport ; `accounting_basis` n'a qu'un
 effet (un projet en caisse ne crée pas d'engagement, aucune conversion caisse/engagement) ; les taux de
 change s'enregistrent par API (`/api/v1/taux/`) sans écran ; deux modèles d'état sont livrés (rapprochement du compte désigné, réconciliation BAD du compte spécial) ; aucune IA

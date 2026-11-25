@@ -15,5 +15,8 @@
   "comptabilite.ligne_valeur_inactive": "Ligne {line_no} : la valeur {code} est inactive",
   "comptabilite.periode_aucune_ecriture_peut_y": "La période {numero} est {status} : aucune écriture ne peut y être saisie ni comptabilisée",
   "comptabilite.precisez_date_comptable_periode_ouverte": "{erreur}. Précisez une date comptable dans une période ouverte.",
-  "comptabilite.vous_etes_habilite_projet": "Vous n'êtes pas habilité à « {operation} » sur ce projet."
+  "comptabilite.vous_etes_habilite_projet": "Vous n'êtes pas habilité à « {operation} » sur ce projet.",
+  "comptabilite.ligne_sans_montant": "La ligne {rang} n'a ni débit ni crédit.",
+  "comptabilite.accord_inconnu": "Aucun accord n'a le numéro {numero} dans ce projet.",
+  "comptabilite.tiers_inconnu": "Aucun tiers n'a le code {code}."
 }

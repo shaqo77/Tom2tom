@@ -15,5 +15,8 @@
   "comptabilite.ligne_valeur_inactive": "Line {line_no}: value {code} is inactive",
   "comptabilite.periode_aucune_ecriture_peut_y": "Period {numero} is {status}: no entry can be entered or posted in it",
   "comptabilite.precisez_date_comptable_periode_ouverte": "{erreur}. Specify an accounting date within an open period.",
-  "comptabilite.vous_etes_habilite_projet": "You are not authorised to “{operation}” on this project."
+  "comptabilite.vous_etes_habilite_projet": "You are not authorised to “{operation}” on this project.",
+  "comptabilite.ligne_sans_montant": "Line {rang} has neither a debit nor a credit.",
+  "comptabilite.accord_inconnu": "No agreement has number {numero} in this project.",
+  "comptabilite.tiers_inconnu": "No third party has code {code}."
 }
