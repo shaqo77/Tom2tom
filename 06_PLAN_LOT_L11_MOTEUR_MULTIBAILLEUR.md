@@ -636,6 +636,20 @@ rendaient le `{"detail": …}` de DRF, que le frontend ne lit pas (il aurait aff
 désormais `{code, message}` (`ACCES_REFUSE`, `INTROUVABLE`, `NON_AUTHENTIFIE`), avec un message du catalogue quand aucun texte n'est fourni
 (plus l'anglais de DRF). Tests : `test_api_comptes_bancaires_bd.py` (6) et `test_gestionnaire_integrite.py` (4 de plus).
 
+### Réalisation — Lot 5, écran E6 : documents
+Route `/documents?projet=` (menu « Documents »). Liste des documents (genre, version, émission, empreinte SHA-256 abrégée, état courant
+ou remplacé) ; **téléchargement** : le lien ouvre l'adresse `…/contenu/` TELLE QUELLE (le serveur impose `attachment`, vérifie l'empreinte et
+journalise : l'écran n'affiche jamais un document déposé) ; **vérification d'intégrité** à la demande (fichier intact en vert, altéré ou
+disparu en alerte avec la raison du serveur) ; **dépôt** multipart (genre, titre, version, date d'émission, fichier) et **remplacement**
+(nouveau fichier ; le message nomme les exigences à revérifier que renvoie le serveur). Un fichier de plus de 50 Mio est refusé AVANT l'envoi
+(exactement 50 Mio passe) ; titre et fichier sont exigés ; le refus du serveur s'affiche sans effacer la saisie. Sans le droit de paramétrer :
+ni dépôt ni remplacement, mais consultation, téléchargement et vérification restent. Le client d'API sait désormais envoyer un `FormData`
+(`formulaire`), sans fixer le `Content-Type` ; le faux serveur lit un envoi multipart (fichier réduit à `{nom, taille, type}`).
+Tests : `Documents.test.tsx` (20), 3 tests de client, 1 de faux serveur ; 11 mutations tuées. 
+**NON LIVRÉ :** la **barre de progression en pourcentage** du plan : `fetch` ne rapporte pas l'avancement d'un envoi ; l'écran montre une
+progression indéterminée (`<progress>` sans valeur) pendant l'envoi. Pas de glisser-déposer (un champ fichier), pas de dépôt multiple,
+pas de pagination, pas d'aperçu.
+
 ### Réalisation — Lot 5, écran E5 : clés de cofinancement
 Route `/cles-cofinancement?projet=&cle=` (menu « Clés de cofinancement »). Liste des clés d'un projet avec les parts de leur
 version en vigueur (en pourcentage exact : 0.07 s'affiche « 7 % », pas 7.000000000000001) ; détail d'une clé : toutes ses versions
