@@ -817,6 +817,17 @@ nom du bailleur non exigé, bouton sans droit, situation inventée à l'écran, 
 modification ni d'annulation d'un avenant ; pas de modification d'un bailleur ; le code d'un bailleur ne se corrige pas.
 **Le Lot 5 est terminé pour ses écrans E1 à E9** ; restent les écrans que le plan ne détaille pas (jeton d'API, mot de passe oublié, 2FA : décision de l'utilisateur attendue).
 
+### Lot 6 · Réalisation (parcours d'écran, version 1) — `frontend/src/app/recette.test.tsx`
+
+Un test d'intégration Vitest déroule ce qu'une personne fait vraiment : **connexion** (un seul envoi) → l'accueil propose ses projets, et seulement les siens → **ouverture
+du projet** → **tableau de bord** (une ligne par devise, jamais additionnées : 200 000 DJF et 1 500,50 EUR ne font pas 201 500) → **consolidation** dans une devise de
+référence choisie (la demande part avec `devise_reference=DJF`, le total et le taux utilisé sont ceux du serveur, rien n'est deviné) → **descente** d'un chiffre à ce qui le
+compose, puis aux écritures, puis à l'écriture : lignes et pièce. Le parcours n'écrit rien (seule la connexion et son jeton sont des requêtes d'écriture) et l'écran final est
+accessible. Mutations tuées : devises additionnées, devise de référence non transmise, taux utilisés masqués, lien de descente retiré.
+**Limites** : le serveur est le faux serveur des tests : ce parcours prouve l'enchaînement des écrans et la fidélité aux chiffres du serveur, pas le serveur (c'est le rôle de la
+recette backend) ; ce n'est pas un vrai navigateur : la version 2 (Playwright dans la CI) attend une décision, car elle allonge la CI ; le parcours ne couvre pas les écrans
+d'administration (accords, profils, contrôles, écritures), qui ont chacun leurs tests de composant.
+
 ---
 
 *Retour : [guide de démarrage](03_GUIDE_DEMARRAGE.md) · [lots L5 à L10](05_PLAN_LOTS_L5_A_L10.md)*
