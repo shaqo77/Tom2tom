@@ -600,6 +600,22 @@ message serveur). 223 tests, typage, lint et build passent.
 **Limites :** pas de modification ni de suppression d'un taux (le serveur n'en offre pas : on enregistre un autre taux) ;
 pas de saisie en lot ; pas d'import de fichier ; 200 taux affichés au plus.
 
+### Réalisation — Lot 5, écran E1a : profils de décaissement (consultation et décisions)
+Route `/profils-decaissement?projet=&accord=&profil=` (menu « Profils de décaissement »). Choix du projet puis de
+l'accord ; liste des versions (état en toutes lettres, régime, effet) ; détail d'une version : dates clés, méthodes (et
+pièces exigées), règles par catégorie (taux et allocations en CHAÎNES, jamais en `number`), comptes désignés, et pour un
+brouillon l'encadré de complétude (points bloquants et avertissements, message du serveur tel quel). Actions : Valider
+(désactivé tant que le brouillon est incomplet, le serveur restant l'autorité et son refus affiché), Activer, Rejeter
+(motif obligatoire avant tout envoi), Supprimer le brouillon (confirmation en deux temps). Sans le droit, aucune action
+n'est proposée et l'écran le dit. Un double clic n'envoie qu'une demande. Le faux serveur sait répondre aux écritures
+(tâche 9.1) et peut retarder une réponse.
+Tests : `ProfilsDecaissement.test.tsx` (15) ; 7 mutations tuées (validation d'un incomplet, double clic, motif, confirmation,
+message serveur masqué, droits, taux converti en nombre). Les 219 tests, le typage, le lint et la construction passent.
+**NON LIVRÉ dans cette tranche (reste de l'écran E1) :** le formulaire de création et d'édition d'un brouillon (régime,
+jalons, méthodes, règles, comptes, taux validé avant envoi), « Créer une nouvelle version », la comparaison de deux
+versions et le pré-remplissage depuis le gabarit BAD. Limites : pas de pagination ni de recherche dans la liste ; les
+droits affichés suivent `valider` (valider, rejeter) et `parametrer` (activer, supprimer) comme le serveur.
+
 ---
 
 *Retour : [guide de démarrage](03_GUIDE_DEMARRAGE.md) · [lots L5 à L10](05_PLAN_LOTS_L5_A_L10.md)*

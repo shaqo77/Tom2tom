@@ -1,0 +1,59 @@
+.profils__choix {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--esp-4);
+}
+.profils__defilement {
+  overflow-x: auto;
+}
+.profils__tableau {
+  inline-size: 100%;
+  border-collapse: collapse;
+}
+.profils__tableau th,
+.profils__tableau td {
+  padding: var(--esp-2) var(--esp-3);
+  text-align: start;
+  border-block-end: 1px solid var(--bordure);
+}
+.profils__ligne {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--esp-3);
+}
+.profils__jalons {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(13rem, 1fr));
+  gap: var(--esp-3);
+  margin: 0;
+}
+.profils__jalons dt {
+  font-size: var(--texte-s);
+  color: var(--texte-2);
+}
+.profils__jalons dd {
+  margin: 0;
+  font-weight: 600;
+}
+.profils__liste {
+  margin-block: var(--esp-2);
+  padding-inline-start: var(--esp-5);
+}
+.profils__liste--bloquante li {
+  color: var(--alerte);
+}
+.profils__liste--avertissement li {
+  color: var(--attention);
+}
+.profils__montant {
+  font-variant-numeric: tabular-nums;
+}
+.profils__actions,
+.profils__confirmation {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: var(--esp-3);
+  margin-block-start: var(--esp-4);
+}
