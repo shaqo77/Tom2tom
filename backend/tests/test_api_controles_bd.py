@@ -367,3 +367,65 @@ def test_un_controle_installe_et_active_par_l_api_refuse_la_validation_d_une_dep
     with pytest.raises(ErreurMetier) as refus:
         valider_ecriture(Ecriture.objects.get(pk=ligne.entry_id), utilisateur=profils["bruno"])
     assert refus.value.code == CodeErreur.CONTROLE_BLOQUANT
+
+
+# --- le langage de conditions, tel que le serveur l'accepte (E2b) -------------------------------
+
+
+def test_le_langage_liste_les_champs_par_type_de_regle_et_les_operateurs_compatibles(api):
+    _, _, profils, _ = api
+    r = appeler(profils["amina"], "get", "/controles/langage/")
+    assert r.status_code == 200, r.content
+    langage = r.json()
+    assert set(langage["types_regle"]) >= {"codification", "pieces", "budget", "tresorerie"}
+    assert langage["types_regle"]["budget"]["montant"] == {"type": "decimal"}
+    assert langage["types_regle"]["pieces"]["pieces"]["elements"] == {
+        "type": "texte",
+        "valide": "booleen",
+        "rattachee": "booleen",
+    }
+    assert langage["operateurs"]["est_renseigne"]["sans_valeur"] is True
+    assert langage["operateurs"]["gt"] == {"types": ["decimal", "entier"], "sans_valeur": False}
+    assert langage["severites"] == ["bloquant", "avertissement", "information"]
+
+
+def test_toute_condition_que_le_langage_propose_est_acceptee_par_l_enregistrement(api):
+    """Le langage est la SOURCE de l'écran : ce qu'il propose doit passer la validation, sinon l'écran
+    offrirait des choix que le serveur refuse."""
+    from niveau4_reporting.controles.conditions import ConditionInvalide, preparer_expression
+
+    _, _, profils, _ = api
+    langage = appeler(profils["amina"], "get", "/controles/langage/").json()
+    exemples = {"decimal": "1.50", "entier": 3, "date": "2026-03-10", "texte": "x"}
+    refus = []
+    for type_regle, champs in langage["types_regle"].items():
+        for nom, champ in champs.items():
+            for op, regle in langage["operateurs"].items():
+                if champ["type"] not in regle["types"]:
+                    continue
+                condition = {"champ": nom, "op": op}
+                if op == "somme_lte":
+                    numerique = next(
+                        (
+                            n
+                            for n, t in champ.get("elements", {}).items()
+                            if t in ("decimal", "entier")
+                        ),
+                        None,
+                    )
+                    if numerique is None:
+                        continue
+                    condition |= {"somme_de": numerique, "valeur": "10"}
+                elif op == "nombre_eq":
+                    condition["valeur"] = 2
+                elif op == "entre":
+                    condition["valeur"] = ["2026-01-01", "2026-12-31"]
+                elif op in ("in", "not_in"):
+                    condition["valeur"] = [exemples[champ["type"]]]
+                elif not regle["sans_valeur"]:
+                    condition["valeur"] = exemples[champ["type"]]
+                try:
+                    preparer_expression({"type_regle": type_regle, "conditions": [condition]})
+                except ConditionInvalide as erreur:
+                    refus.append((type_regle, nom, op, str(erreur)))
+    assert refus == []

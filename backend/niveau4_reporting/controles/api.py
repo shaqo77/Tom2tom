@@ -83,6 +83,40 @@ def _objet(donnees: dict, nom: str, *, obligatoire: bool = False) -> dict | None
     return valeur
 
 
+class LangageControles(VueMetier):
+    """Le langage de conditions tel que le SERVEUR l'accepte : pour chaque type de règle ses champs
+    et leur type, pour chaque opérateur les types de champ qu'il accepte et s'il prend une valeur.
+    Un écran de création le lit au lieu de le recopier : il ne propose que ce que l'enregistrement
+    acceptera."""
+
+    def get(self, requete):
+        return reponse(
+            {
+                "types_regle": {
+                    type_regle: {
+                        nom: {"type": champ.type.value}
+                        | (
+                            {"elements": {n: t.value for n, t in champ.elements}}
+                            if champ.elements
+                            else {}
+                        )
+                        for nom, champ in champs.items()
+                    }
+                    for type_regle, champs in conditions.SCHEMAS.items()
+                },
+                "operateurs": {
+                    op.value: {
+                        "types": [t.value for t in types],
+                        "sans_valeur": op in conditions.SANS_VALEUR,
+                    }
+                    for op, types in conditions.COMPATIBILITE.items()
+                },
+                "severites": list(Severite.values),
+                "max_conditions": conditions.MAX_CONDITIONS,
+            }
+        )
+
+
 class Controles(VueMetier):
     def get(self, requete, project_id):
         habilite(requete.user, "consulter", project_id)

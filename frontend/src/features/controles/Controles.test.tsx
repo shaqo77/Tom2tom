@@ -1,4 +1,4 @@
-import { screen, within } from "@testing-library/react";
+import { screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 
 import { violations } from "../../test/accessibilite";
@@ -261,5 +261,139 @@ describe("contrôles : installer la bibliothèque", () => {
     await userEvent.click(screen.getByRole("button", { name: "Installer les contrôles choisis" }));
     expect(await screen.findByRole("alert")).toHaveTextContent("Le seuil est invalide");
     expect(screen.getByLabelText("Date d'effet")).toHaveValue("2026-04-01");
+  });
+});
+
+const LANGAGE = {
+  types_regle: {
+    budget: { montant: { type: "decimal" }, plafond_accord: { type: "decimal" } },
+    pieces: { methode: { type: "texte" }, date: { type: "date" } },
+  },
+  operateurs: {
+    eq: { types: ["decimal", "entier", "date", "texte"], sans_valeur: false },
+    gt: { types: ["decimal", "entier"], sans_valeur: false },
+    in: { types: ["decimal", "entier", "date", "texte"], sans_valeur: false },
+    entre: { types: ["date"], sans_valeur: false },
+    est_renseigne: { types: ["decimal", "entier", "date", "texte", "booleen", "liste"], sans_valeur: true },
+  },
+  severites: ["bloquant", "avertissement", "information"],
+  max_conditions: 2,
+};
+
+describe("contrôles : créer un contrôle sur mesure", () => {
+  const posts = (s: FauxServeur) => s.appels.filter((a) => a.methode === "POST" && a.url.endsWith("/controles/"));
+  async function ouvrirFormulaire() {
+    const r = await ouvrir([]);
+    r.s.routes.push({ motif: /^\/controles\/langage\/$/, reponse: () => LANGAGE });
+    await userEvent.click(await screen.findByRole("button", { name: "Nouveau contrôle" }));
+    await screen.findByRole("option", { name: "budget" });
+    return r;
+  }
+  async function remplirBudget() {
+    await userEvent.type(screen.getByLabelText("Code du contrôle"), "BUD-MONTANT");
+    await userEvent.type(screen.getByLabelText("Libellé en français"), "Montant plafonné");
+    await userEvent.selectOptions(screen.getByLabelText("Type de règle"), "budget");
+    await userEvent.type(screen.getByLabelText("En vigueur à partir du"), "2026-01-01");
+    await userEvent.selectOptions(screen.getByLabelText("Champ de la condition 1"), "montant");
+    await userEvent.selectOptions(screen.getByLabelText("Opérateur de la condition 1"), "gt");
+    await userEvent.type(screen.getByLabelText("Valeur de la condition 1"), "1 250,50");
+  }
+
+  it("crée un brouillon : corps exact, la valeur part en chaîne canonique", async () => {
+    const { s } = await ouvrirFormulaire();
+    s.routes.push({ methode: "POST", motif: /^\/projets\/id-P1\/controles\/$/, reponse: () => controle("c9", "BUD-MONTANT", "draft") });
+    await remplirBudget();
+    await userEvent.click(screen.getByRole("button", { name: "Créer le brouillon" }));
+    await waitFor(() => expect(posts(s)).toHaveLength(1));
+    expect(posts(s)[0]?.corps).toEqual({
+      code: "BUD-MONTANT",
+      label: { fr: "Montant plafonné" },
+      type_regle: "budget",
+      severity: "avertissement",
+      valid_from: "2026-01-01",
+      expression: { type_regle: "budget", conditions: [{ champ: "montant", op: "gt", valeur: "1250.50" }] },
+    });
+    expect(await screen.findByText("Contrôle BUD-MONTANT créé en brouillon : il faut le valider puis l'activer.")).toBeInTheDocument();
+  });
+
+  it("ne propose que les opérateurs compatibles avec le champ choisi", async () => {
+    await ouvrirFormulaire();
+    await userEvent.selectOptions(screen.getByLabelText("Type de règle"), "pieces");
+    await userEvent.selectOptions(screen.getByLabelText("Champ de la condition 1"), "date");
+    const operateur = screen.getByLabelText("Opérateur de la condition 1");
+    expect(within(operateur).getAllByRole("option").map((o) => o.textContent)).toEqual(["Choisissez un opérateur", "est égal à", "est parmi", "est entre deux dates", "est renseigné"]);
+  });
+
+  it("un opérateur sans valeur ne demande aucune valeur", async () => {
+    await ouvrirFormulaire();
+    await userEvent.selectOptions(screen.getByLabelText("Type de règle"), "budget");
+    await userEvent.selectOptions(screen.getByLabelText("Champ de la condition 1"), "montant");
+    await userEvent.selectOptions(screen.getByLabelText("Opérateur de la condition 1"), "est_renseigne");
+    expect(screen.queryByLabelText("Valeur de la condition 1")).not.toBeInTheDocument();
+  });
+
+  it("« entre » demande deux dates", async () => {
+    await ouvrirFormulaire();
+    await userEvent.selectOptions(screen.getByLabelText("Type de règle"), "pieces");
+    await userEvent.selectOptions(screen.getByLabelText("Champ de la condition 1"), "date");
+    await userEvent.selectOptions(screen.getByLabelText("Opérateur de la condition 1"), "entre");
+    expect(screen.getByLabelText("Du (condition 1)")).toBeInTheDocument();
+    expect(screen.getByLabelText("Au (condition 1)")).toBeInTheDocument();
+  });
+
+  it("refuse avant l'envoi une valeur illisible et le dit", async () => {
+    const { s } = await ouvrirFormulaire();
+    await remplirBudget();
+    await userEvent.clear(screen.getByLabelText("Valeur de la condition 1"));
+    await userEvent.type(screen.getByLabelText("Valeur de la condition 1"), "abc");
+    await userEvent.click(screen.getByRole("button", { name: "Créer le brouillon" }));
+    expect(await screen.findByText("La valeur de la condition 1 est absente ou illisible.")).toBeInTheDocument();
+    expect(posts(s)).toHaveLength(0);
+  });
+
+  it("limite le nombre de conditions à celui du serveur et permet d'en retirer", async () => {
+    await ouvrirFormulaire();
+    await userEvent.selectOptions(screen.getByLabelText("Type de règle"), "budget");
+    await userEvent.click(screen.getByRole("button", { name: "Ajouter une condition" }));
+    expect(screen.getByLabelText("Champ de la condition 2")).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Ajouter une condition" })).not.toBeInTheDocument(); // max 2
+    await userEvent.click(screen.getByRole("button", { name: "Retirer la condition 2" }));
+    expect(screen.queryByLabelText("Champ de la condition 2")).not.toBeInTheDocument();
+  });
+
+  it("un contrôle manuel n'a aucune règle automatique à écrire", async () => {
+    await ouvrirFormulaire();
+    await userEvent.selectOptions(screen.getByLabelText("Type de règle"), "budget");
+    expect(screen.getByLabelText("Champ de la condition 1")).toBeInTheDocument();
+    await userEvent.click(screen.getByRole("checkbox", { name: /à vérifier par une personne/ }));
+    expect(screen.queryByLabelText("Champ de la condition 1")).not.toBeInTheDocument();
+  });
+
+  it("affiche tel quel le refus du serveur", async () => {
+    const { s } = await ouvrirFormulaire();
+    s.routes.push({ methode: "POST", motif: /^\/projets\/id-P1\/controles\/$/, reponse: () => reponseFausse(422, { code: "REGLE_INVALIDE", message: "Ce code de contrôle existe déjà" }) });
+    await remplirBudget();
+    await userEvent.click(screen.getByRole("button", { name: "Créer le brouillon" }));
+    expect(await screen.findByText("Ce code de contrôle existe déjà")).toBeInTheDocument();
+  });
+
+  it("un double clic n'envoie qu'un contrôle", async () => {
+    const { s } = await ouvrirFormulaire();
+    s.routes.push({ methode: "POST", motif: /^\/projets\/id-P1\/controles\/$/, reponse: async () => { await new Promise((r) => setTimeout(r, 50)); return controle("c9", "BUD-MONTANT", "draft"); } });
+    await remplirBudget();
+    await userEvent.dblClick(screen.getByRole("button", { name: "Créer le brouillon" }));
+    await waitFor(() => expect(posts(s).length).toBeGreaterThan(0));
+    expect(posts(s)).toHaveLength(1);
+  });
+
+  it("sans le droit de paramétrer, aucun bouton de création", async () => {
+    await ouvrir([], { operations: ["consulter", "valider"] });
+    await screen.findByRole("heading", { name: "Contrôles" });
+    expect(screen.queryByRole("button", { name: "Nouveau contrôle" })).not.toBeInTheDocument();
+  });
+
+  it("le formulaire est accessible", async () => {
+    await ouvrirFormulaire();
+    expect(await violations(document.body)).toEqual([]);
   });
 });

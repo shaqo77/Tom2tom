@@ -41,3 +41,31 @@
   align-items: center;
   gap: var(--esp-2);
 }
+
+.controles__form {
+  display: grid;
+  gap: var(--esp-3);
+}
+.controles__groupe {
+  display: grid;
+  gap: var(--esp-3);
+  margin: 0;
+  padding: var(--esp-3);
+  border: 1px solid var(--bordure);
+}
+.controles__condition {
+  display: grid;
+  gap: var(--esp-2);
+  padding-block-end: var(--esp-3);
+  border-block-end: 1px solid var(--bordure);
+}
+.controles__case {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--esp-2);
+}
+.controles__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--esp-3);
+}
