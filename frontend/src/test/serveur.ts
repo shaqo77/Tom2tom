@@ -49,6 +49,7 @@ export function reponseFausse(statut: number, corps?: unknown): ReponseFausse {
 export interface RouteFausse {
   methode?: "GET" | "POST" | "PUT" | "PATCH" | "DELETE";
   motif: RegExp;
+  /** Peut rendre une promesse : un test retarde ainsi la réponse (état « chargement », double clic…). */
   reponse: (trouve: RegExpExecArray, recherche: URLSearchParams, corps: unknown) => unknown;
 }
 
@@ -122,7 +123,7 @@ export function demarrerServeur(comptes: Compte[]): FauxServeur {
           const trouve = route.motif.exec(sansRecherche);
           if (!trouve) continue;
           if (!connecte) return json({ code: "NON_AUTHENTIFIE", message: "Connexion requise" }, 401);
-          const retour = route.reponse(trouve, new URLSearchParams(recherche), corps);
+          const retour = await route.reponse(trouve, new URLSearchParams(recherche), corps);
           if (retour instanceof ReponseFausse) {
             return retour.corps === undefined
               ? new Response(null, { status: retour.statut })
