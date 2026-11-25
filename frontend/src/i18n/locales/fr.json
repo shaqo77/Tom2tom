@@ -750,5 +750,7 @@
   "profils.faute.compte_manquant": "Un compte désigné n'a pas de compte choisi.",
   "profils.faute.plafond": "Le compte {{compte}} à plafond fixe exige un montant de plafond valide.",
   "profils.faute.plafond_variable": "Le compte {{compte}} à plafond variable n'a pas de montant de plafond.",
-  "profils.faute.seuil_compte": "Le seuil de reconstitution du compte {{compte}} doit être entre 0 et 100."
+  "profils.faute.seuil_compte": "Le seuil de reconstitution du compte {{compte}} doit être entre 0 et 100.",
+  "profils.form.nouvelle_version": "Nouvelle version à partir de celle-ci",
+  "profils.form.titre_version": "Nouvelle version du profil (brouillon)"
 }

@@ -70,12 +70,15 @@ export function FormulaireProfil({
   projetId,
   accordId,
   profil,
+  modele,
   surTermine,
   surAnnulation,
 }: {
   projetId: string;
   accordId: string;
   profil?: ProfilDetail;
+  /** Une version existante dont on repart pour en créer une nouvelle (la date d'effet est à saisir). */
+  modele?: ProfilDetail;
   surTermine: (profil: ProfilDetail) => void;
   surAnnulation: () => void;
 }) {
@@ -90,6 +93,7 @@ export function FormulaireProfil({
       projetId={projetId}
       accordId={accordId}
       profil={profil}
+      modele={modele}
       codes={codes}
       finEligibiliteAccord={accord.data.date_fin_eligibilite}
       comptesDesignes={(comptes.data ?? []).filter((c) => c.type === "designe")}
@@ -103,6 +107,7 @@ function Formulaire({
   projetId,
   accordId,
   profil,
+  modele,
   codes,
   finEligibiliteAccord,
   comptesDesignes,
@@ -112,6 +117,7 @@ function Formulaire({
   projetId: string;
   accordId: string;
   profil: ProfilDetail | undefined;
+  modele: ProfilDetail | undefined;
   codes: string[];
   finEligibiliteAccord: string | null;
   comptesDesignes: { code: string; devise: string }[];
@@ -119,7 +125,7 @@ function Formulaire({
   surAnnulation: () => void;
 }) {
   const { t } = useTranslation();
-  const [saisie, definirSaisie] = useState<Saisie>(() => saisieDe(profil, codes));
+  const [saisie, definirSaisie] = useState<Saisie>(() => (modele ? { ...saisieDe(modele, codes), valid_from: "" } : saisieDe(profil, codes)));
   const [fautes, definirFautes] = useState<Faute[]>([]);
   const [echec, definirEchec] = useState<string | null>(null);
   const ecriture = useMutation({
@@ -144,7 +150,7 @@ function Formulaire({
   }
 
   return (
-    <Carte titre={t(profil ? "profils.form.titre_edition" : "profils.form.titre_creation")}>
+    <Carte titre={t(profil ? "profils.form.titre_edition" : modele ? "profils.form.titre_version" : "profils.form.titre_creation")}>
       <form className="profils__form" onSubmit={soumettre} noValidate>
         {fautes.length > 0 && (
           <Message variante="attention">

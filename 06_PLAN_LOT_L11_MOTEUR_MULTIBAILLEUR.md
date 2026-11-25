@@ -717,6 +717,14 @@ Tests : `Evaluations.test.tsx` (35) ; 14 mutations tuées (dont le double clic, 
 **NON LIVRÉ :** le dossier de conformité d'un objet (`dossier-conformite-objet`) et la liste « en attente » d'un objet (`controles-en-attente`) : l'API existe, pas leur
 écran ; pas de pagination du journal au-delà des 200 lignes du serveur ; pas de filtre par date.
 
+### Lot 5 · E1c — Réalisation : nouvelle version d'un profil
+
+« Nouvelle version à partir de celle-ci » (droit `parametrer`, toute version non brouillon) ouvre le formulaire d'E1b
+prérempli avec la version choisie, **date d'effet vidée** (à saisir : une version reprise telle quelle ne sert à rien) ;
+l'enregistrement est un `POST` qui crée un brouillon, la version source n'est jamais modifiée (règle 7).
+Mutation vérifiée : sans le vidage de la date, le test échoue. **Limites** : pas de comparaison côté à côté de deux versions
+ni de gabarit BAD (le gabarit exige de lire le profil BAD livré en bibliothèque : à faire avec le bouton d'installation).
+
 ---
 
 *Retour : [guide de démarrage](03_GUIDE_DEMARRAGE.md) · [lots L5 à L10](05_PLAN_LOTS_L5_A_L10.md)*
