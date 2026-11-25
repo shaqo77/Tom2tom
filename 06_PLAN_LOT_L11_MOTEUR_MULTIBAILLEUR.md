@@ -826,6 +826,19 @@ Mutations tuées : catégorie non résolue par accord, catégorie cherchée sans
 ensuite) ; les demandes sont préparées par service (il n'existe pas encore d'écran de décaissement) ; les rapports sont générés par le moteur, pas publiés ; la
 résolution par code suppose que les accords d'une clé donnent le même code à la même nature de dépense (convention à tenir dans la configuration).
 
+### Lot 5 · E4c — Réalisation : l'avenant d'un accord et la création d'un bailleur
+
+Aucune API nouvelle : les deux existaient. Sur `/accords` (droit `parametrer`) : **« Enregistrer un avenant »** (référence, date, **document de référence choisi dans la
+liste des documents du projet**, montant révisé, motif) ; le serveur calcule la situation de l'accord avant et après, l'écran l'affiche telle quelle
+(« le montant passe de … à … ») sans rien recalculer ; le montant se lit selon la langue et part en chaîne canonique, négatif ou ambigu refusé. Dans le
+formulaire d'accord, **« Nouveau bailleur »** (code, nom, pays facultatif de deux lettres, mis en majuscules) crée le bailleur, l'ajoute à la liste et le
+sélectionne. Le refus du serveur s'affiche tel quel.
+14 tests de logique (dont 5 nouveaux), 9 de composant ; 8 mutations tuées (document non exigé, négatif accepté, pays non mis en majuscules ou à trois lettres,
+nom du bailleur non exigé, bouton sans droit, situation inventée à l'écran, double envoi).
+**Limites** : tous les documents du projet sont proposés, même remplacés ou sans rapport avec l'accord (le serveur ne le vérifie pas non plus à ce stade) ; pas de
+modification ni d'annulation d'un avenant ; pas de modification d'un bailleur ; le code d'un bailleur ne se corrige pas.
+**Le Lot 5 est terminé pour ses écrans E1 à E9** ; restent les écrans que le plan ne détaille pas (jeton d'API, mot de passe oublié, 2FA : décision de l'utilisateur attendue).
+
 ---
 
 *Retour : [guide de démarrage](03_GUIDE_DEMARRAGE.md) · [lots L5 à L10](05_PLAN_LOTS_L5_A_L10.md)*
