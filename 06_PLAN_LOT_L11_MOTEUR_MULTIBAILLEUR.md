@@ -791,6 +791,19 @@ demande obligatoire, droit de saisir, double envoi (garde et bouton retirés ens
 **Limites** : la liste ne propose aucune action sur une demande (création, soumission, décision : pas d'écran de décaissement), elle n'expose
 ni les lignes de dépenses ni les pièces ; le choix n'exclut pas les demandes déjà justifiées ou non acceptées (le serveur tranche).
 
+### Lot 5 · E3b — Réalisation : le dossier de conformité d'un objet et ce qui l'empêche d'avancer
+
+Sur l'écran des évaluations, la carte « Dossier de conformité d'un objet » (droit `consulter`, aucune écriture) prend un **type d'objet**
+(obligatoire, par exemple `ecriture`) et un **identifiant** facultatif qui, s'il est donné, doit être un UUID (refus local sans appel). Elle lit
+deux API déjà livrées : `controles-en-attente` (« ce qui empêche d'avancer » : bloquant non dérogé, à vérifier non tranché, décision non
+conforme, avec la raison rendue par le serveur) et `dossier-conformite-objet` (le fil : échecs, justifications, dérogations, dans l'ordre ; le
+résultat initial bloquant reste visible à côté de la dérogation qui l'autorise). Un résultat et un statut de dérogation se traduisent ; le texte
+d'une justification s'affiche tel quel. Rien n'est recalculé à l'écran.
+6 mutations tuées (type non exigé, UUID non vérifié, identifiant non transmis, résultat et statut non traduits, liste « en attente » ignorée).
+**Limites** : le type d'objet se saisit en texte libre (le serveur n'expose pas la liste des types d'objet évalués) ; pas de lien depuis une
+écriture vers son dossier (on y arrive en copiant son identifiant) ; pas d'export du dossier ; la date de référence de « en attente » n'est pas
+réglable (aujourd'hui).
+
 ---
 
 *Retour : [guide de démarrage](03_GUIDE_DEMARRAGE.md) · [lots L5 à L10](05_PLAN_LOTS_L5_A_L10.md)*

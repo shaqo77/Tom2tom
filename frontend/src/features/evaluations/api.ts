@@ -1,5 +1,5 @@
 import { appeler } from "../../shared/api/client";
-import type { DecisionControle, DemandeDerogation, Derogation, EvaluationDetail, Evaluation, FiltreEvaluations, StatutDerogation } from "./types";
+import type { DecisionControle, DemandeDerogation, Derogation, EnAttente, EvaluationDetail, Evaluation, FiltreEvaluations, LigneDossier, StatutDerogation } from "./types";
 
 const base = (projetId: string) => `/projets/${projetId}`;
 
@@ -27,3 +27,15 @@ export const lireDerogations = (projetId: string, statut?: StatutDerogation) =>
 
 export const deciderDerogation = (projetId: string, derogationId: string, approuver: boolean, motif: string) =>
   appeler<Derogation>(`${base(projetId)}/derogations/${derogationId}/decision/`, { methode: "POST", corps: { approuver, motif } });
+
+function objet(objetType: string, objetId: string) {
+  const recherche = new URLSearchParams({ objet_type: objetType });
+  if (objetId) recherche.set("objet_id", objetId);
+  return recherche.toString();
+}
+
+export const lireEnAttente = (projetId: string, objetType: string, objetId: string) =>
+  appeler<EnAttente[]>(`${base(projetId)}/controles-en-attente/?${objet(objetType, objetId)}`);
+
+export const lireDossier = (projetId: string, objetType: string, objetId: string) =>
+  appeler<LigneDossier[]>(`${base(projetId)}/dossier-conformite-objet/?${objet(objetType, objetId)}`);

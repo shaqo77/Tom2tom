@@ -64,3 +64,19 @@ export interface DemandeDerogation {
 
 /** Un appel d'écriture sur une évaluation : rend ce que le serveur a créé. */
 export type Appel<T> = () => Promise<T>;
+
+/** Ce qui empêche d'avancer pour un objet. Voir backend/niveau4_reporting/controles/api.py (`ControlesEnAttente`). */
+export interface EnAttente {
+  evaluation: string;
+  controle: string;
+  raison: string;
+}
+
+/** Une ligne du fil de conformité d'un objet (`DossierConformiteObjet`). `detail` est le résultat, le texte ou le statut selon le genre. */
+export type GenreDossier = "evaluation" | "justification" | "derogation";
+export interface LigneDossier {
+  le: string;
+  genre: GenreDossier;
+  controle: string;
+  detail: string;
+}

@@ -931,5 +931,21 @@
   "controles.faute.liste": "Les valeurs de la condition {{n}} sont absentes ou illisibles.",
   "controles.faute.dates": "Les deux dates de la condition {{n}} sont obligatoires.",
   "controles.faute.intervalle": "Dans la condition {{n}}, la première date doit précéder la seconde.",
-  "controles.faute.somme_de": "Choisissez le champ numérique à additionner dans la condition {{n}}."
+  "controles.faute.somme_de": "Choisissez le champ numérique à additionner dans la condition {{n}}.",
+  "evaluations.dossier.titre": "Dossier de conformité d'un objet",
+  "evaluations.dossier.type": "Type d'objet (par exemple ecriture)",
+  "evaluations.dossier.id": "Identifiant de l'objet (facultatif)",
+  "evaluations.dossier.consulter": "Consulter le dossier",
+  "evaluations.dossier.faute_type": "Indiquez le type d'objet.",
+  "evaluations.dossier.faute_id": "L'identifiant doit être un UUID, par exemple 3f2b8c1e-5a47-4d9e-9b1a-0c6d2e7f8a90.",
+  "evaluations.dossier.en_attente": "Ce qui empêche d'avancer",
+  "evaluations.dossier.rien_en_attente": "Rien n'empêche d'avancer.",
+  "evaluations.dossier.fil": "Fil de conformité",
+  "evaluations.dossier.fil_vide": "Aucun échec, justification ni dérogation pour cet objet.",
+  "evaluations.dossier.erreur": "Le dossier est illisible.",
+  "evaluations.dossier.col_genre": "Nature",
+  "evaluations.dossier.col_detail": "Détail",
+  "evaluations.dossier.genre.evaluation": "Évaluation",
+  "evaluations.dossier.genre.justification": "Justification",
+  "evaluations.dossier.genre.derogation": "Dérogation"
 }

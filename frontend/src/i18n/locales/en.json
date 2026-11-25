@@ -931,5 +931,21 @@
   "controles.faute.liste": "The values of condition {{n}} are missing or unreadable.",
   "controles.faute.dates": "Both dates of condition {{n}} are required.",
   "controles.faute.intervalle": "In condition {{n}}, the first date must come before the second.",
-  "controles.faute.somme_de": "Choose the numeric field to add up in condition {{n}}."
+  "controles.faute.somme_de": "Choose the numeric field to add up in condition {{n}}.",
+  "evaluations.dossier.titre": "Compliance file of an object",
+  "evaluations.dossier.type": "Object type (for example ecriture)",
+  "evaluations.dossier.id": "Object identifier (optional)",
+  "evaluations.dossier.consulter": "Open the file",
+  "evaluations.dossier.faute_type": "Give the object type.",
+  "evaluations.dossier.faute_id": "The identifier must be a UUID, for example 3f2b8c1e-5a47-4d9e-9b1a-0c6d2e7f8a90.",
+  "evaluations.dossier.en_attente": "What blocks progress",
+  "evaluations.dossier.rien_en_attente": "Nothing blocks progress.",
+  "evaluations.dossier.fil": "Compliance trail",
+  "evaluations.dossier.fil_vide": "No failure, justification or waiver for this object.",
+  "evaluations.dossier.erreur": "The file could not be read.",
+  "evaluations.dossier.col_genre": "Kind",
+  "evaluations.dossier.col_detail": "Detail",
+  "evaluations.dossier.genre.evaluation": "Evaluation",
+  "evaluations.dossier.genre.justification": "Justification",
+  "evaluations.dossier.genre.derogation": "Waiver"
 }
