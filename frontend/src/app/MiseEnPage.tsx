@@ -71,6 +71,9 @@ export function MiseEnPage() {
               <Link to="/parametres-devises" className="navigation__lien" activeProps={{ className: "navigation__lien navigation__lien--actif" }}>
                 {t("devises.nav")}
               </Link>
+              <Link to="/taux-de-change" className="navigation__lien" activeProps={{ className: "navigation__lien navigation__lien--actif" }}>
+                {t("taux.nav")}
+              </Link>
             </nav>
           )}
           {moi && (

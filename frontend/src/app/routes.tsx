@@ -5,6 +5,7 @@ import { Accueil } from "../features/accueil/Accueil";
 import { Conception } from "../features/accueil/Conception";
 import { ChangerMotDePasse } from "../features/connexion/ChangerMotDePasse";
 import { Connexion } from "../features/connexion/Connexion";
+import { TauxDeChange } from "../features/taux/TauxDeChange";
 import { ReglagesDevises } from "../features/devises/ReglagesDevises";
 import { ProjetPage } from "../features/projets/ProjetPage";
 import { Descente } from "../features/tableau/Descente";
@@ -110,6 +111,12 @@ const descente = createRoute({
   component: Descente,
 });
 
+const tauxDeChange = createRoute({
+  getParentRoute: () => protege,
+  path: "/taux-de-change",
+  component: TauxDeChange,
+});
+
 const motDePasse = createRoute({
   getParentRoute: () => protege,
   path: "/mot-de-passe",
@@ -131,7 +138,7 @@ const conception = createRoute({ getParentRoute: () => racine, path: "/conceptio
 
 export const arbre = racine.addChildren([
   connexion,
-  protege.addChildren([accueil, tableau, descente, reglagesDevises, motDePasse, projet]),
+  protege.addChildren([accueil, tableau, descente, reglagesDevises, tauxDeChange, motDePasse, projet]),
   ...(import.meta.env.DEV ? [conception] : []),
 ]);
 
