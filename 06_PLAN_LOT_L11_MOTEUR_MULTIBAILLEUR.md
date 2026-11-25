@@ -627,6 +627,57 @@ jalons, méthodes, règles, comptes, taux validé avant envoi), « Créer une no
 versions et le pré-remplissage depuis le gabarit BAD. Limites : pas de pagination ni de recherche dans la liste ; les
 droits affichés suivent `valider` (valider, rejeter) et `parametrer` (activer, supprimer) comme le serveur.
 
+### Réalisation — Lot 5, écran E2a : contrôles (consultation, décisions, installation de la bibliothèque)
+Route `/controles?projet=&controle=` (menu « Contrôles »). Liste des versions d'un projet (code, version, état, sévérité en toutes lettres, libellé, effet),
+filtrable par état (le filtre part au serveur) ; détail : action corrective et RÈGLE EN LECTURE SEULE (expression, condition d'application, paramètres) ;
+décisions selon l'état et le droit, comme le serveur : brouillon → Valider (droit `valider`), validé → Activer (droit `parametrer`) ou Rejeter (droit
+`valider`, motif obligatoire avant l'envoi) ; un contrôle actif, remplacé ou rejeté ne propose rien (et n'invoque aucun droit manquant).
+**Bibliothèque livrée :** tous les contrôles livrés avec leur famille et leur sévérité ; ceux déjà installés ne se cochent pas ; installation des contrôles
+cochés à une date d'effet, TOUJOURS EN BROUILLON (le message le dit : jamais validés ni activés automatiquement). Les trois contrôles de risque proposent leur
+seuil, vérifié avant l'envoi et envoyé exact : pourcentage entre 0 et 100 en CHAÎNE (« 75.5 »), délai en jours entier ≥ 1, maximum entier ≥ 0 ; un seuil vide
+n'est pas envoyé (le serveur applique le sien). Le refus du serveur s'affiche sans effacer la saisie.
+Tests : `Controles.test.tsx` (27) ; 14 mutations tuées. 285 tests, typage et lint passent.
+**NON LIVRÉ (reste de l'écran E2) :** la CRÉATION d'un contrôle sur mesure (expression en formulaire guidé : champ, opérateur, valeur), la création d'une
+nouvelle version d'un contrôle actif, et la modification des seuils d'un contrôle de risque déjà installé. Limites : pas de pagination.
+
+### Réalisation — Lot 5, écran E7 : compte spécial (situation, annulation, publication)
+Route `/compte-special?projet=&compte=&date=` (menu « Compte spécial »). Choix du projet puis d'un compte SPÉCIAL (liste des comptes du
+projet : `GET /projets/<id>/comptes-bancaires/`, numéro masqué seulement) ; **situation à une date** (lignes 2 à 7 de l'annexe 9) : avances
+reçues, justifications soumises (la demande en cours d'examen est signalée), solde de clôture, justifié pour la demande, justifié
+précédemment, total justifié et **écart tels que le serveur les calcule** (rien n'est recalculé à l'écran ; tous les montants restent des
+chaînes) ; une situation incomplète nomme ce qui manque et n'affiche aucun écart ; la date se saisit en local et ne change la situation que
+lorsqu'elle est complète ; **justifications soumises à la Banque** avec **annulation motivée** (motif exigé avant l'envoi, double clic
+protégé, refus du serveur affiché) ; **publication du rapport de réconciliation scellé** (date de la situation, demande facultative, note
+d'écart de 4000 caractères au plus, sceau affiché) avec le droit de publier. Sans le droit de saisir : pas d'annulation ; sans le droit de
+publier : pas de publication.
+Tests : `CompteSpecial.test.tsx` (17) ; 14 mutations tuées. 274 tests, typage et lint passent.
+**NON LIVRÉ :** la **création d'une justification** par l'écran : l'API la demande par l'identifiant d'une DEMANDE de retrait et il n'existe aucune API
+HTTP de lecture des demandes de retrait (ni écran de demandes). Il faut d'abord livrer la liste des demandes. Pas non plus de saisie d'une
+avance, ni de relevé. Pas de pagination.
+
+### Réalisation — Lot 5, prérequis de l'écran E7 : liste des comptes bancaires et forme des refus
+**`GET /api/v1/projets/<id>/comptes-bancaires/`** (droit `consulter`, triée par code, paginable) : identifiant, code, libellé, type,
+devise, numéro de l'accord, **numéro masqué** (le numéro complet ne sort jamais ; un test le prouve), actif. Sans elle, aucun écran ne
+pouvait choisir un compte : toutes les routes de trésorerie s'adressent à l'identifiant d'un compte.
+**Correction d'une incohérence découverte à cette occasion :** un refus de droit (403), un objet introuvable (404) et une session absente
+rendaient le `{"detail": …}` de DRF, que le frontend ne lit pas (il aurait affiché « Erreur du serveur (403) » au lieu du message). Ils rendent
+désormais `{code, message}` (`ACCES_REFUSE`, `INTROUVABLE`, `NON_AUTHENTIFIE`), avec un message du catalogue quand aucun texte n'est fourni
+(plus l'anglais de DRF). Tests : `test_api_comptes_bancaires_bd.py` (6) et `test_gestionnaire_integrite.py` (4 de plus).
+
+### Réalisation — Lot 5, écran E6 : documents
+Route `/documents?projet=` (menu « Documents »). Liste des documents (genre, version, émission, empreinte SHA-256 abrégée, état courant
+ou remplacé) ; **téléchargement** : le lien ouvre l'adresse `…/contenu/` TELLE QUELLE (le serveur impose `attachment`, vérifie l'empreinte et
+journalise : l'écran n'affiche jamais un document déposé) ; **vérification d'intégrité** à la demande (fichier intact en vert, altéré ou
+disparu en alerte avec la raison du serveur) ; **dépôt** multipart (genre, titre, version, date d'émission, fichier) et **remplacement**
+(nouveau fichier ; le message nomme les exigences à revérifier que renvoie le serveur). Un fichier de plus de 50 Mio est refusé AVANT l'envoi
+(exactement 50 Mio passe) ; titre et fichier sont exigés ; le refus du serveur s'affiche sans effacer la saisie. Sans le droit de paramétrer :
+ni dépôt ni remplacement, mais consultation, téléchargement et vérification restent. Le client d'API sait désormais envoyer un `FormData`
+(`formulaire`), sans fixer le `Content-Type` ; le faux serveur lit un envoi multipart (fichier réduit à `{nom, taille, type}`).
+Tests : `Documents.test.tsx` (20), 3 tests de client, 1 de faux serveur ; 11 mutations tuées. 
+**NON LIVRÉ :** la **barre de progression en pourcentage** du plan : `fetch` ne rapporte pas l'avancement d'un envoi ; l'écran montre une
+progression indéterminée (`<progress>` sans valeur) pendant l'envoi. Pas de glisser-déposer (un champ fichier), pas de dépôt multiple,
+pas de pagination, pas d'aperçu.
+
 ### Réalisation — Lot 5, écran E5 : clés de cofinancement
 Route `/cles-cofinancement?projet=&cle=` (menu « Clés de cofinancement »). Liste des clés d'un projet avec les parts de leur
 version en vigueur (en pourcentage exact : 0.07 s'affiche « 7 % », pas 7.000000000000001) ; détail d'une clé : toutes ses versions
@@ -652,6 +703,19 @@ montants en chaînes (« 0,85 » → « 0.85 », jamais de `Number`). Le serveur
 Boutons « Nouveau profil » et « Modifier » réservés au droit `parametrer`, brouillon seulement.
 **Limites** : pas de nouvelle version à partir d'un profil actif, ni de comparaison ni de gabarit BAD (E1c) ; un profil
 n'accepte que les catégories existantes de l'accord. Mutation vérifiée : retirer la borne haute du taux fait échouer 5 tests.
+
+### Réalisation — Lot 5, écran E3a : évaluations et dérogations
+Route `/evaluations?projet=&evaluation=` (menu « Évaluations »). **Journal** des évaluations de contrôles (borné à 200 par le serveur), filtrable par résultat,
+code de contrôle et type d'objet (les filtres partent au serveur) ; **détail** : message, valeurs constatée et attendue TELLES QUE LE SERVEUR LES RENDS (chaînes),
+action corrective, décisions, justifications et dérogations de l'évaluation. Actions, selon le résultat et le droit comme au serveur : **trancher** un contrôle « à
+vérifier » (droit `valider` : conforme ou non conforme + motif), **justifier** (droit `saisir` ; texte exigé avant l'envoi), **demander une dérogation** pour un résultat
+BLOQUANT seulement (droit `saisir` ; motif, référence du justificatif, deux dates ; la période doit commencer AVANT sa fin, la fin est EXCLUE : refusé avant l'envoi
+sinon). **Dérogations du projet** : liste (statut, période « du … → … (exclu) »), approbation ou refus avec motif pour une dérogation DEMANDÉE (droit `valider` ; le
+refus du serveur « le demandeur ne peut pas approuver sa propre dérogation » s'affiche tel quel) ; une dérogation déjà décidée n'est plus décidable.
+Le journal est en ajout seul : l'écran n'offre aucune modification d'une ligne existante.
+Tests : `Evaluations.test.tsx` (35) ; 14 mutations tuées (dont le double clic, par retrait de la garde ET du bouton désactivé). 310 tests, typage et lint passent.
+**NON LIVRÉ :** le dossier de conformité d'un objet (`dossier-conformite-objet`) et la liste « en attente » d'un objet (`controles-en-attente`) : l'API existe, pas leur
+écran ; pas de pagination du journal au-delà des 200 lignes du serveur ; pas de filtre par date.
 
 ---
 

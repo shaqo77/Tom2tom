@@ -88,4 +88,14 @@ describe("le faux serveur répond aux écritures", () => {
     serveur.routes.push({ motif: /^\/choses\/$/, reponse: (_t, recherche) => ({ avec: recherche.get("avec") }) });
     expect(await appeler("/choses/?avec=3")).toEqual({ avec: "3" });
   });
+
+  it("un envoi multipart arrive à la route sous forme d'objet : champs texte et fichier réduit à nom, taille et type", async () => {
+    const serveur = serveurConnecte();
+    serveur.routes.push({ methode: "POST", motif: /^\/depot\/$/, reponse: (_t, _r, corps) => ({ recu: corps }) });
+    const formulaire = new FormData();
+    formulaire.set("title", "Accord");
+    formulaire.set("fichier", new File(["%PDF-1.4"], "accord.pdf", { type: "application/pdf" }));
+    const retour = await appeler<{ recu: unknown }>("/depot/", { methode: "POST", formulaire });
+    expect(retour.recu).toEqual({ title: "Accord", fichier: { nom: "accord.pdf", taille: 8, type: "application/pdf" } });
+  });
 });
