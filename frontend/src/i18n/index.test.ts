@@ -60,6 +60,7 @@ describe("catalogues", () => {
       "controles.col_code",
       "controles.col_version",
       "controles.col_action",
+      "special.col_action",
     ]);
     const memes = Object.entries(fr).filter(
       ([cle, texte]) => (en as Record<string, string>)[cle] === texte && !IDENTIQUES.has(cle),
