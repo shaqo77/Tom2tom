@@ -565,6 +565,28 @@ bibliothèque (20 contrôles figés par des tests) et le circuit de dérogation 
 **Limites :** le contrat n'est pas encore proposé par l'API HTTP des demandes (il n'y en a pas) ; une demande dont
 les dépenses ne portent aucun contrat n'est pas contrôlée.
 
+### Réalisation — Lot 4 : périodes de rapport libres
+Un état peut porter une colonne `{"code": "PER", "period": "range"}` : elle lit les paramètres `plage_debut` et
+`plage_fin` (texte ISO `AAAA-MM-JJ` ou objet `date`, **bornes incluses**) et somme les lignes dont la date comptable
+(`accounting_date`, déjà exposée par la vue `moteur_ligneecriture` : aucune migration) est dans la plage. Les noms de
+paramètres sont une liste blanche de deux ; leurs valeurs sont des paramètres SQL. Refus net (`ModeleEtatInvalide`) :
+fin avant début, date illisible (y compris un horodatage, un entier ou une chaîne piégée), un seul des deux paramètres,
+une colonne de plage sans paramètres, une plage mélangée à une autre période de colonne dans le même état. Le jeu de
+données scellé est borné par la plage elle-même (`project_id = … AND accounting_date BETWEEN … AND …`), donc une
+écriture postérieure DANS la plage est nommée par la régénération et une écriture hors plage ne la dérange pas. Publication :
+la période du rapport doit être la plage demandée (`rapports.periode_hors_plage`) ; les dates se scellent en texte ISO.
+**Écart avec le plan 07 :** les paramètres s'appellent `plage_debut`/`plage_fin`, pas `date_debut`/`date_fin` : ces
+deux noms servent déjà aux sources externes de trésorerie (compte désigné et compte spécial), et les réutiliser aurait
+fait basculer ces états en « plage libre ».
+Tests : `test_periodes_libres_bd.py` (20) : somme de deux plages contiguës = plage totale, bornes (veille, lendemain),
+refus, scellé identique pour deux plages identiques et différent pour une autre, nommage d'une écriture postérieure ;
+7 mutations tuées.
+**Limites assumées :** une plage ne se mélange pas à une colonne de période d'exercice (un état « période + cumul » reste
+à construire) ; aucune API HTTP générale ne publie un rapport (seul l'état du compte désigné a la sienne) : la plage
+s'utilise par `publier_rapport(params={"plage_debut": …, "plage_fin": …})` ; le mapping applicable est celui que
+l'appelant passe (on ne choisit pas encore la version de mapping « à la date de fin de plage ») ; pas de sélecteur de
+période dans l'écran du tableau de bord.
+
 ---
 
 *Retour : [guide de démarrage](03_GUIDE_DEMARRAGE.md) · [lots L5 à L10](05_PLAN_LOTS_L5_A_L10.md)*

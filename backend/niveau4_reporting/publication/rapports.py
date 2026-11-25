@@ -24,7 +24,12 @@ from core.erreurs import CodeErreur, ErreurMetier
 from core.i18n import msg
 from niveau1_socle.habilitations.permissions import est_habilite
 from niveau4_reporting.mapping.models import TableMapping
-from niveau4_reporting.moteur.compilateur import _parametres_source, generer
+from niveau4_reporting.moteur.compilateur import (
+    PARAMETRES_PLAGE,
+    _parametres_source,
+    generer,
+    plage_libre,
+)
 
 from .models import RapportPublie
 from .scellement import (
@@ -106,8 +111,28 @@ def generer_rapport(
     config_version: dict | None = None,
 ) -> RapportGenere:
     """Produit le rapport (sans le publier). Une assertion fausse ou un mapping incomplet lève."""
+    # Les dates d'une plage libre se scellent en texte ISO (un objet `date` ne se sérialise pas).
+    params = {
+        cle: valeur.isoformat()
+        if cle in PARAMETRES_PLAGE and isinstance(valeur, datetime.date)
+        else valeur
+        for cle, valeur in params.items()
+    }
     where, source_params, annee, courante = _parametres_source(params)
-    if not (
+    plage = plage_libre(params)
+    if plage is not None:
+        if (period_from, period_to) != plage:
+            raise ErreurMetier(
+                CodeErreur.REGLE_INVALIDE,
+                msg(
+                    "rapports.periode_hors_plage",
+                    du=period_from.isoformat(),
+                    au=period_to.isoformat(),
+                    debut=plage[0].isoformat(),
+                    fin=plage[1].isoformat(),
+                ),
+            )
+    elif not (
         period_from <= period_to
         and period_to.year == annee
         and period_to.month == courante
