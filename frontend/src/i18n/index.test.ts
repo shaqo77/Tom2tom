@@ -24,7 +24,32 @@ describe("catalogues", () => {
   });
 
   it("aucune traduction n'est identique au français, sauf les noms propres", () => {
-    const IDENTIQUES = new Set(["accueil.titre", "conception.messages", "message.info", "session.organisation", "conception.badge_action", "tableau.jour", "tableau.anomalies", "devises.col_version", "tableau.descente.total", "tableau.descente.col_date", "profils.col_version", "profils.col_action", "profils.col_allocation", "profils.plafond.variable", "cles.col_code", "cles.col_action", "cles.col_version"]); // mots identiques dans les deux langues
+    const IDENTIQUES = new Set([ // mots identiques dans les deux langues
+      "accueil.titre",
+      "conception.messages",
+      "message.info",
+      "session.organisation",
+      "conception.badge_action",
+      "tableau.jour",
+      "tableau.anomalies",
+      "devises.col_version",
+      "tableau.descente.total",
+      "tableau.descente.col_date",
+      "profils.col_version",
+      "profils.col_action",
+      "profils.col_allocation",
+      "profils.plafond.variable",
+      "cles.col_code",
+      "cles.col_action",
+      "cles.col_version",
+      "accords.col_action",
+      "accords.col_code",
+      "accords.col_date",
+      "taux.col_date",
+      "taux.col_type",
+      "taux.col_source",
+      "taux.date",
+    ]);
     const memes = Object.entries(fr).filter(
       ([cle, texte]) => (en as Record<string, string>)[cle] === texte && !IDENTIQUES.has(cle),
     );

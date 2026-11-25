@@ -587,6 +587,30 @@ s'utilise par `publier_rapport(params={"plage_debut": …, "plage_fin": …})` ;
 l'appelant passe (on ne choisit pas encore la version de mapping « à la date de fin de plage ») ; pas de sélecteur de
 période dans l'écran du tableau de bord.
 
+### Réalisation — Lot 5, écran E4a : accords (consultation, statut, numérotation)
+Route `/accords?projet=&accord=` (menu « Accords »). Liste des accords d'un projet (numéro, bailleur, nature, statut en toutes
+lettres, montant courant en chaîne) ; détail : dates clés, catégories de dépenses (la sous-catégorie dit « sous <parent> » et est
+décalée), avenants, numérotation des demandes de retrait. Avec le droit de paramétrer : changer le statut (nouveau statut +
+motif ; le serveur reste l'autorité des transitions, elles ne sont PAS dupliquées à l'écran : un refus 409 est affiché tel quel)
+et régler la numérotation (standard ou BAD ; le suffixe de 3 lettres MAJUSCULES est vérifié avant l'envoi, le format standard
+n'envoie aucun suffixe ; le refus du serveur « a déjà des demandes » s'affiche). Sans le droit, aucune action n'est proposée.
+Tests : `Accords.test.tsx` (18) ; 9 mutations tuées. 222 tests, typage, lint passent.
+**NON LIVRÉ (reste de l'écran E4) :** création d'un accord, d'une catégorie et d'un avenant. Limites : pas de pagination ; les
+bailleurs ne sont pas listés à part (leur code figure sur chaque accord).
+
+### Réalisation — Lot 5, écran E8 : taux de change
+Route `/taux-de-change` (menu « Taux de change »). Liste des taux les plus récents d'abord, filtrable par devise et par type
+(les filtres partent au serveur ; la liste est bornée à 200 lignes par `?limite=`, et l'écran le dit quand la limite est
+atteinte) ; formulaire d'enregistrement (devise du catalogue sans la monnaie de tenue, date, type, taux, source facultative)
+visible seulement avec le droit de paramétrer sur un projet. Le taux est une CHAÎNE décimale : la virgule est acceptée et
+convertie en point, mais ni `0`, ni négatif, ni exposant (`1e3`), ni deux points ne partent ; la précision n'est jamais passée
+par un `number` (`0.1000000000000000001` part intact) ; la date est exigée avant l'envoi ; le refus du serveur (taux déjà
+enregistré ce jour) s'affiche tel quel sans effacer la saisie ; un double clic n'envoie qu'un taux.
+Tests : `TauxDeChange.test.tsx` (20) ; 8 mutations tuées (nombre, zéro, exposant, virgule, date, double clic, droit,
+message serveur). 223 tests, typage, lint et build passent.
+**Limites :** pas de modification ni de suppression d'un taux (le serveur n'en offre pas : on enregistre un autre taux) ;
+pas de saisie en lot ; pas d'import de fichier ; 200 taux affichés au plus.
+
 ### Réalisation — Lot 5, écran E1a : profils de décaissement (consultation et décisions)
 Route `/profils-decaissement?projet=&accord=&profil=` (menu « Profils de décaissement »). Choix du projet puis de
 l'accord ; liste des versions (état en toutes lettres, régime, effet) ; détail d'une version : dates clés, méthodes (et

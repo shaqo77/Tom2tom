@@ -5,7 +5,9 @@ import { Accueil } from "../features/accueil/Accueil";
 import { Conception } from "../features/accueil/Conception";
 import { ChangerMotDePasse } from "../features/connexion/ChangerMotDePasse";
 import { Cles } from "../features/cles/Cles";
+import { Accords } from "../features/accords/Accords";
 import { Connexion } from "../features/connexion/Connexion";
+import { TauxDeChange } from "../features/taux/TauxDeChange";
 import { ProfilsDecaissement } from "../features/profils/ProfilsDecaissement";
 import { ReglagesDevises } from "../features/devises/ReglagesDevises";
 import { ProjetPage } from "../features/projets/ProjetPage";
@@ -112,6 +114,23 @@ const descente = createRoute({
   component: Descente,
 });
 
+const accords = createRoute({
+  getParentRoute: () => protege,
+  path: "/accords",
+  // (valeur invalide écrasée par `undefined` : le routeur fusionne la recherche brute avec ce validateur)
+  validateSearch: (recherche: Record<string, unknown>): { projet?: string | undefined; accord?: string | undefined } => ({
+    projet: texteNonVide(recherche.projet) ? recherche.projet : undefined,
+    accord: texteNonVide(recherche.accord) ? recherche.accord : undefined,
+  }),
+  component: Accords,
+});
+
+const tauxDeChange = createRoute({
+  getParentRoute: () => protege,
+  path: "/taux-de-change",
+  component: TauxDeChange,
+});
+
 const profilsDecaissement = createRoute({
   getParentRoute: () => protege,
   path: "/profils-decaissement",
@@ -158,7 +177,7 @@ const conception = createRoute({ getParentRoute: () => racine, path: "/conceptio
 
 export const arbre = racine.addChildren([
   connexion,
-  protege.addChildren([accueil, tableau, descente, reglagesDevises, clesCofinancement, profilsDecaissement, motDePasse, projet]),
+  protege.addChildren([accueil, tableau, descente, reglagesDevises, tauxDeChange, profilsDecaissement, accords, clesCofinancement, motDePasse, projet]),
   ...(import.meta.env.DEV ? [conception] : []),
 ]);
 
