@@ -1,0 +1,32 @@
+.documents__defilement {
+  overflow-x: auto;
+}
+.documents__tableau {
+  inline-size: 100%;
+  border-collapse: collapse;
+}
+.documents__tableau th,
+.documents__tableau td {
+  padding: var(--esp-2) var(--esp-3);
+  text-align: start;
+  vertical-align: top;
+  border-block-end: 1px solid var(--bordure);
+}
+.documents__actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--esp-2);
+}
+.documents__lien {
+  color: var(--accent);
+  text-decoration: underline;
+}
+.documents__formulaire {
+  display: grid;
+  gap: var(--esp-4);
+  max-inline-size: 32rem;
+}
+.documents__progression {
+  inline-size: 100%;
+}

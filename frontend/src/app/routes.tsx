@@ -5,6 +5,7 @@ import { Accueil } from "../features/accueil/Accueil";
 import { Conception } from "../features/accueil/Conception";
 import { ChangerMotDePasse } from "../features/connexion/ChangerMotDePasse";
 import { Connexion } from "../features/connexion/Connexion";
+import { Documents } from "../features/documents/Documents";
 import { ProfilsDecaissement } from "../features/profils/ProfilsDecaissement";
 import { ReglagesDevises } from "../features/devises/ReglagesDevises";
 import { ProjetPage } from "../features/projets/ProjetPage";
@@ -125,6 +126,16 @@ const profilsDecaissement = createRoute({
   component: ProfilsDecaissement,
 });
 
+const documents = createRoute({
+  getParentRoute: () => protege,
+  path: "/documents",
+  // (valeur invalide écrasée par `undefined` : le routeur fusionne la recherche brute avec ce validateur)
+  validateSearch: (recherche: Record<string, unknown>): { projet?: string | undefined } => ({
+    projet: texteNonVide(recherche.projet) ? recherche.projet : undefined,
+  }),
+  component: Documents,
+});
+
 const motDePasse = createRoute({
   getParentRoute: () => protege,
   path: "/mot-de-passe",
@@ -146,7 +157,7 @@ const conception = createRoute({ getParentRoute: () => racine, path: "/conceptio
 
 export const arbre = racine.addChildren([
   connexion,
-  protege.addChildren([accueil, tableau, descente, reglagesDevises, profilsDecaissement, motDePasse, projet]),
+  protege.addChildren([accueil, tableau, descente, reglagesDevises, documents, profilsDecaissement, motDePasse, projet]),
   ...(import.meta.env.DEV ? [conception] : []),
 ]);
 

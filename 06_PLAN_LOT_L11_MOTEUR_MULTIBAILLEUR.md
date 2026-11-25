@@ -603,6 +603,20 @@ jalons, méthodes, règles, comptes, taux validé avant envoi), « Créer une no
 versions et le pré-remplissage depuis le gabarit BAD. Limites : pas de pagination ni de recherche dans la liste ; les
 droits affichés suivent `valider` (valider, rejeter) et `parametrer` (activer, supprimer) comme le serveur.
 
+### Réalisation — Lot 5, écran E6 : documents
+Route `/documents?projet=` (menu « Documents »). Liste des documents (genre, version, émission, empreinte SHA-256 abrégée, état courant
+ou remplacé) ; **téléchargement** : le lien ouvre l'adresse `…/contenu/` TELLE QUELLE (le serveur impose `attachment`, vérifie l'empreinte et
+journalise : l'écran n'affiche jamais un document déposé) ; **vérification d'intégrité** à la demande (fichier intact en vert, altéré ou
+disparu en alerte avec la raison du serveur) ; **dépôt** multipart (genre, titre, version, date d'émission, fichier) et **remplacement**
+(nouveau fichier ; le message nomme les exigences à revérifier que renvoie le serveur). Un fichier de plus de 50 Mio est refusé AVANT l'envoi
+(exactement 50 Mio passe) ; titre et fichier sont exigés ; le refus du serveur s'affiche sans effacer la saisie. Sans le droit de paramétrer :
+ni dépôt ni remplacement, mais consultation, téléchargement et vérification restent. Le client d'API sait désormais envoyer un `FormData`
+(`formulaire`), sans fixer le `Content-Type` ; le faux serveur lit un envoi multipart (fichier réduit à `{nom, taille, type}`).
+Tests : `Documents.test.tsx` (20), 3 tests de client, 1 de faux serveur ; 11 mutations tuées. 
+**NON LIVRÉ :** la **barre de progression en pourcentage** du plan : `fetch` ne rapporte pas l'avancement d'un envoi ; l'écran montre une
+progression indéterminée (`<progress>` sans valeur) pendant l'envoi. Pas de glisser-déposer (un champ fichier), pas de dépôt multiple,
+pas de pagination, pas d'aperçu.
+
 ---
 
 *Retour : [guide de démarrage](03_GUIDE_DEMARRAGE.md) · [lots L5 à L10](05_PLAN_LOTS_L5_A_L10.md)*
