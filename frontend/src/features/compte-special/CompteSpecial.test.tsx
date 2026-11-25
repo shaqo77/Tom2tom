@@ -1,4 +1,4 @@
-import { fireEvent, screen, within } from "@testing-library/react";
+import { fireEvent, screen, within, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 
 import { violations } from "../../test/accessibilite";
@@ -36,6 +36,11 @@ const JUSTIFS: JustificationBanque[] = [
   { id: "j2", demande: "0002ADB", montant: "100000.2000", date_soumission: "2026-03-25", annulee: true, motif_annulation: "Montant erroné" },
 ];
 
+const DEMANDES = [
+  { id: "d1", numero: "0001ADB", type: "reimbursement", statut: "acceptee", accord: "DON-1", periode_debut: "2026-02-01", periode_fin: "2026-02-28", montant_total: "300.0000" },
+  { id: "d2", numero: "0002ADB", type: "reimbursement", statut: "soumise", accord: "DON-1", periode_debut: "2026-03-01", periode_fin: "2026-03-31", montant_total: "150.5000" },
+];
+
 async function ouvrir(
   { operations = ["consulter", "saisir", "publier"], chemin = "/compte-special?projet=id-P1&compte=c1&date=2026-03-31", situation = SITUATION, justifs = JUSTIFS, retard }: { operations?: Parameters<typeof projet>[1]; chemin?: string; situation?: Situation; justifs?: JustificationBanque[]; retard?: Promise<void> } = {},
 ) {
@@ -45,6 +50,7 @@ async function ouvrir(
     { motif: /^\/projets\/id-P1\/comptes-bancaires\/$/, reponse: () => COMPTES },
     { motif: /^\/comptes\/c1\/situation-compte-special\/$/, reponse: async () => { if (retard) await retard; return situation; } },
     { motif: /^\/comptes\/c1\/justifications-banque\/$/, reponse: () => etat.justifs },
+    { motif: /^\/projets\/id-P1\/demandes-retrait\/$/, reponse: () => DEMANDES },
   );
   return { m, s: m.serveur as FauxServeur, etat };
 }
@@ -209,5 +215,65 @@ describe("compte spécial : publier le rapport", () => {
     s.routes.push({ methode: "POST", motif: /^\/comptes\/c1\/rapport-compte-special\/$/, reponse: () => reponseFausse(422, { code: "REGLE_INVALIDE", message: "La situation du compte spécial est incomplète" }) });
     await userEvent.click(screen.getByRole("button", { name: "Publier le rapport" }));
     expect(await screen.findByRole("alert")).toHaveTextContent("La situation du compte spécial est incomplète");
+  });
+});
+
+describe("compte spécial : justifier une demande", () => {
+  const poster = (s: FauxServeur) => s.appels.filter((a) => a.methode === "POST" && a.url.endsWith("/justifications-banque/"));
+
+  it("choisit une demande dans la liste du projet et envoie un corps exact, montant en chaîne canonique", async () => {
+    const { s } = await ouvrir();
+    s.routes.push({ methode: "POST", motif: /^\/comptes\/c1\/justifications-banque\/$/, reponse: () => JUSTIFS[0] });
+    await screen.findByRole("option", { name: /0002ADB/ });
+    await userEvent.selectOptions(screen.getByLabelText("Demande de retrait"), "d2");
+    await userEvent.type(screen.getByLabelText("Montant justifié (facultatif)"), "100,25");
+    await userEvent.type(screen.getByLabelText("Date de soumission (facultatif)"), "2026-03-20");
+    await userEvent.click(screen.getByRole("button", { name: "Justifier la demande" }));
+    await waitFor(() => expect(poster(s)).toHaveLength(1));
+    expect(poster(s)[0]?.corps).toEqual({ demande: "d2", montant: "100.25", date_soumission: "2026-03-20" });
+    expect(await screen.findByText("Justification enregistrée.")).toBeInTheDocument();
+  });
+
+  it("les demandes sont libellées avec leur numéro, leur état et leur montant tel que rendu", async () => {
+    await ouvrir();
+    expect(await screen.findByRole("option", { name: "0001ADB · Acceptée · 300.0000" })).toBeInTheDocument();
+    expect(screen.getByRole("option", { name: "0002ADB · Soumise · 150.5000" })).toBeInTheDocument();
+  });
+
+  it("refuse l'envoi sans demande, ou avec un montant négatif, sans rien envoyer", async () => {
+    const { s } = await ouvrir();
+    await userEvent.click(await screen.findByRole("button", { name: "Justifier la demande" }));
+    expect(await screen.findByText("Choisissez la demande à justifier.")).toBeInTheDocument();
+    await screen.findByRole("option", { name: /0001ADB/ });
+    await userEvent.selectOptions(screen.getByLabelText("Demande de retrait"), "d1");
+    await userEvent.type(screen.getByLabelText("Montant justifié (facultatif)"), "-5");
+    await userEvent.click(screen.getByRole("button", { name: "Justifier la demande" }));
+    expect(await screen.findByText(/Le montant est illisible/)).toBeInTheDocument();
+    expect(poster(s)).toHaveLength(0);
+  });
+
+  it("affiche tel quel le refus du serveur", async () => {
+    const { s } = await ouvrir();
+    s.routes.push({ methode: "POST", motif: /^\/comptes\/c1\/justifications-banque\/$/, reponse: () => reponseFausse(422, { code: "REGLE_INVALIDE", message: "Ce montant dépasse le solde de la demande" }) });
+    await screen.findByRole("option", { name: /0001ADB/ });
+    await userEvent.selectOptions(screen.getByLabelText("Demande de retrait"), "d1");
+    await userEvent.click(screen.getByRole("button", { name: "Justifier la demande" }));
+    expect(await screen.findByText("Ce montant dépasse le solde de la demande")).toBeInTheDocument();
+  });
+
+  it("un double clic n'envoie qu'une justification", async () => {
+    const { s } = await ouvrir();
+    s.routes.push({ methode: "POST", motif: /^\/comptes\/c1\/justifications-banque\/$/, reponse: async () => { await new Promise((r) => setTimeout(r, 50)); return JUSTIFS[0]; } });
+    await screen.findByRole("option", { name: /0001ADB/ });
+    await userEvent.selectOptions(screen.getByLabelText("Demande de retrait"), "d1");
+    await userEvent.dblClick(screen.getByRole("button", { name: "Justifier la demande" }));
+    await waitFor(() => expect(poster(s).length).toBeGreaterThan(0));
+    expect(poster(s)).toHaveLength(1);
+  });
+
+  it("sans le droit de saisir, aucun formulaire de justification", async () => {
+    await ouvrir({ operations: ["consulter", "publier"] });
+    await screen.findByRole("table", { name: "Justifications à la Banque" });
+    expect(screen.queryByRole("button", { name: "Justifier la demande" })).not.toBeInTheDocument();
   });
 });
