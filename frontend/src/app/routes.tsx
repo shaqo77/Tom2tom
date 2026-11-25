@@ -4,9 +4,11 @@ import { createRootRouteWithContext, createRoute, createRouter, redirect } from 
 import { Accueil } from "../features/accueil/Accueil";
 import { Conception } from "../features/accueil/Conception";
 import { ChangerMotDePasse } from "../features/connexion/ChangerMotDePasse";
+import { Cles } from "../features/cles/Cles";
 import { Accords } from "../features/accords/Accords";
 import { Connexion } from "../features/connexion/Connexion";
 import { Controles } from "../features/controles/Controles";
+import { Documents } from "../features/documents/Documents";
 import { TauxDeChange } from "../features/taux/TauxDeChange";
 import { ProfilsDecaissement } from "../features/profils/ProfilsDecaissement";
 import { ReglagesDevises } from "../features/devises/ReglagesDevises";
@@ -156,6 +158,27 @@ const controles = createRoute({
   component: Controles,
 });
 
+const documents = createRoute({
+  getParentRoute: () => protege,
+  path: "/documents",
+  // (valeur invalide écrasée par `undefined` : le routeur fusionne la recherche brute avec ce validateur)
+  validateSearch: (recherche: Record<string, unknown>): { projet?: string | undefined } => ({
+    projet: texteNonVide(recherche.projet) ? recherche.projet : undefined,
+  }),
+  component: Documents,
+});
+
+const clesCofinancement = createRoute({
+  getParentRoute: () => protege,
+  path: "/cles-cofinancement",
+  // (valeur invalide écrasée par `undefined` : le routeur fusionne la recherche brute avec ce validateur)
+  validateSearch: (recherche: Record<string, unknown>): { projet?: string | undefined; cle?: string | undefined } => ({
+    projet: texteNonVide(recherche.projet) ? recherche.projet : undefined,
+    cle: texteNonVide(recherche.cle) ? recherche.cle : undefined,
+  }),
+  component: Cles,
+});
+
 const motDePasse = createRoute({
   getParentRoute: () => protege,
   path: "/mot-de-passe",
@@ -177,7 +200,7 @@ const conception = createRoute({ getParentRoute: () => racine, path: "/conceptio
 
 export const arbre = racine.addChildren([
   connexion,
-  protege.addChildren([accueil, tableau, descente, reglagesDevises, controles, tauxDeChange, profilsDecaissement, accords, motDePasse, projet]),
+  protege.addChildren([accueil, tableau, descente, reglagesDevises, tauxDeChange, profilsDecaissement, accords, clesCofinancement, documents, controles, motDePasse, projet]),
   ...(import.meta.env.DEV ? [conception] : []),
 ]);
 
