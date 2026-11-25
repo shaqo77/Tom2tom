@@ -598,6 +598,35 @@ Tests : `Accords.test.tsx` (18) ; 9 mutations tuées. 222 tests, typage, lint pa
 **NON LIVRÉ (reste de l'écran E4) :** création d'un accord, d'une catégorie et d'un avenant. Limites : pas de pagination ; les
 bailleurs ne sont pas listés à part (leur code figure sur chaque accord).
 
+### Réalisation — Lot 5, écran E8 : taux de change
+Route `/taux-de-change` (menu « Taux de change »). Liste des taux les plus récents d'abord, filtrable par devise et par type
+(les filtres partent au serveur ; la liste est bornée à 200 lignes par `?limite=`, et l'écran le dit quand la limite est
+atteinte) ; formulaire d'enregistrement (devise du catalogue sans la monnaie de tenue, date, type, taux, source facultative)
+visible seulement avec le droit de paramétrer sur un projet. Le taux est une CHAÎNE décimale : la virgule est acceptée et
+convertie en point, mais ni `0`, ni négatif, ni exposant (`1e3`), ni deux points ne partent ; la précision n'est jamais passée
+par un `number` (`0.1000000000000000001` part intact) ; la date est exigée avant l'envoi ; le refus du serveur (taux déjà
+enregistré ce jour) s'affiche tel quel sans effacer la saisie ; un double clic n'envoie qu'un taux.
+Tests : `TauxDeChange.test.tsx` (20) ; 8 mutations tuées (nombre, zéro, exposant, virgule, date, double clic, droit,
+message serveur). 223 tests, typage, lint et build passent.
+**Limites :** pas de modification ni de suppression d'un taux (le serveur n'en offre pas : on enregistre un autre taux) ;
+pas de saisie en lot ; pas d'import de fichier ; 200 taux affichés au plus.
+
+### Réalisation — Lot 5, écran E1a : profils de décaissement (consultation et décisions)
+Route `/profils-decaissement?projet=&accord=&profil=` (menu « Profils de décaissement »). Choix du projet puis de
+l'accord ; liste des versions (état en toutes lettres, régime, effet) ; détail d'une version : dates clés, méthodes (et
+pièces exigées), règles par catégorie (taux et allocations en CHAÎNES, jamais en `number`), comptes désignés, et pour un
+brouillon l'encadré de complétude (points bloquants et avertissements, message du serveur tel quel). Actions : Valider
+(désactivé tant que le brouillon est incomplet, le serveur restant l'autorité et son refus affiché), Activer, Rejeter
+(motif obligatoire avant tout envoi), Supprimer le brouillon (confirmation en deux temps). Sans le droit, aucune action
+n'est proposée et l'écran le dit. Un double clic n'envoie qu'une demande. Le faux serveur sait répondre aux écritures
+(tâche 9.1) et peut retarder une réponse.
+Tests : `ProfilsDecaissement.test.tsx` (15) ; 7 mutations tuées (validation d'un incomplet, double clic, motif, confirmation,
+message serveur masqué, droits, taux converti en nombre). Les 219 tests, le typage, le lint et la construction passent.
+**NON LIVRÉ dans cette tranche (reste de l'écran E1) :** le formulaire de création et d'édition d'un brouillon (régime,
+jalons, méthodes, règles, comptes, taux validé avant envoi), « Créer une nouvelle version », la comparaison de deux
+versions et le pré-remplissage depuis le gabarit BAD. Limites : pas de pagination ni de recherche dans la liste ; les
+droits affichés suivent `valider` (valider, rejeter) et `parametrer` (activer, supprimer) comme le serveur.
+
 ---
 
 *Retour : [guide de démarrage](03_GUIDE_DEMARRAGE.md) · [lots L5 à L10](05_PLAN_LOTS_L5_A_L10.md)*
