@@ -123,3 +123,33 @@ describe("profils de décaissement : formulaire", () => {
     expect(await violations(document.body)).toEqual([]);
   });
 });
+
+describe("profils de décaissement : nouvelle version", () => {
+  const ACTIF = { ...BROUILLON, id: "p1", version: 1, status: "active" };
+
+  it("un profil actif propose une nouvelle version, préremplie sauf la date d'effet, créée par un POST", async () => {
+    const s = await ouvrir("/profils-decaissement?projet=id-P1&accord=a1&profil=p1", undefined, (sv) =>
+      sv.routes.push(
+        { motif: /profils-decaissement\/p1\/$/, reponse: () => ACTIF },
+        { motif: /profils-decaissement\/$/, methode: "POST", reponse: () => ({ ...BROUILLON, id: "p3", version: 2 }) },
+      ),
+    );
+    await userEvent.click(await screen.findByRole("button", { name: "Nouvelle version à partir de celle-ci" }));
+    expect(await screen.findByLabelText("Taux de financement (SERVICES)")).toHaveValue("0.8500");
+    expect(screen.getByLabelText("Date d'effet")).toHaveValue("");
+    await userEvent.click(screen.getByRole("button", { name: "Créer le brouillon" }));
+    expect(await screen.findByText("Choisissez la date d'effet du profil.")).toBeInTheDocument();
+    expect(ecritures(s)).toHaveLength(0);
+    await userEvent.type(screen.getByLabelText("Date d'effet"), "2026-06-01");
+    await userEvent.click(screen.getByRole("button", { name: "Créer le brouillon" }));
+    await waitFor(() => expect(ecritures(s)).toHaveLength(1));
+    expect(ecritures(s)[0]?.methode).toBe("POST");
+    expect((ecritures(s)[0]?.corps as { valid_from: string }).valid_from).toBe("2026-06-01");
+  });
+
+  it("sans droit de paramétrage, pas de bouton de nouvelle version", async () => {
+    await ouvrir("/profils-decaissement?projet=id-P1&accord=a1&profil=p1", ["consulter"], (sv) => sv.routes.push({ motif: /profils-decaissement\/p1\/$/, reponse: () => ACTIF }));
+    await screen.findByRole("heading", { name: /Version 1/ });
+    expect(screen.queryByRole("button", { name: "Nouvelle version à partir de celle-ci" })).not.toBeInTheDocument();
+  });
+});
