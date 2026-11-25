@@ -16,6 +16,7 @@ import { Pastille } from "../../shared/ui/Pastille";
 import { Selecteur } from "../../shared/ui/Selecteur";
 import { libelleProjet } from "../projets/libelle";
 import { changerStatut, lireAccord, lireAccords, reglerNumerotation } from "./api";
+import { FormulaireAccord, FormulaireCategorie } from "./FormulairesAccord";
 import type { AccordDetail, FormatNumero, StatutAccord } from "./types";
 import "./accords.css";
 
@@ -48,6 +49,9 @@ export function Accords() {
   const projet = projetId ? projetParId(moi, projetId) : undefined;
   const aller = (search: { projet?: string; accord?: string }) => void navigate({ to: "/accords", search, replace: true });
   const liste = useQuery({ queryKey: ["accords", projetId], queryFn: () => lireAccords(projetId!), enabled: Boolean(projetId) });
+  const queryClient = useQueryClient();
+  const [creation, definirCreation] = useState(false);
+  const [cree, definirCree] = useState<string | null>(null);
 
   return (
     <>
@@ -66,6 +70,25 @@ export function Accords() {
           onChange={(v) => aller(v ? { projet: v } : {})}
         />
       </Carte>
+
+      {projetId && peut(projet, "parametrer") && !creation && (
+        <div className="accords__actions">
+          <Bouton onClick={() => { definirCree(null); definirCreation(true); }}>{t("accords.form.nouveau")}</Bouton>
+        </div>
+      )}
+      {cree && <Message variante="succes">{t("accords.form.accord_cree", { numero: cree })}</Message>}
+      {projetId && creation && (
+        <FormulaireAccord
+          projetId={projetId}
+          surAnnulation={() => definirCreation(false)}
+          surTermine={(a) => {
+            definirCreation(false);
+            definirCree(a.numero);
+            void queryClient.invalidateQueries({ queryKey: ["accords", projetId] });
+            aller({ projet: projetId, accord: a.id });
+          }}
+        />
+      )}
 
       {projetId && (
         <Carte titre={t("accords.liste")}>
@@ -121,6 +144,7 @@ function DetailAccord({ projetId, accordId, peutParametrer }: { projetId: string
   const { t, i18n } = useTranslation();
   const queryClient = useQueryClient();
   const cle = ["accord", projetId, accordId];
+  const [ajout, definirAjout] = useState(false);
   const detail = useQuery({ queryKey: cle, queryFn: () => lireAccord(projetId, accordId) });
   const rafraichir = () => {
     void queryClient.invalidateQueries({ queryKey: cle });
@@ -179,6 +203,23 @@ function DetailAccord({ projetId, accordId, peutParametrer }: { projetId: string
           </table>
         </div>
       )}
+
+      {peutParametrer && (ajout ? (
+        <FormulaireCategorie
+          projetId={projetId}
+          accordId={accordId}
+          existantes={a.categories}
+          surAnnulation={() => definirAjout(false)}
+          surTermine={() => {
+            definirAjout(false);
+            rafraichir();
+          }}
+        />
+      ) : (
+        <Bouton variante="secondaire" onClick={() => definirAjout(true)}>
+          {t("accords.form.ajouter_categorie")}
+        </Bouton>
+      ))}
 
       <h3>{t("accords.avenants")}</h3>
       {a.avenants.length === 0 ? (

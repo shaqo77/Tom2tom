@@ -717,6 +717,18 @@ Tests : `Evaluations.test.tsx` (35) ; 14 mutations tuées (dont le double clic, 
 **NON LIVRÉ :** le dossier de conformité d'un objet (`dossier-conformite-objet`) et la liste « en attente » d'un objet (`controles-en-attente`) : l'API existe, pas leur
 écran ; pas de pagination du journal au-delà des 200 lignes du serveur ; pas de filtre par date.
 
+### Lot 5 · E4b — Réalisation : création d'un accord et ajout d'une catégorie
+
+Sur `/accords` (droit `parametrer`) : « Nouvel accord » (bailleur choisi dans la liste, numéro, nature, devise, montant
+initial, quatre dates) crée un accord **en brouillon** ; « Ajouter une catégorie » (code, libellé fr/en, parent racine,
+plafond, devise) l'ajoute à l'accord ouvert. Les montants sont lus selon la langue (`lireSaisie` : « 1 250 000,50 » → « 1250000.50 »,
+un séparateur ambigu est refusé), jamais en `Number` ; un montant négatif est refusé localement (défaut trouvé par les tests).
+Le serveur reste l'autorité (numéro déjà pris, devise inconnue : son message s'affiche tel quel).
+Mutations tuées : devise non mise en majuscules, montant négatif accepté, bouton sans droit, double envoi (garde et bouton
+désactivé retirés ensemble ; le garde seul est redondant avec le bouton désactivé).
+**Limites** : pas d'avenant (il exige de choisir un document de référence : liste des documents à exposer d'abord), pas de
+création de bailleur, la devise est saisie en trois lettres (le serveur vérifie qu'elle existe), pas d'édition d'un accord existant.
+
 ### Lot 5 · E1c — Réalisation : nouvelle version d'un profil
 
 « Nouvelle version à partir de celle-ci » (droit `parametrer`, toute version non brouillon) ouvre le formulaire d'E1b
