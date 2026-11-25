@@ -157,3 +157,35 @@ def test_une_ecriture_d_un_autre_projet_est_introuvable(cles):
 
     r = appeler(profils["amina"], "get", _chemin(projet, f"{uuid.uuid4()}/"))
     assert r.status_code == 404 and set(r.json()) == {"code", "message"}
+
+
+def test_une_ligne_a_cle_recoit_la_categorie_de_chaque_accord_par_son_code(cles):
+    """La catégorie se désigne par son CODE : le serveur choisit, pour chaque accord de la clé, la
+    catégorie de cet accord (recette multibailleur)."""
+    from niveau1_socle.financements.services import creer_categorie
+
+    _, projet, profils, accords, cle = cles
+    for accord in accords.values():
+        creer_categorie(
+            utilisateur=profils["dora"], accord=accord, code="SERV", label={"fr": "Services"}
+        )
+    _version(profils, cle, accords, {"IDA": 50, "GOV": 50})
+    corps = _corps("200")
+    corps["lignes"][0]["categorie"] = "SERV"
+    r = appeler(profils["amina"], "post", _chemin(projet), corps)
+    assert r.status_code == 201, r.content
+    charges = [x for x in r.json()["lignes"] if x["compte"] == "6011"]
+    assert {x["accord"]: x["categorie"] for x in charges} == {
+        accords["IDA"].numero: "SERV",
+        accords["GOV"].numero: "SERV",
+    }
+
+
+def test_une_categorie_inconnue_d_un_accord_est_un_422_lisible(cles):
+    _, projet, profils, accords, cle = cles
+    _version(profils, cle, accords, {"IDA": 50, "GOV": 50})
+    corps = _corps("200")
+    corps["lignes"][0]["categorie"] = "NULLE-PART"
+    r = appeler(profils["amina"], "post", _chemin(projet), corps)
+    assert r.status_code == 422 and set(r.json()) == {"code", "message"}
+    assert "NULLE-PART" in r.json()["message"]

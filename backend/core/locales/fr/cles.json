@@ -3,6 +3,8 @@
   "cles.accord_appartient_projet_cle": "L'accord {numero} n'appartient pas au projet de la clé",
   "cles.accord_inconnu": "Aucun accord ne porte le numéro « {numero} » dans ce projet",
   "cles.aucune_version_en_vigueur": "La clé « {code} » n'a aucune version en vigueur au {jour}",
+  "cles.categorie_absente_de_l_accord": "L'accord {accord} n'a pas de catégorie « {code} » : la saisie est refusée en entier.",
+  "cles.categorie_sans_accord": "La ligne du compte {compte} demande la catégorie « {code} » mais ne désigne ni accord ni clé : une catégorie appartient à un accord.",
   "cles.cle_inconnue": "La clé de cofinancement « {code} » n'existe pas pour ce projet",
   "cles.cle_moins_part": "Une clé a au moins une part",
   "cles.code_deja_utilise": "Une clé « {code} » existe déjà pour ce projet",

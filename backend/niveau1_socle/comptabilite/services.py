@@ -23,7 +23,7 @@ from core.audit import journaliser
 from core.i18n import Liste, msg
 from niveau1_socle.exercices.models import Periode
 from niveau1_socle.exercices.services import TransitionInterdite
-from niveau1_socle.financements.cles import developper_cles
+from niveau1_socle.financements.cles import developper_cles, resoudre_categories
 from niveau1_socle.financements.models import Accord
 from niveau1_socle.financements.services import exiger_accord_actif
 from niveau1_socle.habilitations.permissions import est_habilite
@@ -185,6 +185,8 @@ def saisir_ecriture(
     lignes = developper_cles(
         lignes, project_id=project_id, date_comptable=date_comptable, devise=devise
     )
+    # `"categorie": <code>` devient la catégorie DE CHAQUE accord qui porte ce code (L6 : recette).
+    lignes = resoudre_categories(lignes)
 
     # Un accord qui n'est pas actif (suspendu, clos…) ne reçoit aucune nouvelle imputation (L4-T04).
     for agreement_id in {ligne["agreement_id"] for ligne in lignes if ligne.get("agreement_id")}:

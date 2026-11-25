@@ -65,3 +65,13 @@ def test_une_assertion_est_compilee_avec_ses_soldes_dans_la_meme_requete():
     assert produit.prefixes_balance == ("6",)
     assert produit.index_balances[("6", "YTD")] == 1
     assert produit.sql.count("COALESCE(SUM") == 2
+
+
+def test_un_parametre_de_selection_manquant_est_un_refus_metier_lisible_pas_une_erreur_interne():
+    """Avant : `msg(..., cle=cle)` entrait en collision avec le premier argument de `msg` et levait
+    un `TypeError` (un 500) au lieu de nommer le paramètre manquant. Trouvé par la recette."""
+    modele = _modele(
+        select={"accounts": [["6000", "6299"]], "filters": {"agreement": "$param.agreement"}}
+    )
+    with pytest.raises(ModeleEtatInvalide, match="agreement"):
+        compiler(modele, {}, PARAMS)
