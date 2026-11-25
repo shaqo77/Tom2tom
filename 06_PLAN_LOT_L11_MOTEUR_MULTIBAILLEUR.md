@@ -627,6 +627,22 @@ jalons, méthodes, règles, comptes, taux validé avant envoi), « Créer une no
 versions et le pré-remplissage depuis le gabarit BAD. Limites : pas de pagination ni de recherche dans la liste ; les
 droits affichés suivent `valider` (valider, rejeter) et `parametrer` (activer, supprimer) comme le serveur.
 
+### Réalisation — Lot 5, écran E5 : clés de cofinancement
+Route `/cles-cofinancement?projet=&cle=` (menu « Clés de cofinancement »). Liste des clés d'un projet avec les parts de leur
+version en vigueur (en pourcentage exact : 0.07 s'affiche « 7 % », pas 7.000000000000001) ; détail d'une clé : toutes ses versions
+(dates, parts, porteur de l'arrondi, motif) ; création d'une clé (code + au moins un libellé) ; création d'une version : choix
+des accords du projet, part en POURCENTAGE par accord, porteur de l'arrondi parmi les accords choisis, date d'effet, motif.
+**Somme = 100 % vérifiée à l'écran ET au serveur :** le total est calculé en décimaux exacts (`decimal.js`) et affiché en direct ;
+il doit être exactement 100 (99,99 et 100,01 sont refusés) ; 0,1 + 33,3 + 66,6 vaut bien 100 alors qu'il vaut 99,99999999999999 en
+flottant. Chaque part est une chaîne décimale strictement positive (virgule acceptée ; ni zéro, ni négatif, ni exposant). Le serveur
+reste l'autorité : il normalise les poids, refuse les accords clos ou d'un autre projet et une date d'effet qui ne suit pas la
+version en cours ; son message s'affiche tel quel sans effacer la saisie. Sans le droit de paramétrer, aucun formulaire.
+Tests : `Cles.test.tsx` (25) ; 12 mutations tuées (total, tolérance, flottant, part nulle, exposant, part invalide, date, accord,
+libellé, droit, message serveur, conversion en nombre). 241 tests, typage, lint passent.
+**Limites :** le serveur accepte n'importe quels poids positifs (l'écran impose 100 % : plus strict) ; pas de modification d'une
+clé existante (on crée une nouvelle version) ; pas de suppression ; la liste des accords proposés inclut ceux que le serveur
+refusera (clos, annulés) ; pas de pagination.
+
 ---
 
 *Retour : [guide de démarrage](03_GUIDE_DEMARRAGE.md) · [lots L5 à L10](05_PLAN_LOTS_L5_A_L10.md)*
