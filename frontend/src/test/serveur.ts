@@ -22,14 +22,34 @@ export interface FauxServeur {
   /** Quand défini, le serveur attend cette promesse avant de répondre au tableau de bord et à l'historique des devises. */
   retard: Promise<void> | null;
   /**
-   * Des routes GET ajoutées par un test (consolidation, descente…) : consultées avant les routes de base,
-   * seulement pour une personne connectée. Renvoie le corps JSON.
+   * Des routes ajoutées par un test (consolidation, descente, écrans d'administration…) : consultées avant
+   * les routes de base, seulement pour une personne connectée (sinon 401). `methode` vaut `GET` par défaut.
+   * La réponse est le corps JSON (statut 200) ou une `reponseFausse(statut, corps)` pour un statut précis.
+   * Une écriture sans jeton CSRF est refusée avant d'arriver ici, comme au vrai serveur.
    */
-  routes: { motif: RegExp; reponse: (trouve: RegExpExecArray, recherche: URLSearchParams) => unknown }[];
+  routes: RouteFausse[];
   /** Les réglages de devises posés (par niveau : `org` ou l'identifiant du projet), plus récent en dernier. */
   reglages: Record<string, ReglageFaux[]>;
   /** Ouvre directement une session (comme si la personne s'était déjà connectée). */
   ouvrirSession(identifiant: string): void;
+}
+
+/** Une réponse à statut précis : refus `{code, message}` (422, 403…) ou `204` sans corps. */
+export class ReponseFausse {
+  constructor(
+    readonly statut: number,
+    readonly corps?: unknown,
+  ) {}
+}
+
+export function reponseFausse(statut: number, corps?: unknown): ReponseFausse {
+  return new ReponseFausse(statut, corps);
+}
+
+export interface RouteFausse {
+  methode?: "GET" | "POST" | "PUT" | "PATCH" | "DELETE";
+  motif: RegExp;
+  reponse: (trouve: RegExpExecArray, recherche: URLSearchParams, corps: unknown) => unknown;
 }
 
 export interface ReglageFaux {
@@ -95,13 +115,20 @@ export function demarrerServeur(comptes: Compte[]): FauxServeur {
       if (methode !== "GET" && entetes.get("X-CSRFToken") !== "jeton-de-test") {
         return json({ code: "CSRF_INVALIDE", message: "La page a expiré" }, 403);
       }
-      if (methode === "GET" && serveur.routes.length > 0) {
+      if (serveur.routes.length > 0) {
         const [sansRecherche = "", recherche = ""] = chemin.split("?");
         for (const route of serveur.routes) {
+          if ((route.methode ?? "GET") !== methode) continue;
           const trouve = route.motif.exec(sansRecherche);
           if (!trouve) continue;
           if (!connecte) return json({ code: "NON_AUTHENTIFIE", message: "Connexion requise" }, 401);
-          return json(route.reponse(trouve, new URLSearchParams(recherche)));
+          const retour = route.reponse(trouve, new URLSearchParams(recherche), corps);
+          if (retour instanceof ReponseFausse) {
+            return retour.corps === undefined
+              ? new Response(null, { status: retour.statut })
+              : json(retour.corps, retour.statut);
+          }
+          return json(retour);
         }
       }
       if (chemin.startsWith("/tableau-de-bord/") && methode === "GET") {
