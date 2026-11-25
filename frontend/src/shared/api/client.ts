@@ -23,6 +23,8 @@ export class ErreurApi extends Error {
 export interface OptionsAppel {
   methode?: "GET" | "POST" | "PUT" | "PATCH" | "DELETE";
   corps?: unknown;
+  /** Un envoi multipart (dépôt d'un fichier) : le navigateur pose lui-même le `Content-Type` et sa frontière. */
+  formulaire?: FormData;
   signal?: AbortSignal;
   /** Interne : la requête a déjà été rejouée une fois avec un jeton CSRF frais. */
   rejouee?: boolean;
@@ -70,6 +72,9 @@ async function lireCorps(reponse: Response): Promise<unknown> {
 
 export async function appeler<T = unknown>(chemin: string, options: OptionsAppel = {}): Promise<T> {
   const methode = options.methode ?? "GET";
+  if (options.corps !== undefined && options.formulaire !== undefined) {
+    throw new Error("appeler : `corps` et `formulaire` s'excluent");
+  }
   const entetes = new Headers({ Accept: "application/json", "Accept-Language": langue });
   if (MODIFIE.has(methode)) entetes.set("X-CSRFToken", await assurerJeton());
   const init: RequestInit = { method: methode, headers: entetes, credentials: "same-origin" };
@@ -77,6 +82,7 @@ export async function appeler<T = unknown>(chemin: string, options: OptionsAppel
     entetes.set("Content-Type", "application/json");
     init.body = JSON.stringify(options.corps);
   }
+  if (options.formulaire !== undefined) init.body = options.formulaire; // pas de Content-Type : sinon la frontière se perd
   if (options.signal) init.signal = options.signal;
 
   let reponse: Response;
