@@ -763,6 +763,18 @@ ou close, contre-passation impossible) sont maintenant des **422 `{code, message
 15 tests. **Limites** : pas de catégorie ni de contrat ni de site sur une ligne, pas de contre-passation ni de modification d'un
 brouillon (on le recrée), pas de pièces jointes, pas d'écran (E9b).
 
+### Lot 5 · E7b — Réalisation : la liste des demandes de retrait et la justification d'une demande à la Banque
+
+Backend : `GET /projets/<id>/demandes-retrait/` (droit `consulter`, paginée, filtres `?statut=` et `?accord=<numéro>`, un statut inconnu est
+ignoré) rend numéro, accord, type, statut, période et montant total en chaîne. C'est la première API du module des décaissements, en lecture
+seule. Frontend : sur l'écran du compte spécial, « Justifier une demande à la Banque » (droit `saisir`) choisit la demande dans cette liste
+(« numéro · état · montant tel que rendu ») ; montant et date sont facultatifs, le montant part en chaîne canonique, nul/négatif/ambigu refusé
+avant l'envoi ; le refus du serveur s'affiche tel quel ; la liste des justifications et la situation sont rechargées.
+3 tests backend, 6 tests de composant et 3 de logique ; mutations tuées : filtres statut et accord, habilitation, montant négatif ou nul,
+demande obligatoire, droit de saisir, double envoi (garde et bouton retirés ensemble).
+**Limites** : la liste ne propose aucune action sur une demande (création, soumission, décision : pas d'écran de décaissement), elle n'expose
+ni les lignes de dépenses ni les pièces ; le choix n'exclut pas les demandes déjà justifiées ou non acceptées (le serveur tranche).
+
 ---
 
 *Retour : [guide de démarrage](03_GUIDE_DEMARRAGE.md) · [lots L5 à L10](05_PLAN_LOTS_L5_A_L10.md)*

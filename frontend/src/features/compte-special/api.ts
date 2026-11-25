@@ -1,5 +1,5 @@
 import { appeler } from "../../shared/api/client";
-import type { CompteBancaire, DemandePublication, JustificationBanque, RapportPublie, Situation } from "./types";
+import type { CompteBancaire, DemandePublication, DemandeRetrait, JustificationBanque, RapportPublie, Situation } from "./types";
 
 export const lireComptes = (projetId: string) => appeler<CompteBancaire[]>(`/projets/${projetId}/comptes-bancaires/`);
 
@@ -17,3 +17,8 @@ export const annulerJustification = (justificationId: string, motif: string) =>
 
 export const publierRapport = (compteId: string, corps: DemandePublication) =>
   appeler<RapportPublie>(`/comptes/${compteId}/rapport-compte-special/`, { methode: "POST", corps });
+
+export const lireDemandes = (projetId: string) => appeler<DemandeRetrait[]>(`/projets/${projetId}/demandes-retrait/`);
+
+export const justifierDemande = (compteId: string, corps: Record<string, unknown>) =>
+  appeler<JustificationBanque>(`/comptes/${compteId}/justifications-banque/`, { methode: "POST", corps });
