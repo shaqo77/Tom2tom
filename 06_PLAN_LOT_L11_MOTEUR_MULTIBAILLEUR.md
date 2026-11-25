@@ -627,6 +627,15 @@ jalons, méthodes, règles, comptes, taux validé avant envoi), « Créer une no
 versions et le pré-remplissage depuis le gabarit BAD. Limites : pas de pagination ni de recherche dans la liste ; les
 droits affichés suivent `valider` (valider, rejeter) et `parametrer` (activer, supprimer) comme le serveur.
 
+### Réalisation — Lot 5, prérequis de l'écran E7 : liste des comptes bancaires et forme des refus
+**`GET /api/v1/projets/<id>/comptes-bancaires/`** (droit `consulter`, triée par code, paginable) : identifiant, code, libellé, type,
+devise, numéro de l'accord, **numéro masqué** (le numéro complet ne sort jamais ; un test le prouve), actif. Sans elle, aucun écran ne
+pouvait choisir un compte : toutes les routes de trésorerie s'adressent à l'identifiant d'un compte.
+**Correction d'une incohérence découverte à cette occasion :** un refus de droit (403), un objet introuvable (404) et une session absente
+rendaient le `{"detail": …}` de DRF, que le frontend ne lit pas (il aurait affiché « Erreur du serveur (403) » au lieu du message). Ils rendent
+désormais `{code, message}` (`ACCES_REFUSE`, `INTROUVABLE`, `NON_AUTHENTIFIE`), avec un message du catalogue quand aucun texte n'est fourni
+(plus l'anglais de DRF). Tests : `test_api_comptes_bancaires_bd.py` (6) et `test_gestionnaire_integrite.py` (4 de plus).
+
 ### Réalisation — Lot 5, écran E6 : documents
 Route `/documents?projet=` (menu « Documents »). Liste des documents (genre, version, émission, empreinte SHA-256 abrégée, état courant
 ou remplacé) ; **téléchargement** : le lien ouvre l'adresse `…/contenu/` TELLE QUELLE (le serveur impose `attachment`, vérifie l'empreinte et
