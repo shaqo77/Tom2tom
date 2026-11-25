@@ -137,10 +137,11 @@ const profilsDecaissement = createRoute({
   // (valeur invalide écrasée par `undefined` : le routeur fusionne la recherche brute avec ce validateur)
   validateSearch: (
     recherche: Record<string, unknown>,
-  ): { projet?: string | undefined; accord?: string | undefined; profil?: string | undefined } => ({
+  ): { projet?: string | undefined; accord?: string | undefined; profil?: string | undefined; mode?: "creation" | "edition" | undefined } => ({
     projet: texteNonVide(recherche.projet) ? recherche.projet : undefined,
     accord: texteNonVide(recherche.accord) ? recherche.accord : undefined,
     profil: texteNonVide(recherche.profil) ? recherche.profil : undefined,
+    mode: recherche.mode === "creation" || recherche.mode === "edition" ? recherche.mode : undefined,
   }),
   component: ProfilsDecaissement,
 });

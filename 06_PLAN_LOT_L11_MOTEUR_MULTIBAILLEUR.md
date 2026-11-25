@@ -643,6 +643,16 @@ libellé, droit, message serveur, conversion en nombre). 241 tests, typage, lint
 clé existante (on crée une nouvelle version) ; pas de suppression ; la liste des accords proposés inclut ceux que le serveur
 refusera (clos, annulés) ; pas de pagination.
 
+### Lot 5 · E1b — Réalisation : formulaire de création et d'édition d'un profil de décaissement
+
+Écran `/profils-decaissement?mode=creation|edition` : généralités, quatre méthodes (pièces, seuils), règles par
+catégorie de l'accord (taux, allocation, assiette, éligibilité, maximum par contrat, revue, fin propre), comptes
+désignés. `corps.ts` valide localement (taux dans ]0 ; 1], pourcentages 0–100, une seule borne minimale) et rend les
+montants en chaînes (« 0,85 » → « 0.85 », jamais de `Number`). Le serveur reste l'autorité : son refus s'affiche tel quel.
+Boutons « Nouveau profil » et « Modifier » réservés au droit `parametrer`, brouillon seulement.
+**Limites** : pas de nouvelle version à partir d'un profil actif, ni de comparaison ni de gabarit BAD (E1c) ; un profil
+n'accepte que les catégories existantes de l'accord. Mutation vérifiée : retirer la borne haute du taux fait échouer 5 tests.
+
 ---
 
 *Retour : [guide de démarrage](03_GUIDE_DEMARRAGE.md) · [lots L5 à L10](05_PLAN_LOTS_L5_A_L10.md)*
