@@ -17,18 +17,18 @@ de la Banque (citations vérifiables, D1) ; les profils UE, FIDA, Fonds mondial,
 des **squelettes sourcés**, sans règle inventée : les remplir demande les documents des bailleurs. **L11 est en cours** (`06_PLAN_LOT_L11_MOTEUR_MULTIBAILLEUR.md`, issu d'un
 audit de 58 questions) : le branchement de l'existant (A1 à A6) est fait ; restent l'administration sans
 développeur (phase B), les rapports par bailleur, l'IA. Écarts connus, à ne pas supposer comblés : la
-répartition entre bailleurs se déclenche à la saisie (`"cle"` sur une ligne d'écriture, avec `"categorie": <code>` résolu accord par accord) ; l'API de saisie existe
-(`/api/v1/projets/<id>/ecritures/`, E9a) mais pas encore l'écran ; les contrôles de la bibliothèque s'exécutent à la **validation d'une écriture**
+répartition entre bailleurs se déclenche à la saisie (`"cle"` sur une ligne d'écriture, avec `"categorie": <code>` résolu accord par accord) ; l'API de saisie
+(`/api/v1/projets/<id>/ecritures/`, E9a) et son écran (E9b) existent ; les contrôles de la bibliothèque s'exécutent à la **validation d'une écriture**
 (codification, pièces, éligibilité), pas à la génération d'un rapport ; `accounting_basis` n'a qu'un
 effet (un projet en caisse ne crée pas d'engagement, aucune conversion caisse/engagement) ; les taux de
-change s'enregistrent par API (`/api/v1/taux/`) sans écran ; deux modèles d'état sont livrés (rapprochement du compte désigné, réconciliation BAD du compte spécial) ; aucune IA
+change s'enregistrent par API (`/api/v1/taux/`) et par un écran ; deux modèles d'état sont livrés (rapprochement du compte désigné, réconciliation BAD du compte spécial) ; aucune IA
 n'existe. Le code vit dans `core/`, `niveau1_socle/` (organisations, habilitations,
 exercices, référentiels, comptabilité, budget, financements, décaissements, avances, rapprochement,
 marchés, trésorerie), `niveau2_profils/` (bibliothèque de profils de bailleurs), `niveau3_config/` et
 `niveau4_reporting/` (moteur d'états, publication, contrôles, tableau de bord). L'API HTTP (`/api/v1/`,
 JSON strict, montants en chaînes, erreurs `{code, message}`) couvre les marchés, la trésorerie, le
 tableau de bord, les réglages de devises, les clés de cofinancement, les accords, les documents de
-référence, les profils de décaissement, les contrôles, les écritures et la liste des demandes de retrait ; elle n'a ni pagination ni jeton d'API.
+référence, les profils de décaissement, les contrôles, les écritures et la liste des demandes de retrait ; la pagination (`?limite=`, `?decalage=`) et le jeton d'API (`Bearer <organisation>.<secret>`) existent, mais seules certaines listes sont paginées.
 Chaque tâche a sa note « Réalisation » dans `04_PLAN_LOTS_L0_A_L4.md`, `05_PLAN_LOTS_L5_A_L10.md` ou
 `06_PLAN_LOT_L11_MOTEUR_MULTIBAILLEUR.md`, avec ses limites assumées : à lire avant de s'appuyer sur un comportement.
 
