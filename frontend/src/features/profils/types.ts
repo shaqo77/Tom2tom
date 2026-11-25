@@ -80,3 +80,11 @@ export interface ProfilDetail extends ProfilResume {
 
 /** Un appel de décision sur un profil (valider, activer, rejeter) : rend le profil à jour. */
 export type AppelDecision = () => Promise<ProfilDetail>;
+
+/** Un compte bancaire du projet (la liste ne rend que le numéro masqué). */
+export interface CompteListe {
+  id: string;
+  code: string;
+  type: string;
+  devise: string;
+}

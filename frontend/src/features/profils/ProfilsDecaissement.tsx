@@ -17,7 +17,8 @@ import { Pastille } from "../../shared/ui/Pastille";
 import { Selecteur } from "../../shared/ui/Selecteur";
 import { libelleProjet } from "../projets/libelle";
 import { activerProfil, lireAccords, lireProfil, lireProfils, rejeterProfil, supprimerBrouillon, validerProfil } from "./api";
-import type { AppelDecision, StatutProfil } from "./types";
+import { FormulaireProfil } from "./FormulaireProfil";
+import type { AppelDecision, ProfilDetail, StatutProfil } from "./types";
 import "./profils.css";
 
 const VARIANTE: Record<StatutProfil, "neutre" | "succes" | "accent" | "alerte" | "attention"> = {
@@ -41,13 +42,14 @@ function texteErreur(erreur: unknown, secours: string): string {
  */
 export function ProfilsDecaissement() {
   const { t, i18n } = useTranslation();
+  const queryClient = useQueryClient();
   const { data: moi } = useMoi();
-  const { projet: projetId, accord: accordId, profil: profilId } = useSearch({ from: "/protege/profils-decaissement" });
+  const { projet: projetId, accord: accordId, profil: profilId, mode } = useSearch({ from: "/protege/profils-decaissement" });
   const navigate = useNavigate();
   const [information, definirInformation] = useState<string | null>(null);
   const projet = projetId ? projetParId(moi, projetId) : undefined;
 
-  const aller = (search: { projet?: string; accord?: string; profil?: string }) =>
+  const aller = (search: { projet?: string; accord?: string; profil?: string; mode?: "creation" | "edition" }) =>
     void navigate({ to: "/profils-decaissement", search, replace: true });
 
   const accords = useQuery({ queryKey: ["accords", projetId], queryFn: () => lireAccords(projetId!), enabled: Boolean(projetId) });
@@ -92,6 +94,12 @@ export function ProfilsDecaissement() {
       </Carte>
 
       {information && <Message variante="succes">{information}</Message>}
+
+      {projetId && accordId && peut(projet, "parametrer") && mode !== "creation" && (
+        <div className="profils__actions">
+          <Bouton onClick={() => { definirInformation(null); aller({ projet: projetId, accord: accordId, mode: "creation" }); }}>{t("profils.form.nouveau")}</Bouton>
+        </div>
+      )}
 
       {projetId && accordId && (
         <Carte titre={t("profils.liste")}>
@@ -141,7 +149,34 @@ export function ProfilsDecaissement() {
         </Carte>
       )}
 
-      {projetId && accordId && profilId && (
+      {projetId && accordId && mode === "creation" && (
+        <FormulaireProfil
+          projetId={projetId}
+          accordId={accordId}
+          surTermine={(p) => {
+            definirInformation(t("profils.form.cree_ok"));
+            void queryClient.invalidateQueries({ queryKey: ["profils-decaissement", projetId, accordId] });
+            aller({ projet: projetId, accord: accordId, profil: p.id });
+          }}
+          surAnnulation={() => aller({ projet: projetId, accord: accordId })}
+        />
+      )}
+      {projetId && accordId && profilId && mode === "edition" && (
+        <EditionProfil
+          key={profilId}
+          projetId={projetId}
+          accordId={accordId}
+          profilId={profilId}
+          surTermine={(p) => {
+            definirInformation(t("profils.form.modifie_ok"));
+            queryClient.setQueryData(["profil-decaissement", projetId, accordId, p.id], p);
+            void queryClient.invalidateQueries({ queryKey: ["profils-decaissement", projetId, accordId] });
+            aller({ projet: projetId, accord: accordId, profil: p.id });
+          }}
+          surAnnulation={() => aller({ projet: projetId, accord: accordId, profil: profilId })}
+        />
+      )}
+      {projetId && accordId && profilId && !mode && (
         <DetailProfil
           key={profilId}
           projetId={projetId}
@@ -150,6 +185,7 @@ export function ProfilsDecaissement() {
           projet={projet}
           surSucces={definirInformation}
           surSuppression={() => aller({ projet: projetId, accord: accordId })}
+          surModification={() => aller({ projet: projetId, accord: accordId, profil: profilId, mode: "edition" })}
         />
       )}
     </>
@@ -163,6 +199,7 @@ function DetailProfil({
   projet,
   surSucces,
   surSuppression,
+  surModification,
 }: {
   projetId: string;
   accordId: string;
@@ -170,6 +207,7 @@ function DetailProfil({
   projet: ProjetAccessible | undefined;
   surSucces: (texte: string | null) => void;
   surSuppression: () => void;
+  surModification: () => void;
 }) {
   const { t } = useTranslation();
   const queryClient = useQueryClient();
@@ -368,6 +406,11 @@ function DetailProfil({
             </Bouton>
           )}
           {p.status === "draft" && peutParametrer && (
+            <Bouton variante="secondaire" disabled={occupe} onClick={surModification}>
+              {t("profils.form.modifier")}
+            </Bouton>
+          )}
+          {p.status === "draft" && peutParametrer && (
             <Bouton variante="danger" disabled={occupe} onClick={() => definirMode("suppression")}>
               {t("profils.supprimer")}
             </Bouton>
@@ -422,4 +465,14 @@ function DetailProfil({
       )}
     </Carte>
   );
+}
+
+/** L'édition d'un brouillon : on lit d'abord le profil, puis le formulaire part de ses valeurs. */
+function EditionProfil({ projetId, accordId, profilId, surTermine, surAnnulation }: { projetId: string; accordId: string; profilId: string; surTermine: (p: ProfilDetail) => void; surAnnulation: () => void }) {
+  const { t } = useTranslation();
+  const detail = useQuery({ queryKey: ["profil-decaissement", projetId, accordId, profilId], queryFn: () => lireProfil(projetId, accordId, profilId) });
+  if (detail.isPending) return <Chargement />;
+  if (detail.error) return <Message variante="danger">{texteErreur(detail.error, t("profils.erreur_lecture"))}</Message>;
+  if (detail.data.status !== "draft") return <Message variante="attention">{t("profils.form.seulement_brouillon")}</Message>;
+  return <FormulaireProfil projetId={projetId} accordId={accordId} profil={detail.data} surTermine={surTermine} surAnnulation={surAnnulation} />;
 }

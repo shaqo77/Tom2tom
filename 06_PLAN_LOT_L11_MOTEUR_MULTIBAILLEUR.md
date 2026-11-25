@@ -694,6 +694,16 @@ libellé, droit, message serveur, conversion en nombre). 241 tests, typage, lint
 clé existante (on crée une nouvelle version) ; pas de suppression ; la liste des accords proposés inclut ceux que le serveur
 refusera (clos, annulés) ; pas de pagination.
 
+### Lot 5 · E1b — Réalisation : formulaire de création et d'édition d'un profil de décaissement
+
+Écran `/profils-decaissement?mode=creation|edition` : généralités, quatre méthodes (pièces, seuils), règles par
+catégorie de l'accord (taux, allocation, assiette, éligibilité, maximum par contrat, revue, fin propre), comptes
+désignés. `corps.ts` valide localement (taux dans ]0 ; 1], pourcentages 0–100, une seule borne minimale) et rend les
+montants en chaînes (« 0,85 » → « 0.85 », jamais de `Number`). Le serveur reste l'autorité : son refus s'affiche tel quel.
+Boutons « Nouveau profil » et « Modifier » réservés au droit `parametrer`, brouillon seulement.
+**Limites** : pas de nouvelle version à partir d'un profil actif, ni de comparaison ni de gabarit BAD (E1c) ; un profil
+n'accepte que les catégories existantes de l'accord. Mutation vérifiée : retirer la borne haute du taux fait échouer 5 tests.
+
 ### Réalisation — Lot 5, écran E3a : évaluations et dérogations
 Route `/evaluations?projet=&evaluation=` (menu « Évaluations »). **Journal** des évaluations de contrôles (borné à 200 par le serveur), filtrable par résultat,
 code de contrôle et type d'objet (les filtres partent au serveur) ; **détail** : message, valeurs constatée et attendue TELLES QUE LE SERVEUR LES RENDS (chaînes),
