@@ -694,6 +694,19 @@ libellé, droit, message serveur, conversion en nombre). 241 tests, typage, lint
 clé existante (on crée une nouvelle version) ; pas de suppression ; la liste des accords proposés inclut ceux que le serveur
 refusera (clos, annulés) ; pas de pagination.
 
+### Réalisation — Lot 5, écran E3a : évaluations et dérogations
+Route `/evaluations?projet=&evaluation=` (menu « Évaluations »). **Journal** des évaluations de contrôles (borné à 200 par le serveur), filtrable par résultat,
+code de contrôle et type d'objet (les filtres partent au serveur) ; **détail** : message, valeurs constatée et attendue TELLES QUE LE SERVEUR LES RENDS (chaînes),
+action corrective, décisions, justifications et dérogations de l'évaluation. Actions, selon le résultat et le droit comme au serveur : **trancher** un contrôle « à
+vérifier » (droit `valider` : conforme ou non conforme + motif), **justifier** (droit `saisir` ; texte exigé avant l'envoi), **demander une dérogation** pour un résultat
+BLOQUANT seulement (droit `saisir` ; motif, référence du justificatif, deux dates ; la période doit commencer AVANT sa fin, la fin est EXCLUE : refusé avant l'envoi
+sinon). **Dérogations du projet** : liste (statut, période « du … → … (exclu) »), approbation ou refus avec motif pour une dérogation DEMANDÉE (droit `valider` ; le
+refus du serveur « le demandeur ne peut pas approuver sa propre dérogation » s'affiche tel quel) ; une dérogation déjà décidée n'est plus décidable.
+Le journal est en ajout seul : l'écran n'offre aucune modification d'une ligne existante.
+Tests : `Evaluations.test.tsx` (35) ; 14 mutations tuées (dont le double clic, par retrait de la garde ET du bouton désactivé). 310 tests, typage et lint passent.
+**NON LIVRÉ :** le dossier de conformité d'un objet (`dossier-conformite-objet`) et la liste « en attente » d'un objet (`controles-en-attente`) : l'API existe, pas leur
+écran ; pas de pagination du journal au-delà des 200 lignes du serveur ; pas de filtre par date.
+
 ---
 
 *Retour : [guide de démarrage](03_GUIDE_DEMARRAGE.md) · [lots L5 à L10](05_PLAN_LOTS_L5_A_L10.md)*
