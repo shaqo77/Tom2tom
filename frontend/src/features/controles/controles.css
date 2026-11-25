@@ -1,0 +1,43 @@
+.controles__defilement {
+  overflow-x: auto;
+}
+.controles__tableau {
+  inline-size: 100%;
+  border-collapse: collapse;
+}
+.controles__tableau th,
+.controles__tableau td {
+  padding: var(--esp-2) var(--esp-3);
+  text-align: start;
+  vertical-align: top;
+  border-block-end: 1px solid var(--bordure);
+}
+.controles__ligne {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--esp-3);
+}
+.controles__regle {
+  overflow: auto;
+  max-block-size: 20rem;
+  padding: var(--esp-3);
+  border: 1px solid var(--bordure);
+  font-size: var(--texte-s);
+}
+.controles__actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: var(--esp-3);
+  margin-block-start: var(--esp-4);
+}
+.controles__formulaire {
+  display: grid;
+  gap: var(--esp-4);
+}
+.controles__case {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--esp-2);
+}

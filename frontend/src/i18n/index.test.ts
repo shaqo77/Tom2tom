@@ -56,6 +56,10 @@ describe("catalogues", () => {
       "profils.col_action",
       "profils.col_allocation",
       "profils.plafond.variable",
+      "controles.severite.information",
+      "controles.col_code",
+      "controles.col_version",
+      "controles.col_action",
       "special.col_action",
     ]);
     const memes = Object.entries(fr).filter(
