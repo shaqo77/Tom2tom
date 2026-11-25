@@ -15,9 +15,15 @@ import uuid
 from decimal import Decimal
 from typing import Any
 
+from django.core.exceptions import PermissionDenied as PermissionDeniedDjango
 from django.db import DataError, IntegrityError
 from django.http import Http404
-from rest_framework.exceptions import AuthenticationFailed, ParseError
+from rest_framework.exceptions import (
+    AuthenticationFailed,
+    NotAuthenticated,
+    ParseError,
+    PermissionDenied,
+)
 from rest_framework.response import Response
 from rest_framework.views import APIView, exception_handler, set_rollback
 
@@ -241,6 +247,28 @@ def gestionnaire_exceptions(exc, contexte):
         )
         reponse_401["WWW-Authenticate"] = getattr(exc, "auth_header", None) or "Bearer"
         return reponse_401
+    # Les refus de DRF rendent `{"detail": …}`, illisible du frontend : même forme que le reste.
+    if isinstance(exc, PermissionDenied | PermissionDeniedDjango):
+        detail = getattr(exc, "detail", None)
+        defaut = PermissionDenied.default_detail
+        texte_refus = (
+            texte(msg("api.acces_refuse"))
+            if detail is None or str(detail) == str(defaut)
+            else str(detail)
+        )
+        return Response({"code": "ACCES_REFUSE", "message": texte_refus}, status=403)
+    if isinstance(exc, Http404):
+        return Response(
+            {"code": "INTROUVABLE", "message": texte(msg("api.introuvable"))}, status=404
+        )
+    if isinstance(exc, NotAuthenticated):
+        reponse_non_auth = Response(
+            {"code": "NON_AUTHENTIFIE", "message": texte(msg("api.non_authentifie"))},
+            status=getattr(exc, "status_code", 401),
+        )
+        if getattr(exc, "auth_header", None):
+            reponse_non_auth["WWW-Authenticate"] = exc.auth_header
+        return reponse_non_auth
     if isinstance(exc, IntegrityError | DataError):
         # Filet de sécurité : un service qui n'a pas traduit sa contrainte ne produit pas un 500.
         # Seul le nom de la contrainte est rendu ; le détail SQL reste dans les journaux.
