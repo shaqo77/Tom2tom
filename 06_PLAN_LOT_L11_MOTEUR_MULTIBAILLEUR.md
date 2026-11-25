@@ -587,6 +587,17 @@ s'utilise par `publier_rapport(params={"plage_debut": …, "plage_fin": …})` ;
 l'appelant passe (on ne choisit pas encore la version de mapping « à la date de fin de plage ») ; pas de sélecteur de
 période dans l'écran du tableau de bord.
 
+### Réalisation — Lot 5, écran E4a : accords (consultation, statut, numérotation)
+Route `/accords?projet=&accord=` (menu « Accords »). Liste des accords d'un projet (numéro, bailleur, nature, statut en toutes
+lettres, montant courant en chaîne) ; détail : dates clés, catégories de dépenses (la sous-catégorie dit « sous <parent> » et est
+décalée), avenants, numérotation des demandes de retrait. Avec le droit de paramétrer : changer le statut (nouveau statut +
+motif ; le serveur reste l'autorité des transitions, elles ne sont PAS dupliquées à l'écran : un refus 409 est affiché tel quel)
+et régler la numérotation (standard ou BAD ; le suffixe de 3 lettres MAJUSCULES est vérifié avant l'envoi, le format standard
+n'envoie aucun suffixe ; le refus du serveur « a déjà des demandes » s'affiche). Sans le droit, aucune action n'est proposée.
+Tests : `Accords.test.tsx` (18) ; 9 mutations tuées. 222 tests, typage, lint passent.
+**NON LIVRÉ (reste de l'écran E4) :** création d'un accord, d'une catégorie et d'un avenant. Limites : pas de pagination ; les
+bailleurs ne sont pas listés à part (leur code figure sur chaque accord).
+
 ### Réalisation — Lot 5, écran E8 : taux de change
 Route `/taux-de-change` (menu « Taux de change »). Liste des taux les plus récents d'abord, filtrable par devise et par type
 (les filtres partent au serveur ; la liste est bornée à 200 lignes par `?limite=`, et l'écran le dit quand la limite est
@@ -624,6 +635,22 @@ pouvait choisir un compte : toutes les routes de trésorerie s'adressent à l'id
 rendaient le `{"detail": …}` de DRF, que le frontend ne lit pas (il aurait affiché « Erreur du serveur (403) » au lieu du message). Ils rendent
 désormais `{code, message}` (`ACCES_REFUSE`, `INTROUVABLE`, `NON_AUTHENTIFIE`), avec un message du catalogue quand aucun texte n'est fourni
 (plus l'anglais de DRF). Tests : `test_api_comptes_bancaires_bd.py` (6) et `test_gestionnaire_integrite.py` (4 de plus).
+
+### Réalisation — Lot 5, écran E5 : clés de cofinancement
+Route `/cles-cofinancement?projet=&cle=` (menu « Clés de cofinancement »). Liste des clés d'un projet avec les parts de leur
+version en vigueur (en pourcentage exact : 0.07 s'affiche « 7 % », pas 7.000000000000001) ; détail d'une clé : toutes ses versions
+(dates, parts, porteur de l'arrondi, motif) ; création d'une clé (code + au moins un libellé) ; création d'une version : choix
+des accords du projet, part en POURCENTAGE par accord, porteur de l'arrondi parmi les accords choisis, date d'effet, motif.
+**Somme = 100 % vérifiée à l'écran ET au serveur :** le total est calculé en décimaux exacts (`decimal.js`) et affiché en direct ;
+il doit être exactement 100 (99,99 et 100,01 sont refusés) ; 0,1 + 33,3 + 66,6 vaut bien 100 alors qu'il vaut 99,99999999999999 en
+flottant. Chaque part est une chaîne décimale strictement positive (virgule acceptée ; ni zéro, ni négatif, ni exposant). Le serveur
+reste l'autorité : il normalise les poids, refuse les accords clos ou d'un autre projet et une date d'effet qui ne suit pas la
+version en cours ; son message s'affiche tel quel sans effacer la saisie. Sans le droit de paramétrer, aucun formulaire.
+Tests : `Cles.test.tsx` (25) ; 12 mutations tuées (total, tolérance, flottant, part nulle, exposant, part invalide, date, accord,
+libellé, droit, message serveur, conversion en nombre). 241 tests, typage, lint passent.
+**Limites :** le serveur accepte n'importe quels poids positifs (l'écran impose 100 % : plus strict) ; pas de modification d'une
+clé existante (on crée une nouvelle version) ; pas de suppression ; la liste des accords proposés inclut ceux que le serveur
+refusera (clos, annulés) ; pas de pagination.
 
 ---
 
