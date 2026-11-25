@@ -1,5 +1,5 @@
 import { appeler } from "../../shared/api/client";
-import type { ControleDetail, ControleLivre, ControleResume, DemandeInstallation, ResultatInstallation, StatutControle } from "./types";
+import type { ControleDetail, ControleLivre, ControleResume, DemandeInstallation, Langage, ResultatInstallation, StatutControle } from "./types";
 
 const base = (projetId: string) => `/projets/${projetId}/controles/`;
 
@@ -17,3 +17,8 @@ export const rejeterControle = (projetId: string, controleId: string, motif: str
 
 export const installerBibliotheque = (projetId: string, corps: DemandeInstallation) =>
   appeler<ResultatInstallation>(`${base(projetId)}bibliotheque/installer/`, { methode: "POST", corps });
+
+export const lireLangage = () => appeler<Langage>("/controles/langage/");
+
+export const creerControle = (projetId: string, corps: Record<string, unknown>) =>
+  appeler<ControleDetail>(base(projetId), { methode: "POST", corps });

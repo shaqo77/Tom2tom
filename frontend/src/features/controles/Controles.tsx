@@ -16,6 +16,7 @@ import { Message } from "../../shared/ui/Message";
 import { Pastille } from "../../shared/ui/Pastille";
 import { Selecteur } from "../../shared/ui/Selecteur";
 import { libelleProjet } from "../projets/libelle";
+import { FormulaireControle } from "./FormulaireControle";
 import { activerControle, installerBibliotheque, lireBibliotheque, lireControle, lireControles, rejeterControle, validerControle } from "./api";
 import { SEUILS, STATUTS } from "./types";
 import type { AppelDecision, CodeSeuil, DemandeInstallation, Libelle, Severite, StatutControle } from "./types";
@@ -61,6 +62,8 @@ export function Controles() {
   const projet = projetId ? projetParId(moi, projetId) : undefined;
   const [filtre, definirFiltre] = useState<"" | StatutControle>("");
   const [information, definirInformation] = useState<string | null>(null);
+  const [creation, definirCreation] = useState(false);
+  const queryClient = useQueryClient();
   const aller = (search: { projet?: string; controle?: string }) => void navigate({ to: "/controles", search, replace: true });
   const liste = useQuery({ queryKey: ["controles", projetId, filtre], queryFn: () => lireControles(projetId!, filtre || undefined), enabled: Boolean(projetId) });
   const nom = (l: Libelle, code: string) => l[i18n.language === "en" ? "en" : "fr"] ?? l.fr ?? code;
@@ -84,6 +87,24 @@ export function Controles() {
       </Carte>
 
       {information && <Message variante="succes">{information}</Message>}
+
+      {projetId && peut(projet, "parametrer") && !creation && (
+        <div className="controles__actions">
+          <Bouton onClick={() => { definirInformation(null); definirCreation(true); }}>{t("controles.form.nouveau")}</Bouton>
+        </div>
+      )}
+      {projetId && creation && (
+        <FormulaireControle
+          projetId={projetId}
+          surAnnulation={() => definirCreation(false)}
+          surTermine={(c) => {
+            definirCreation(false);
+            definirInformation(t("controles.form.cree", { code: c.code }));
+            void queryClient.invalidateQueries({ queryKey: ["controles", projetId] });
+            aller({ projet: projetId, controle: c.id });
+          }}
+        />
+      )}
 
       {projetId && (
         <Carte titre={t("controles.liste")}>

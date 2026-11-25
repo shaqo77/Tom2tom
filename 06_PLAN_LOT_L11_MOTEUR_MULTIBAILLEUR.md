@@ -763,6 +763,22 @@ ou close, contre-passation impossible) sont maintenant des **422 `{code, message
 15 tests. **Limites** : pas de catégorie ni de contrat ni de site sur une ligne, pas de contre-passation ni de modification d'un
 brouillon (on le recrée), pas de pièces jointes, pas d'écran (E9b).
 
+### Lot 5 · E2b — Réalisation : créer un contrôle sur mesure par un formulaire guidé
+
+Backend : `GET /controles/langage/` expose le langage de conditions **tel que le serveur l'accepte** : pour chaque type de règle ses champs
+et leur type, pour chaque opérateur les types qu'il accepte et s'il prend une valeur, les sévérités et le nombre maximal de conditions.
+Un test vérifie que **toute condition que ce langage propose passe la validation d'enregistrement** : l'écran ne peut pas offrir un choix
+que le serveur refuserait. Frontend : « Nouveau contrôle » (droit `parametrer`) ouvre un formulaire (code, libellés fr/en, type de règle,
+sévérité, date d'effet, action corrective) puis des conditions « champ · opérateur · valeur » : les opérateurs sont filtrés selon le champ,
+la valeur se demande selon l'opérateur (aucune, une valeur, une liste séparée par des points-virgules, deux dates, une somme sur un champ
+numérique des éléments, un nombre d'éléments). **Jamais de texte libre pour la règle** (règle 5). Un décimal part en chaîne canonique, un
+entier en entier ; un contrôle « à vérifier par une personne » n'envoie aucune expression. Le contrôle naît en brouillon : le valider puis
+l'activer reste une décision humaine (règle 9). Le serveur valide encore et son refus s'affiche tel quel.
+2 tests backend (3 mutations tuées), 12 tests de logique, 12 de composant (8 mutations tuées).
+**Limites** : pas de condition d'applicabilité (`applicable_si`) ni de paramètres, pas de nouvelle version d'un contrôle actif ni de
+modification d'un brouillon (on le recrée), les noms de champs s'affichent tels que le serveur les nomme (pas de libellé lisible : ils
+n'en ont pas côté serveur), pas d'aperçu de l'évaluation sur une écriture réelle.
+
 ### Lot 5 · E7b — Réalisation : la liste des demandes de retrait et la justification d'une demande à la Banque
 
 Backend : `GET /projets/<id>/demandes-retrait/` (droit `consulter`, paginée, filtres `?statut=` et `?accord=<numéro>`, un statut inconnu est

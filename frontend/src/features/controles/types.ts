@@ -60,3 +60,17 @@ export interface DemandeInstallation {
   valid_from: string;
   seuils?: Record<string, string | number>;
 }
+
+/** Le langage de conditions tel que le serveur l'accepte. Voir backend/niveau4_reporting/controles/api.py (`LangageControles`). */
+export type TypeChamp = "decimal" | "entier" | "date" | "texte" | "booleen" | "liste";
+export interface ChampLangage {
+  type: TypeChamp;
+  /** Pour une liste : le type de chaque champ de ses éléments. */
+  elements?: Record<string, TypeChamp>;
+}
+export interface Langage {
+  types_regle: Record<string, Record<string, ChampLangage>>;
+  operateurs: Record<string, { types: TypeChamp[]; sans_valeur: boolean }>;
+  severites: Severite[];
+  max_conditions: number;
+}
