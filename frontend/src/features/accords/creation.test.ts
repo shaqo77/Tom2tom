@@ -1,4 +1,4 @@
-import { accordVide, categorieVide, construireAccord, construireCategorie } from "./creation";
+import { accordVide, avenantVide, bailleurVide, categorieVide, construireAccord, construireAvenant, construireBailleur, construireCategorie } from "./creation";
 
 const valide = () => ({ ...accordVide(), bailleur: "BAD", numero: "DON-9", devise: "usd", montant_initial: "1 250 000,50" });
 
@@ -48,5 +48,34 @@ describe("saisie d'une catégorie", () => {
   it("refuse un plafond illisible", () => {
     const r = construireCategorie({ ...categorieVide(), code: "X", fr: "X", plafond: "abc" }, "fr");
     expect(!r.ok && r.fautes[0]?.cle).toBe("accords.faute.plafond");
+  });
+});
+
+
+describe("saisie d'un avenant", () => {
+  const valide = () => ({ ...avenantVide(), reference: "AV-2", date: "2026-06-01", document: "doc-1", montant: "1 500 000,75" });
+  it("envoie le montant révisé en chaîne canonique et le document par son identifiant", () => {
+    expect(construireAvenant(valide(), "fr")).toEqual({ ok: true, corps: { reference: "AV-2", date_avenant: "2026-06-01", document_id: "doc-1", montant_revise: "1500000.75" } });
+  });
+  it("garde le motif s'il est donné", () => {
+    const r = construireAvenant({ ...valide(), motif: " Rallonge " }, "fr");
+    expect(r.ok && r.corps.motif).toBe("Rallonge");
+  });
+  it("exige référence, date, document et un montant lisible et non négatif", () => {
+    const r = construireAvenant({ ...avenantVide(), montant: "-3" }, "fr");
+    expect(!r.ok && r.fautes.map((f) => f.cle)).toEqual(["accords.faute.reference", "accords.faute.date_avenant", "accords.faute.document", "accords.faute.montant_revise"]);
+    expect(construireAvenant({ ...valide(), montant: "0" }, "fr").ok).toBe(true);
+    expect(construireAvenant({ ...valide(), montant: "1.250" }, "fr").ok).toBe(false);
+  });
+});
+
+describe("saisie d'un bailleur", () => {
+  it("met le pays en majuscules et l'omet s'il est vide", () => {
+    expect(construireBailleur({ code: " BAD ", nom: "Banque africaine", pays: "ci" })).toEqual({ ok: true, corps: { code: "BAD", nom: "Banque africaine", pays: "CI" } });
+    expect(construireBailleur({ code: "UE", nom: "Union européenne", pays: "" })).toEqual({ ok: true, corps: { code: "UE", nom: "Union européenne" } });
+  });
+  it("exige un code et un nom, et un pays à deux lettres", () => {
+    const r = construireBailleur({ ...bailleurVide(), pays: "FRA" });
+    expect(!r.ok && r.fautes.map((f) => f.cle)).toEqual(["accords.faute.code_bailleur", "accords.faute.nom_bailleur", "accords.faute.pays"]);
   });
 });

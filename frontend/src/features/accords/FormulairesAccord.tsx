@@ -1,4 +1,4 @@
-import { useMutation, useQuery } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
 import type { FormEvent } from "react";
 import { useTranslation } from "react-i18next";
@@ -10,6 +10,7 @@ import { Champ } from "../../shared/ui/Champ";
 import { Message } from "../../shared/ui/Message";
 import { Selecteur } from "../../shared/ui/Selecteur";
 import { creerAccord, creerCategorie, lireBailleurs } from "./api";
+import { FormulaireBailleur } from "./FormulairesAvenant";
 import { accordVide, categorieVide, construireAccord, construireCategorie } from "./creation";
 import type { Faute, SaisieAccord, SaisieCategorie } from "./creation";
 import type { AccordResume, CategorieAccord } from "./types";
@@ -38,7 +39,9 @@ function Fautes({ fautes }: { fautes: Faute[] }) {
 /** Crée un accord en brouillon. Le serveur reste l'autorité : son refus s'affiche tel quel. */
 export function FormulaireAccord({ projetId, surTermine, surAnnulation }: { projetId: string; surTermine: (a: AccordResume) => void; surAnnulation: () => void }) {
   const { t, i18n } = useTranslation();
+  const queryClient = useQueryClient();
   const bailleurs = useQuery({ queryKey: ["bailleurs"], queryFn: lireBailleurs });
+  const [nouveauBailleur, definirNouveauBailleur] = useState(false);
   const [saisie, definirSaisie] = useState<SaisieAccord>(accordVide);
   const [fautes, definirFautes] = useState<Faute[]>([]);
   const [echec, definirEchec] = useState<string | null>(null);
@@ -71,6 +74,20 @@ export function FormulaireAccord({ projetId, surTermine, surAnnulation }: { proj
           options={[{ valeur: "", libelle: t("accords.form.choisir_bailleur") }, ...(bailleurs.data ?? []).map((b) => ({ valeur: b.code, libelle: `${b.code} · ${b.nom}` }))]}
           onChange={(v) => modifier({ bailleur: v })}
         />
+        {nouveauBailleur ? (
+          <FormulaireBailleur
+            surAnnulation={() => definirNouveauBailleur(false)}
+            surTermine={(b) => {
+              definirNouveauBailleur(false);
+              void queryClient.invalidateQueries({ queryKey: ["bailleurs"] });
+              modifier({ bailleur: b.code });
+            }}
+          />
+        ) : (
+          <Bouton variante="secondaire" onClick={() => definirNouveauBailleur(true)}>
+            {t("accords.form.nouveau_bailleur")}
+          </Bouton>
+        )}
         <Champ etiquette={t("accords.form.numero")} autoComplete="off" value={saisie.numero} onChange={(e) => modifier({ numero: e.target.value })} />
         <Champ etiquette={t("accords.form.libelle")} autoComplete="off" value={saisie.libelle} onChange={(e) => modifier({ libelle: e.target.value })} />
         <Selecteur

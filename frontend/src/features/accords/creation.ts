@@ -100,3 +100,44 @@ export function construireCategorie(s: SaisieCategorie, langue: string): Resulta
   if (devise) corps.devise = devise;
   return { ok: true, corps };
 }
+
+export interface SaisieAvenant {
+  reference: string;
+  date: string;
+  document: string;
+  montant: string;
+  motif: string;
+}
+export const avenantVide = (): SaisieAvenant => ({ reference: "", date: "", document: "", montant: "", motif: "" });
+
+export function construireAvenant(s: SaisieAvenant, langue: string): Resultat {
+  const fautes: Faute[] = [];
+  if (!s.reference.trim()) fautes.push({ cle: "accords.faute.reference" });
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(s.date)) fautes.push({ cle: "accords.faute.date_avenant" });
+  if (!s.document) fautes.push({ cle: "accords.faute.document" });
+  const revise = montant(s.montant, langue);
+  if (revise === null) fautes.push({ cle: "accords.faute.montant_revise" });
+  if (fautes.length > 0) return { ok: false, fautes };
+  const corps: Record<string, unknown> = { reference: s.reference.trim(), date_avenant: s.date, document_id: s.document, montant_revise: revise };
+  if (s.motif.trim()) corps.motif = s.motif.trim();
+  return { ok: true, corps };
+}
+
+export interface SaisieBailleur {
+  code: string;
+  nom: string;
+  pays: string;
+}
+export const bailleurVide = (): SaisieBailleur => ({ code: "", nom: "", pays: "" });
+
+export function construireBailleur(s: SaisieBailleur): Resultat {
+  const fautes: Faute[] = [];
+  if (!s.code.trim()) fautes.push({ cle: "accords.faute.code_bailleur" });
+  if (!s.nom.trim()) fautes.push({ cle: "accords.faute.nom_bailleur" });
+  const pays = s.pays.trim().toUpperCase();
+  if (pays && !/^[A-Z]{2}$/.test(pays)) fautes.push({ cle: "accords.faute.pays" });
+  if (fautes.length > 0) return { ok: false, fautes };
+  const corps: Record<string, unknown> = { code: s.code.trim(), nom: s.nom.trim() };
+  if (pays) corps.pays = pays;
+  return { ok: true, corps };
+}

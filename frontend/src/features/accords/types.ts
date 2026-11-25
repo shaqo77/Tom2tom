@@ -44,3 +44,12 @@ export interface AccordDetail extends AccordResume {
   categories: CategorieAccord[];
   avenants: AvenantAccord[];
 }
+
+/** La situation de l'accord avant et après un avenant. Voir backend/niveau1_socle/financements/services.py (`situation_avant_apres`). */
+export interface SituationAvenant {
+  reference: string;
+  date: string;
+  montant_avant: string;
+  montant_apres: string;
+  variation: string;
+}

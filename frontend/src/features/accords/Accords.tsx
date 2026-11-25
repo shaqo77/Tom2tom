@@ -17,7 +17,8 @@ import { Selecteur } from "../../shared/ui/Selecteur";
 import { libelleProjet } from "../projets/libelle";
 import { changerStatut, lireAccord, lireAccords, reglerNumerotation } from "./api";
 import { FormulaireAccord, FormulaireCategorie } from "./FormulairesAccord";
-import type { AccordDetail, FormatNumero, StatutAccord } from "./types";
+import { FormulaireAvenant } from "./FormulairesAvenant";
+import type { AccordDetail, FormatNumero, SituationAvenant, StatutAccord } from "./types";
 import "./accords.css";
 
 const STATUTS: StatutAccord[] = ["brouillon", "actif", "suspendu", "clos", "annule"];
@@ -145,6 +146,8 @@ function DetailAccord({ projetId, accordId, peutParametrer }: { projetId: string
   const queryClient = useQueryClient();
   const cle = ["accord", projetId, accordId];
   const [ajout, definirAjout] = useState(false);
+  const [avenant, definirAvenant] = useState(false);
+  const [situation, definirSituation] = useState<SituationAvenant | null>(null);
   const detail = useQuery({ queryKey: cle, queryFn: () => lireAccord(projetId, accordId) });
   const rafraichir = () => {
     void queryClient.invalidateQueries({ queryKey: cle });
@@ -249,6 +252,28 @@ function DetailAccord({ projetId, accordId, peutParametrer }: { projetId: string
           </table>
         </div>
       )}
+
+      {situation && (
+        <Message variante="succes">
+          {t("accords.form.avenant_cree", { reference: situation.reference, avant: situation.montant_avant, apres: situation.montant_apres, variation: situation.variation })}
+        </Message>
+      )}
+      {peutParametrer && (avenant ? (
+        <FormulaireAvenant
+          projetId={projetId}
+          accordId={accordId}
+          surAnnulation={() => definirAvenant(false)}
+          surTermine={(s) => {
+            definirAvenant(false);
+            definirSituation(s);
+            rafraichir();
+          }}
+        />
+      ) : (
+        <Bouton variante="secondaire" onClick={() => { definirSituation(null); definirAvenant(true); }}>
+          {t("accords.form.ajouter_avenant")}
+        </Bouton>
+      ))}
 
       <h3>{t("accords.numerotation")}</h3>
       <p>{a.format_numero_demande === "bad" ? t("accords.numerotation_bad", { suffixe: a.suffixe_agence }) : t("accords.numerotation_standard")}</p>
