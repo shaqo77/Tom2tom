@@ -804,6 +804,28 @@ d'une justification s'affiche tel quel. Rien n'est recalculé à l'écran.
 écriture vers son dossier (on y arrive en copiant son identifiant) ; pas d'export du dossier ; la date de référence de « en attente » n'est pas
 réglable (aujourd'hui).
 
+### Lot 6 · Réalisation (version 1) — la recette multibailleur de bout en bout, et ce qu'elle a révélé
+
+`tests/test_recette_multibailleur_bd.py` : UN test long, en étapes commentées. Un projet, **deux accords de deux bailleurs**, une clé 60/40. **Une** dépense
+saisie **une fois** par l'API (avec la clé et la catégorie par code), validée par une deuxième personne, comptabilisée par une troisième : elle est ventilée
+(600 / 400 ; sur 1 001, 601 / 400, le porteur absorbe le reliquat : la somme est la dépense). Un profil par accord, des taux différents (0,8 et 0,5) :
+**deux demandes de retrait** aux montants différents (480 et 200), visibles dans la liste du projet. **Trois rapports** sur les mêmes données (un par accord,
+plus le global, avec le TER livré et son filtre d'accord) : 1 201 + 800 = 2 001, qui est la dépense ; ils sont distincts et ne se contredisent pas. Une seconde
+organisation ne voit ni accords, ni écritures, ni demandes, ni ligne du moteur d'états. Aucune écriture manuelle entre les étapes.
+
+**La recette a révélé deux défauts réels, corrigés ici (chacun avec un test qui échouait avant) :**
+1. **Une dépense ventilée ne pouvait pas produire de demande de retrait pour tous ses accords.** La ligne ventilée gardait UNE catégorie, alors qu'une catégorie
+   appartient à UN accord (identité `(accord, code)`). Désormais `"categorie": "<code>"` est résolu **accord par accord** (`resoudre_categories`) : chaque ligne
+   ventilée reçoit la catégorie de son accord ; un accord qui n'a pas ce code refuse toute la saisie en le nommant ; une catégorie sans accord ni clé est refusée.
+   L'API des écritures accepte et rend `categorie`.
+2. **Un paramètre de modèle d'état manquant était une erreur interne (500)** : `msg(..., cle=...)` entrait en collision avec le premier argument de `msg`. C'est
+   maintenant un refus métier lisible qui nomme le paramètre.
+
+Mutations tuées : catégorie non résolue par accord, catégorie cherchée sans l'accord, catégorie absente tolérée, ventilation tronquée.
+**Limites** : TER seul (pas encore trois bailleurs avec chacun SON modèle : lots 7 à 9) ; la recette ne passe pas par le navigateur (le parcours Vitest vient
+ensuite) ; les demandes sont préparées par service (il n'existe pas encore d'écran de décaissement) ; les rapports sont générés par le moteur, pas publiés ; la
+résolution par code suppose que les accords d'une clé donnent le même code à la même nature de dépense (convention à tenir dans la configuration).
+
 ---
 
 *Retour : [guide de démarrage](03_GUIDE_DEMARRAGE.md) · [lots L5 à L10](05_PLAN_LOTS_L5_A_L10.md)*

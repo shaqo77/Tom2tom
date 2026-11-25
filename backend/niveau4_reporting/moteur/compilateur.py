@@ -230,7 +230,7 @@ def _resoudre_parametre(valeur: Any, parametres: Mapping[str, Any]) -> Any:
     if isinstance(valeur, str) and valeur.startswith("$param."):
         cle = valeur.removeprefix("$param.")
         if cle not in parametres:
-            raise ModeleEtatInvalide(msg("compilateur.parametre_selection_manquant", cle=cle))
+            raise ModeleEtatInvalide(msg("compilateur.parametre_selection_manquant", parametre=cle))
         return parametres[cle]
     return valeur
 
