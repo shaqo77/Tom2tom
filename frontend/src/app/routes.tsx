@@ -6,6 +6,7 @@ import { Conception } from "../features/accueil/Conception";
 import { ChangerMotDePasse } from "../features/connexion/ChangerMotDePasse";
 import { Cles } from "../features/cles/Cles";
 import { Accords } from "../features/accords/Accords";
+import { CompteSpecial } from "../features/compte-special/CompteSpecial";
 import { Connexion } from "../features/connexion/Connexion";
 import { Documents } from "../features/documents/Documents";
 import { TauxDeChange } from "../features/taux/TauxDeChange";
@@ -146,6 +147,18 @@ const profilsDecaissement = createRoute({
   component: ProfilsDecaissement,
 });
 
+const compteSpecial = createRoute({
+  getParentRoute: () => protege,
+  path: "/compte-special",
+  // (valeur invalide écrasée par `undefined` : le routeur fusionne la recherche brute avec ce validateur)
+  validateSearch: (recherche: Record<string, unknown>): { projet?: string | undefined; compte?: string | undefined; date?: string | undefined } => ({
+    projet: texteNonVide(recherche.projet) ? recherche.projet : undefined,
+    compte: texteNonVide(recherche.compte) ? recherche.compte : undefined,
+    date: dateIsoValide(recherche.date) ? recherche.date : undefined,
+  }),
+  component: CompteSpecial,
+});
+
 const documents = createRoute({
   getParentRoute: () => protege,
   path: "/documents",
@@ -188,7 +201,7 @@ const conception = createRoute({ getParentRoute: () => racine, path: "/conceptio
 
 export const arbre = racine.addChildren([
   connexion,
-  protege.addChildren([accueil, tableau, descente, reglagesDevises, tauxDeChange, profilsDecaissement, accords, clesCofinancement, documents, motDePasse, projet]),
+  protege.addChildren([accueil, tableau, descente, reglagesDevises, tauxDeChange, profilsDecaissement, accords, clesCofinancement, documents, compteSpecial, motDePasse, projet]),
   ...(import.meta.env.DEV ? [conception] : []),
 ]);
 

@@ -627,6 +627,21 @@ jalons, méthodes, règles, comptes, taux validé avant envoi), « Créer une no
 versions et le pré-remplissage depuis le gabarit BAD. Limites : pas de pagination ni de recherche dans la liste ; les
 droits affichés suivent `valider` (valider, rejeter) et `parametrer` (activer, supprimer) comme le serveur.
 
+### Réalisation — Lot 5, écran E7 : compte spécial (situation, annulation, publication)
+Route `/compte-special?projet=&compte=&date=` (menu « Compte spécial »). Choix du projet puis d'un compte SPÉCIAL (liste des comptes du
+projet : `GET /projets/<id>/comptes-bancaires/`, numéro masqué seulement) ; **situation à une date** (lignes 2 à 7 de l'annexe 9) : avances
+reçues, justifications soumises (la demande en cours d'examen est signalée), solde de clôture, justifié pour la demande, justifié
+précédemment, total justifié et **écart tels que le serveur les calcule** (rien n'est recalculé à l'écran ; tous les montants restent des
+chaînes) ; une situation incomplète nomme ce qui manque et n'affiche aucun écart ; la date se saisit en local et ne change la situation que
+lorsqu'elle est complète ; **justifications soumises à la Banque** avec **annulation motivée** (motif exigé avant l'envoi, double clic
+protégé, refus du serveur affiché) ; **publication du rapport de réconciliation scellé** (date de la situation, demande facultative, note
+d'écart de 4000 caractères au plus, sceau affiché) avec le droit de publier. Sans le droit de saisir : pas d'annulation ; sans le droit de
+publier : pas de publication.
+Tests : `CompteSpecial.test.tsx` (17) ; 14 mutations tuées. 274 tests, typage et lint passent.
+**NON LIVRÉ :** la **création d'une justification** par l'écran : l'API la demande par l'identifiant d'une DEMANDE de retrait et il n'existe aucune API
+HTTP de lecture des demandes de retrait (ni écran de demandes). Il faut d'abord livrer la liste des demandes. Pas non plus de saisie d'une
+avance, ni de relevé. Pas de pagination.
+
 ### Réalisation — Lot 5, prérequis de l'écran E7 : liste des comptes bancaires et forme des refus
 **`GET /api/v1/projets/<id>/comptes-bancaires/`** (droit `consulter`, triée par code, paginable) : identifiant, code, libellé, type,
 devise, numéro de l'accord, **numéro masqué** (le numéro complet ne sort jamais ; un test le prouve), actif. Sans elle, aucun écran ne
