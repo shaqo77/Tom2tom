@@ -164,3 +164,32 @@ describe("erreurs", () => {
     expect(perdue).not.toHaveBeenCalled();
   });
 });
+
+describe("envoi d'un formulaire avec fichier", () => {
+  it("envoie le FormData tel quel, sans fixer le Content-Type (le navigateur pose la frontière), avec le jeton CSRF", async () => {
+    document.cookie = "csrftoken=jeton; path=/";
+    simuler(json({ id: "d1" }, 201));
+    const formulaire = new FormData();
+    formulaire.set("title", "Accord");
+    formulaire.set("fichier", new File(["%PDF-1.4"], "accord.pdf", { type: "application/pdf" }));
+    expect(await appeler("/projets/p/documents/", { methode: "POST", formulaire })).toEqual({ id: "d1" });
+    const { init } = appels[0] as Appel;
+    expect(init.body).toBe(formulaire);
+    const entetes = new Headers(init.headers);
+    expect(entetes.get("Content-Type")).toBeNull(); // sinon la frontière multipart serait perdue
+    expect(entetes.get("X-CSRFToken")).toBe("jeton");
+  });
+
+  it("refuse de recevoir à la fois un corps JSON et un formulaire", async () => {
+    simuler(json({}));
+    await expect(appeler("/x/", { methode: "POST", corps: {}, formulaire: new FormData() })).rejects.toThrow();
+  });
+
+  it("rend le refus du serveur au même format qu'une requête JSON", async () => {
+    document.cookie = "csrftoken=jeton; path=/";
+    simuler(json({ code: "REGLE_INVALIDE", message: "Le fichier dépasse 50 Mio" }, 422));
+    const erreur = await appeler("/x/", { methode: "POST", formulaire: new FormData() }).catch((e: unknown) => e);
+    expect(erreur).toMatchObject({ statut: 422, code: "REGLE_INVALIDE", message: "Le fichier dépasse 50 Mio" });
+  });
+});
+

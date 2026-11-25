@@ -642,6 +642,45 @@ Tests : `CompteSpecial.test.tsx` (17) ; 14 mutations tuées. 274 tests, typage e
 HTTP de lecture des demandes de retrait (ni écran de demandes). Il faut d'abord livrer la liste des demandes. Pas non plus de saisie d'une
 avance, ni de relevé. Pas de pagination.
 
+### Réalisation — Lot 5, prérequis de l'écran E7 : liste des comptes bancaires et forme des refus
+**`GET /api/v1/projets/<id>/comptes-bancaires/`** (droit `consulter`, triée par code, paginable) : identifiant, code, libellé, type,
+devise, numéro de l'accord, **numéro masqué** (le numéro complet ne sort jamais ; un test le prouve), actif. Sans elle, aucun écran ne
+pouvait choisir un compte : toutes les routes de trésorerie s'adressent à l'identifiant d'un compte.
+**Correction d'une incohérence découverte à cette occasion :** un refus de droit (403), un objet introuvable (404) et une session absente
+rendaient le `{"detail": …}` de DRF, que le frontend ne lit pas (il aurait affiché « Erreur du serveur (403) » au lieu du message). Ils rendent
+désormais `{code, message}` (`ACCES_REFUSE`, `INTROUVABLE`, `NON_AUTHENTIFIE`), avec un message du catalogue quand aucun texte n'est fourni
+(plus l'anglais de DRF). Tests : `test_api_comptes_bancaires_bd.py` (6) et `test_gestionnaire_integrite.py` (4 de plus).
+
+### Réalisation — Lot 5, écran E6 : documents
+Route `/documents?projet=` (menu « Documents »). Liste des documents (genre, version, émission, empreinte SHA-256 abrégée, état courant
+ou remplacé) ; **téléchargement** : le lien ouvre l'adresse `…/contenu/` TELLE QUELLE (le serveur impose `attachment`, vérifie l'empreinte et
+journalise : l'écran n'affiche jamais un document déposé) ; **vérification d'intégrité** à la demande (fichier intact en vert, altéré ou
+disparu en alerte avec la raison du serveur) ; **dépôt** multipart (genre, titre, version, date d'émission, fichier) et **remplacement**
+(nouveau fichier ; le message nomme les exigences à revérifier que renvoie le serveur). Un fichier de plus de 50 Mio est refusé AVANT l'envoi
+(exactement 50 Mio passe) ; titre et fichier sont exigés ; le refus du serveur s'affiche sans effacer la saisie. Sans le droit de paramétrer :
+ni dépôt ni remplacement, mais consultation, téléchargement et vérification restent. Le client d'API sait désormais envoyer un `FormData`
+(`formulaire`), sans fixer le `Content-Type` ; le faux serveur lit un envoi multipart (fichier réduit à `{nom, taille, type}`).
+Tests : `Documents.test.tsx` (20), 3 tests de client, 1 de faux serveur ; 11 mutations tuées. 
+**NON LIVRÉ :** la **barre de progression en pourcentage** du plan : `fetch` ne rapporte pas l'avancement d'un envoi ; l'écran montre une
+progression indéterminée (`<progress>` sans valeur) pendant l'envoi. Pas de glisser-déposer (un champ fichier), pas de dépôt multiple,
+pas de pagination, pas d'aperçu.
+
+### Réalisation — Lot 5, écran E5 : clés de cofinancement
+Route `/cles-cofinancement?projet=&cle=` (menu « Clés de cofinancement »). Liste des clés d'un projet avec les parts de leur
+version en vigueur (en pourcentage exact : 0.07 s'affiche « 7 % », pas 7.000000000000001) ; détail d'une clé : toutes ses versions
+(dates, parts, porteur de l'arrondi, motif) ; création d'une clé (code + au moins un libellé) ; création d'une version : choix
+des accords du projet, part en POURCENTAGE par accord, porteur de l'arrondi parmi les accords choisis, date d'effet, motif.
+**Somme = 100 % vérifiée à l'écran ET au serveur :** le total est calculé en décimaux exacts (`decimal.js`) et affiché en direct ;
+il doit être exactement 100 (99,99 et 100,01 sont refusés) ; 0,1 + 33,3 + 66,6 vaut bien 100 alors qu'il vaut 99,99999999999999 en
+flottant. Chaque part est une chaîne décimale strictement positive (virgule acceptée ; ni zéro, ni négatif, ni exposant). Le serveur
+reste l'autorité : il normalise les poids, refuse les accords clos ou d'un autre projet et une date d'effet qui ne suit pas la
+version en cours ; son message s'affiche tel quel sans effacer la saisie. Sans le droit de paramétrer, aucun formulaire.
+Tests : `Cles.test.tsx` (25) ; 12 mutations tuées (total, tolérance, flottant, part nulle, exposant, part invalide, date, accord,
+libellé, droit, message serveur, conversion en nombre). 241 tests, typage, lint passent.
+**Limites :** le serveur accepte n'importe quels poids positifs (l'écran impose 100 % : plus strict) ; pas de modification d'une
+clé existante (on crée une nouvelle version) ; pas de suppression ; la liste des accords proposés inclut ceux que le serveur
+refusera (clos, annulés) ; pas de pagination.
+
 ---
 
 *Retour : [guide de démarrage](03_GUIDE_DEMARRAGE.md) · [lots L5 à L10](05_PLAN_LOTS_L5_A_L10.md)*

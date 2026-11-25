@@ -101,7 +101,19 @@ export function demarrerServeur(comptes: Compte[]): FauxServeur {
     "fetch",
     vi.fn(async (url: string, init: RequestInit = {}) => {
       const methode = (init.method ?? "GET").toUpperCase();
-      const corps = init.body ? (JSON.parse(init.body as string) as Record<string, unknown>) : undefined;
+      // Un envoi multipart devient un objet lisible par les tests : les champs texte tels quels, un fichier réduit à
+      // `{ nom, taille, type }` (son contenu n'a pas à traverser le faux serveur).
+      const corps =
+        init.body instanceof FormData
+          ? (Object.fromEntries(
+              [...init.body.entries()].map(([cle, valeur]) => [
+                cle,
+                typeof valeur === "string" ? valeur : { nom: valeur.name, taille: valeur.size, type: valeur.type },
+              ]),
+            ) as Record<string, unknown>)
+          : init.body
+            ? (JSON.parse(init.body as string) as Record<string, unknown>)
+            : undefined;
       serveur.appels.push({ methode, url, corps });
       if (serveur.panneReseau) throw new TypeError("Failed to fetch");
       if (serveur.panneServeur) return new Response("<html>boom</html>", { status: 500 });

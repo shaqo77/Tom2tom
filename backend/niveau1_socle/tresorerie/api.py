@@ -18,6 +18,7 @@ from core.api import (
     projeter,
     recharge,
     reponse,
+    reponse_liste,
 )
 from core.metier import habilite, refuser
 from niveau1_socle.decaissements.models import DemandeRetrait
@@ -35,6 +36,29 @@ from .models import AppariementDemande, JustificationCompteSpecial
 from .releves import importer_releve
 
 NOTE_MAX = 4000  # la note qui explique l'écart de la réconciliation du compte spécial
+
+
+def _compte(c: CompteBancaire) -> dict:
+    """Un compte, sans son numéro complet : seul le numéro masqué sort."""
+    return {
+        "id": c.id,
+        "code": c.code,
+        "libelle": c.libelle,
+        "type": c.type,
+        "devise": c.devise_id,
+        "accord": c.accord.numero if c.accord_id else None,
+        "numero_masque": c.numero_masque,
+        "actif": c.actif,
+    }
+
+
+class ComptesBancaires(VueMetier):
+    """Les comptes bancaires d'un projet : de quoi choisir un compte dans la trésorerie."""
+
+    def get(self, requete, project_id):
+        habilite(requete.user, "consulter", project_id)
+        comptes = CompteBancaire.objects.filter(project_id=project_id).select_related("accord")
+        return reponse_liste(requete, comptes.order_by("code", "id"), _compte)
 
 
 class Disponibilites(VueMetier):

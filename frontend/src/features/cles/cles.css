@@ -1,0 +1,43 @@
+.cles__defilement {
+  overflow-x: auto;
+}
+.cles__tableau {
+  inline-size: 100%;
+  border-collapse: collapse;
+}
+.cles__tableau th,
+.cles__tableau td {
+  padding: var(--esp-2) var(--esp-3);
+  text-align: start;
+  vertical-align: top;
+  border-block-end: 1px solid var(--bordure);
+}
+.cles__parts {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  font-variant-numeric: tabular-nums;
+}
+.cles__formulaire {
+  display: grid;
+  gap: var(--esp-4);
+  max-inline-size: 32rem;
+}
+.cles__accords {
+  display: grid;
+  gap: var(--esp-3);
+  margin: 0;
+  padding: var(--esp-3);
+  border: 1px solid var(--bordure);
+}
+.cles__accord {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: var(--esp-3);
+}
+.cles__case {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--esp-2);
+}
