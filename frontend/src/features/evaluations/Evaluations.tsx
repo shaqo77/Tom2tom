@@ -17,6 +17,7 @@ import { Pastille } from "../../shared/ui/Pastille";
 import { Selecteur } from "../../shared/ui/Selecteur";
 import { libelleProjet } from "../projets/libelle";
 import { useAction } from "./action";
+import { DossierObjet } from "./DossierObjet";
 import { deciderDerogation, demanderDerogation, justifier, lireDerogations, lireEvaluation, lireEvaluations, trancher } from "./api";
 import { RESULTATS } from "./types";
 import type { DecisionControle, Derogation, Resultat, StatutDerogation } from "./types";
@@ -132,6 +133,7 @@ export function Evaluations() {
       )}
 
       {projetId && evaluationId && <DetailEvaluation key={evaluationId} projetId={projetId} evaluationId={evaluationId} projet={projet} surSucces={definirInformation} />}
+      {projetId && <DossierObjet projetId={projetId} />}
       {projetId && <ListeDerogations projetId={projetId} peutValider={peut(projet, "valider")} surSucces={definirInformation} />}
     </>
   );

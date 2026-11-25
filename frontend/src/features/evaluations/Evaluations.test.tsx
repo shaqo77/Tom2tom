@@ -1,4 +1,4 @@
-import { screen, within } from "@testing-library/react";
+import { screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 
 import { violations } from "../../test/accessibilite";
@@ -258,5 +258,81 @@ describe("évaluations : dérogations", () => {
     await ouvrir([], { derogations: [derogation("d2", "approuvee")] });
     await screen.findByRole("table", { name: "Dérogations du projet" });
     expect(screen.queryByRole("button", { name: /^Approuver/ })).not.toBeInTheDocument();
+  });
+});
+
+describe("évaluations : dossier de conformité d'un objet", () => {
+  const OBJET = "3f2b8c1e-5a47-4d9e-9b1a-0c6d2e7f8a90";
+  const FIL = [
+    { le: "2026-03-02T10:00:00Z", genre: "evaluation", controle: "BUD-LIGNE", detail: "bloquant" },
+    { le: "2026-03-02T11:30:00Z", genre: "justification", controle: "BUD-LIGNE", detail: "Urgence sanitaire, accord oral du bailleur" },
+    { le: "2026-03-03T09:00:00Z", genre: "derogation", controle: "BUD-LIGNE", detail: "approuvee" },
+  ];
+  const ATTENTE = [{ evaluation: "e1", controle: "PIE-ETAT-CERTIFIE", raison: "Résultat bloquant, aucune dérogation approuvée" }];
+
+  async function ouvrirDossier(extra: (s: FauxServeur) => void = () => {}, operations?: Parameters<typeof projet>[1]) {
+    const r = await ouvrir([], operations ? { operations } : {});
+    r.s.routes.push(
+      { motif: /^\/projets\/id-P1\/controles-en-attente\/$/, reponse: () => ATTENTE },
+      { motif: /^\/projets\/id-P1\/dossier-conformite-objet\/$/, reponse: () => FIL },
+    );
+    extra(r.s);
+    return r;
+  }
+  const lectures = (s: FauxServeur, fin: string) => s.appels.filter((a) => a.methode === "GET" && a.url.includes(fin));
+
+  it("affiche ce qui bloque, puis le fil dans l'ordre, avec les résultats et statuts en toutes lettres", async () => {
+    const { s } = await ouvrirDossier();
+    await userEvent.type(await screen.findByLabelText("Type d'objet (par exemple ecriture)"), "ecriture");
+    await userEvent.type(screen.getByLabelText("Identifiant de l'objet (facultatif)"), OBJET);
+    await userEvent.click(screen.getByRole("button", { name: "Consulter le dossier" }));
+    expect(await screen.findByText(/Résultat bloquant, aucune dérogation approuvée/)).toBeInTheDocument();
+    const fil = await screen.findByRole("table", { name: "Fil de conformité" });
+    const lignes = within(fil).getAllByRole("row").slice(1);
+    const texte = (l: HTMLElement) => [...within(l).getAllByRole("cell"), within(l).getByRole("rowheader")].map((c) => c.textContent);
+    expect(lignes.map(texte)).toEqual([
+      ["2026-03-02 10:00", "Évaluation", "Bloquant", "BUD-LIGNE"],
+      ["2026-03-02 11:30", "Justification", "Urgence sanitaire, accord oral du bailleur", "BUD-LIGNE"],
+      ["2026-03-03 09:00", "Dérogation", "Approuvée", "BUD-LIGNE"],
+    ]);
+    expect(lectures(s, "dossier-conformite-objet")[0]?.url).toContain(`objet_type=ecriture&objet_id=${OBJET}`);
+  });
+
+  it("refuse sans appel un type vide ou un identifiant qui n'est pas un UUID", async () => {
+    const { s } = await ouvrirDossier();
+    await userEvent.click(await screen.findByRole("button", { name: "Consulter le dossier" }));
+    expect(await screen.findByText("Indiquez le type d'objet.")).toBeInTheDocument();
+    await userEvent.type(screen.getByLabelText("Type d'objet (par exemple ecriture)"), "ecriture");
+    await userEvent.type(screen.getByLabelText("Identifiant de l'objet (facultatif)"), "abc");
+    await userEvent.click(screen.getByRole("button", { name: "Consulter le dossier" }));
+    expect(await screen.findByText(/L'identifiant doit être un UUID/)).toBeInTheDocument();
+    expect(lectures(s, "dossier-conformite-objet")).toHaveLength(0);
+    expect(lectures(s, "controles-en-attente")).toHaveLength(0);
+  });
+
+  it("dit clairement quand rien ne bloque et que le fil est vide", async () => {
+    await ouvrirDossier((sv) => sv.routes.unshift(
+      { motif: /^\/projets\/id-P1\/controles-en-attente\/$/, reponse: () => [] },
+      { motif: /^\/projets\/id-P1\/dossier-conformite-objet\/$/, reponse: () => [] },
+    ));
+    await userEvent.type(await screen.findByLabelText("Type d'objet (par exemple ecriture)"), "ecriture");
+    await userEvent.click(screen.getByRole("button", { name: "Consulter le dossier" }));
+    expect(await screen.findByText("Rien n'empêche d'avancer.")).toBeInTheDocument();
+    expect(await screen.findByText("Aucun échec, justification ni dérogation pour cet objet.")).toBeInTheDocument();
+  });
+
+  it("affiche tel quel un refus du serveur", async () => {
+    await ouvrirDossier((sv) => sv.routes.unshift({ motif: /^\/projets\/id-P1\/dossier-conformite-objet\/$/, reponse: () => reponseFausse(403, { code: "ACCES_REFUSE", message: "Vous n'êtes pas habilité à consulter ce projet" }) }));
+    await userEvent.type(await screen.findByLabelText("Type d'objet (par exemple ecriture)"), "ecriture");
+    await userEvent.click(screen.getByRole("button", { name: "Consulter le dossier" }));
+    await waitFor(() => expect(screen.getByText("Vous n'êtes pas habilité à consulter ce projet")).toBeInTheDocument());
+  });
+
+  it("la consultation du dossier est accessible", async () => {
+    await ouvrirDossier();
+    await userEvent.type(await screen.findByLabelText("Type d'objet (par exemple ecriture)"), "ecriture");
+    await userEvent.click(screen.getByRole("button", { name: "Consulter le dossier" }));
+    await screen.findByRole("table", { name: "Fil de conformité" });
+    expect(await violations(document.body)).toEqual([]);
   });
 });
