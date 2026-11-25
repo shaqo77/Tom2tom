@@ -1,5 +1,5 @@
 import { appeler } from "../../shared/api/client";
-import type { AccordDetail, AccordResume, CategorieAccord, FormatNumero, StatutAccord } from "./types";
+import type { AccordDetail, AccordResume, CategorieAccord, FormatNumero, SituationAvenant, StatutAccord } from "./types";
 
 export const lireAccords = (projetId: string) => appeler<AccordResume[]>(`/projets/${projetId}/accords/`);
 
@@ -22,3 +22,8 @@ export const creerAccord = (projetId: string, corps: Record<string, unknown>) =>
 
 export const creerCategorie = (projetId: string, accordId: string, corps: Record<string, unknown>) =>
   appeler<CategorieAccord>(`/projets/${projetId}/accords/${accordId}/categories/`, { methode: "POST", corps });
+
+export const creerBailleur = (corps: Record<string, unknown>) => appeler<{ id: string; code: string; nom: string }>("/bailleurs/", { methode: "POST", corps });
+
+export const creerAvenant = (projetId: string, accordId: string, corps: Record<string, unknown>) =>
+  appeler<SituationAvenant>(`/projets/${projetId}/accords/${accordId}/avenants/`, { methode: "POST", corps });
