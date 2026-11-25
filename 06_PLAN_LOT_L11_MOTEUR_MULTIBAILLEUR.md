@@ -587,6 +587,17 @@ s'utilise par `publier_rapport(params={"plage_debut": …, "plage_fin": …})` ;
 l'appelant passe (on ne choisit pas encore la version de mapping « à la date de fin de plage ») ; pas de sélecteur de
 période dans l'écran du tableau de bord.
 
+### Réalisation — Lot 5, écran E4a : accords (consultation, statut, numérotation)
+Route `/accords?projet=&accord=` (menu « Accords »). Liste des accords d'un projet (numéro, bailleur, nature, statut en toutes
+lettres, montant courant en chaîne) ; détail : dates clés, catégories de dépenses (la sous-catégorie dit « sous <parent> » et est
+décalée), avenants, numérotation des demandes de retrait. Avec le droit de paramétrer : changer le statut (nouveau statut +
+motif ; le serveur reste l'autorité des transitions, elles ne sont PAS dupliquées à l'écran : un refus 409 est affiché tel quel)
+et régler la numérotation (standard ou BAD ; le suffixe de 3 lettres MAJUSCULES est vérifié avant l'envoi, le format standard
+n'envoie aucun suffixe ; le refus du serveur « a déjà des demandes » s'affiche). Sans le droit, aucune action n'est proposée.
+Tests : `Accords.test.tsx` (18) ; 9 mutations tuées. 222 tests, typage, lint passent.
+**NON LIVRÉ (reste de l'écran E4) :** création d'un accord, d'une catégorie et d'un avenant. Limites : pas de pagination ; les
+bailleurs ne sont pas listés à part (leur code figure sur chaque accord).
+
 ### Réalisation — Lot 5, écran E8 : taux de change
 Route `/taux-de-change` (menu « Taux de change »). Liste des taux les plus récents d'abord, filtrable par devise et par type
 (les filtres partent au serveur ; la liste est bornée à 200 lignes par `?limite=`, et l'écran le dit quand la limite est
