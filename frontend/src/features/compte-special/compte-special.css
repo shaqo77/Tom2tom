@@ -1,0 +1,47 @@
+.special__choix {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: var(--esp-4);
+}
+.special__tableau {
+  inline-size: 100%;
+  border-collapse: collapse;
+}
+.special__tableau th,
+.special__tableau td {
+  padding: var(--esp-2) var(--esp-3);
+  text-align: start;
+  border-block-end: 1px solid var(--bordure);
+}
+.special__montant {
+  font-variant-numeric: tabular-nums;
+}
+.special__liste {
+  margin-block: var(--esp-2);
+  padding-inline-start: var(--esp-5);
+}
+.special__totaux {
+  display: grid;
+  gap: var(--esp-1);
+  margin-block-start: var(--esp-4);
+  font-variant-numeric: tabular-nums;
+}
+.special__totaux p {
+  margin: 0;
+}
+.special__formulaire {
+  display: grid;
+  gap: var(--esp-3);
+  max-inline-size: 36rem;
+  margin-block-start: var(--esp-4);
+}
+.special__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--esp-3);
+}
+.special__note {
+  resize: vertical;
+  max-inline-size: 100%;
+}
