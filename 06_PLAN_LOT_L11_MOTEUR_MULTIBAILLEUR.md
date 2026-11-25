@@ -627,6 +627,19 @@ jalons, méthodes, règles, comptes, taux validé avant envoi), « Créer une no
 versions et le pré-remplissage depuis le gabarit BAD. Limites : pas de pagination ni de recherche dans la liste ; les
 droits affichés suivent `valider` (valider, rejeter) et `parametrer` (activer, supprimer) comme le serveur.
 
+### Réalisation — Lot 5, écran E2a : contrôles (consultation, décisions, installation de la bibliothèque)
+Route `/controles?projet=&controle=` (menu « Contrôles »). Liste des versions d'un projet (code, version, état, sévérité en toutes lettres, libellé, effet),
+filtrable par état (le filtre part au serveur) ; détail : action corrective et RÈGLE EN LECTURE SEULE (expression, condition d'application, paramètres) ;
+décisions selon l'état et le droit, comme le serveur : brouillon → Valider (droit `valider`), validé → Activer (droit `parametrer`) ou Rejeter (droit
+`valider`, motif obligatoire avant l'envoi) ; un contrôle actif, remplacé ou rejeté ne propose rien (et n'invoque aucun droit manquant).
+**Bibliothèque livrée :** tous les contrôles livrés avec leur famille et leur sévérité ; ceux déjà installés ne se cochent pas ; installation des contrôles
+cochés à une date d'effet, TOUJOURS EN BROUILLON (le message le dit : jamais validés ni activés automatiquement). Les trois contrôles de risque proposent leur
+seuil, vérifié avant l'envoi et envoyé exact : pourcentage entre 0 et 100 en CHAÎNE (« 75.5 »), délai en jours entier ≥ 1, maximum entier ≥ 0 ; un seuil vide
+n'est pas envoyé (le serveur applique le sien). Le refus du serveur s'affiche sans effacer la saisie.
+Tests : `Controles.test.tsx` (27) ; 14 mutations tuées. 285 tests, typage et lint passent.
+**NON LIVRÉ (reste de l'écran E2) :** la CRÉATION d'un contrôle sur mesure (expression en formulaire guidé : champ, opérateur, valeur), la création d'une
+nouvelle version d'un contrôle actif, et la modification des seuils d'un contrôle de risque déjà installé. Limites : pas de pagination.
+
 ---
 
 *Retour : [guide de démarrage](03_GUIDE_DEMARRAGE.md) · [lots L5 à L10](05_PLAN_LOTS_L5_A_L10.md)*
