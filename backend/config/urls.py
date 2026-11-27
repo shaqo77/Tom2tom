@@ -9,6 +9,7 @@ urlpatterns = [
     path("api/v1/", include("niveau1_socle.financements.urls")),
     path("api/v1/", include("niveau1_socle.comptabilite.urls")),
     path("api/v1/", include("niveau1_socle.decaissements.urls")),
+    path("api/v1/", include("niveau4_reporting.formats_bailleur.urls")),
     path("api/v1/", include("niveau2_profils.urls")),
     path("api/v1/", include("niveau3_config.urls")),
     path("api/v1/", include("niveau4_reporting.controles.urls")),

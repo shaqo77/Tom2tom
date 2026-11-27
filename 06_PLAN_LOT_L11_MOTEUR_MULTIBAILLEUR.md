@@ -850,6 +850,34 @@ accessible. Mutations tuées : devises additionnées, devise de référence non 
 recette backend) ; ce n'est pas un vrai navigateur : la version 2 (Playwright dans la CI) attend une décision, car elle allonge la CI ; le parcours ne couvre pas les écrans
 d'administration (accords, profils, contrôles, écritures), qui ont chacun leurs tests de composant.
 
+### Lot 8 · Réalisation (version « non officiel ») — l'export des formulaires BAD A1, A2, A3
+
+**Ce que la recherche sur les sources officielles de la Banque établit (lue le 27/11/2026) et ce qu'elle n'établit pas.** Le *Disbursement Handbook* de mars 2020
+(PDF publié sur `www.afdb.org`, 62 pages, lu en entier côté texte) dit : la Banque doit recevoir la demande « in the prescribed form signed by the Borrower's authorised
+representative(s) » (§4.13) ; les formulaires « are available on request or online from the Bank's Website https://clientconnection.afdb.org » (§4.13) ; l'emprunteur désigne
+ses signataires et fournit **les originaux de leurs spécimens de signature**, avec une lettre de désignation (§4.3, annexe 2) ; les demandes sont numérotées sur 4 chiffres au
+plus, avec un suffixe de 3 lettres par agence d'exécution (§4.14) ; un A1 par monnaie, accompagné d'un A2 (état des dépenses) et, pour le compte spécial, d'un A3 (annexes 3 à 5) ;
+la Banque accuse réception par un courriel automatique. **Le manuel ne dit rien** du format de fichier du formulaire officiel (aucune occurrence de « Excel », « electronic »,
+« soft copy » ou « scanned »), ni d'un dépôt électronique ou d'une signature électronique. La page « Disbursement procedures » de la Banque (mise à jour le 25/04/2024) ne cite aucun
+formulaire et renvoie encore à l'édition 2012, alors que le manuel de 2020 dit remplacer toutes les éditions précédentes : contradiction non tranchée. Les guides du portail Client
+Connection (`help.pdf`, `Aide.pdf`) n'ont **pas pu être lus** depuis cet environnement (l'outil de lecture ne résout pas l'hôte, même autorisé ; une requête directe reçoit un 403) :
+ce que le portail accepte en dépôt reste **non vérifié**, et les résumés de recherche se contredisaient. **Conclusion : le type de fichier exact du formulaire officiel ne se
+déduit d'aucune source publique ; il faut le demander à la Division des décaissements (`loandisbursements@afdb.org`, adresse donnée par le manuel) ou l'ouvrir sur Client Connection avec un compte.**
+Ce qui est certain : un formulaire **A1** (+ A2, + A3), **signé** par les signataires désignés, un par monnaie, numéroté.
+
+**Livré.** `GET /projets/<p>/demandes-retrait/<id>/export/<bad_a1|bad_a2|bad_a3>/` (droit `consulter`, pièce jointe `.xlsx`, **journalisée** avec l'empreinte du fichier ; nom de format en liste
+blanche). Le fichier est **toujours marqué « DOCUMENT NON OFFICIEL »**, ne contient que du **texte exact** (aucun nombre à virgule flottante, aucune formule) et rend les rubriques des annexes 3 à 5 ;
+tout ce que l'application ne détient pas (bénéficiaire, coordonnées bancaires, banque correspondante, agence d'exécution, signataires, pays d'origine, dates et preuves de paiement) est listé
+**« À COMPLÉTER »**, jamais inventé ; un numéro d'accord qui n'a pas 13 chiffres ou un numéro de demande hors format sont listés **« À VÉRIFIER »**. La correspondance est une **donnée**
+(`niveau2_profils/catalogue/bad_format_export.json`) validée au chargement sur une liste fermée de sources (règle 5) : ajouter un bailleur, c'est déposer un fichier. Le **type BAD** se déduit
+(remboursement ; première avance = avance initiale ; avances suivantes = reconstitution ; paiement direct) et un cas indécidable (avance antérieure non soumise, type sans équivalent) est **refusé**.
+Le « déjà payé par la Banque » d'un contrat est une requête sur les demandes antérieures adressées à la Banque, jamais une saisie.
+15 tests ; 10 mutations tuées (marquage, texte exact, liste blanche, type BAD, ambiguïté, cumul sur les seuls statuts adressés et sur les seules demandes antérieures, journalisation, droit de lecture).
+Au passage : le paramètre d'URL ne peut pas s'appeler `format` (DRF l'emploie pour choisir le rendu et répond 404).
+**Limites** : fichier Excel non officiel faute de connaître le format du formulaire officiel ; pas de PDF ni de signature ; le nom du fournisseur est laissé à compléter (donnée personnelle des tiers :
+on n'y accède pas ici) ; A3 ne sait remplir que la description (catégorie ou contrat) et le montant demandé ; la correspondance est cherchée sur le code du bailleur de l'accord (`BAD`) ;
+pas d'écran : l'export se déclenche par l'API ; « justification seule » n'est pas déduite (elle est représentée par `JustificationCompteSpecial`).
+
 ---
 
 *Retour : [guide de démarrage](03_GUIDE_DEMARRAGE.md) · [lots L5 à L10](05_PLAN_LOTS_L5_A_L10.md)*
