@@ -22,7 +22,7 @@ from niveau1_socle.decaissements.models import DemandeRetrait
 from .sources import SOURCES_DEMANDE, SOURCES_LIGNE, SOURCES_TOTAL, Contexte, contexte_de
 from .types_bad import type_bad
 
-CATALOGUE = Path(__file__).resolve().parents[2] / "niveau2_profils" / "catalogue"
+DOSSIER = Path(__file__).resolve().parents[2] / "niveau2_profils" / "formats_export"
 GENRES = ("champ", "choix", "a_completer", "tableau")
 SOURCES_SPECIALES = {"numero_ligne"}
 NOM_VALIDE = re.compile(r"^[a-z0-9_]+$")
@@ -72,7 +72,7 @@ def _verifier(nom: str, bloc: dict) -> None:
 def _definition(bailleur: str) -> dict:
     if not NOM_VALIDE.match(bailleur):  # un nom reçu n'est jamais un morceau de chemin
         raise FormatInconnu(bailleur)
-    chemin = CATALOGUE / f"{bailleur}_format_export.json"
+    chemin = DOSSIER / f"{bailleur}.json"
     if not chemin.is_file():
         raise FormatInconnu(bailleur)
     definition = json.loads(chemin.read_text(encoding="utf-8"))

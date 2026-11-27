@@ -869,7 +869,7 @@ Ce qui est certain : un formulaire **A1** (+ A2, + A3), **signé** par les signa
 blanche). Le fichier est **toujours marqué « DOCUMENT NON OFFICIEL »**, ne contient que du **texte exact** (aucun nombre à virgule flottante, aucune formule) et rend les rubriques des annexes 3 à 5 ;
 tout ce que l'application ne détient pas (bénéficiaire, coordonnées bancaires, banque correspondante, agence d'exécution, signataires, pays d'origine, dates et preuves de paiement) est listé
 **« À COMPLÉTER »**, jamais inventé ; un numéro d'accord qui n'a pas 13 chiffres ou un numéro de demande hors format sont listés **« À VÉRIFIER »**. La correspondance est une **donnée**
-(`niveau2_profils/catalogue/bad_format_export.json`) validée au chargement sur une liste fermée de sources (règle 5) : ajouter un bailleur, c'est déposer un fichier. Le **type BAD** se déduit
+(`niveau2_profils/formats_export/bad.json` (hors de `catalogue/`, que `profils_livres()` lit en entier : un fichier de plus y serait pris pour un profil de bailleur)) validée au chargement sur une liste fermée de sources (règle 5) : ajouter un bailleur, c'est déposer un fichier. Le **type BAD** se déduit
 (remboursement ; première avance = avance initiale ; avances suivantes = reconstitution ; paiement direct) et un cas indécidable (avance antérieure non soumise, type sans équivalent) est **refusé**.
 Le « déjà payé par la Banque » d'un contrat est une requête sur les demandes antérieures adressées à la Banque, jamais une saisie.
 15 tests ; 9 mutations tuées (marquage, texte exact, liste blanche, type BAD, ambiguïté, cumul sur les seuls statuts adressés et sur les seules demandes antérieures, journalisation, droit de lecture).
