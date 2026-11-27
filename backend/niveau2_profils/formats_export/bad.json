@@ -1,0 +1,76 @@
+{
+  "bailleur": "BAD",
+  "version": 1,
+  "source": "Manuel des décaissements de la BAD, mars 2020 : annexe 3 (formulaire A1), annexe 4 (A2), annexe 5 (A3). Les formulaires officiels éditables sont publiés par la Banque sur Client Connection ; ce fichier n'en est PAS une copie, il en reprend les rubriques.",
+  "formats": {
+    "bad_a1": {
+      "titre": "A1 Disbursement Request",
+      "types_bad": ["reimbursement", "special_account_initial_advance", "special_account_replenishment", "direct_payment"],
+      "blocs": [
+        {"genre": "choix", "etiquette": "1. Application Type", "source": "demande.type_bad", "options": [
+          ["reimbursement", "Reimbursement"],
+          ["special_account_initial_advance", "Special Account Initial Advance"],
+          ["special_account_replenishment", "Special Account Replenishment"],
+          ["justification_only", "Justification Only"],
+          ["direct_payment", "Direct Payment"]
+        ]},
+        {"genre": "champ", "etiquette": "2. Loan/Grant Number", "source": "accord.numero", "controle": "numero_accord_13_chiffres"},
+        {"genre": "champ", "etiquette": "3. Project Title", "source": "projet.titre"},
+        {"genre": "champ", "etiquette": "4. Request Number", "source": "demande.numero", "controle": "numero_demande_bad"},
+        {"genre": "champ", "etiquette": "5. Currency", "source": "demande.devise"},
+        {"genre": "champ", "etiquette": "5. Amount of the disbursement request", "source": "demande.montant_a_retirer"},
+        {"genre": "a_completer", "etiquette": "7. Beneficiary Details: Name, Contact Person, Address, City/Country, Email"},
+        {"genre": "a_completer", "etiquette": "8. Beneficiary Bank Details: Account holder, Bank, Address, Account Number / IBAN, SWIFT Code"},
+        {"genre": "a_completer", "etiquette": "9. Correspondent Bank (where applicable)"},
+        {"genre": "a_completer", "etiquette": "10. Executing Agency Details: Name, Contact Person, Address, Email"},
+        {"genre": "a_completer", "etiquette": "11. Authorised Signatories: names, titles and signatures"},
+        {"genre": "champ", "etiquette": "12. Date", "source": "demande.date"}
+      ]
+    },
+    "bad_a2": {
+      "titre": "A2 Statement of Expenditure",
+      "types_bad": ["reimbursement", "special_account_initial_advance", "special_account_replenishment", "direct_payment"],
+      "blocs": [
+        {"genre": "champ", "etiquette": "1. Application Type", "source": "demande.type_bad"},
+        {"genre": "champ", "etiquette": "2. Loan/Grant Number", "source": "accord.numero", "controle": "numero_accord_13_chiffres"},
+        {"genre": "champ", "etiquette": "3. Request Number", "source": "demande.numero", "controle": "numero_demande_bad"},
+        {"genre": "champ", "etiquette": "4. Project Title", "source": "projet.titre"},
+        {"genre": "champ", "etiquette": "6. Currency", "source": "demande.devise"},
+        {"genre": "tableau", "groupe": "ligne.categorie", "etiquette_groupe": "5. Category/Sub-Project", "total": "ligne.montant_a_retirer", "colonnes": [
+          {"titre": "Item No", "source": "numero_ligne"},
+          {"titre": "8. Description of Goods/Services", "source": "ligne.contrat_objet"},
+          {"titre": "10. Borrower Contract Reference", "source": "ligne.contrat_reference"},
+          {"titre": "12. Contract Value", "source": "ligne.contrat_valeur"},
+          {"titre": "14. Amount previously paid by the Bank", "source": "ligne.deja_paye_par_la_banque"},
+          {"titre": "15. Invoice Ref./Date: reference", "source": "ligne.piece"},
+          {"titre": "15. Invoice Ref./Date: date", "source": "ligne.date_piece"},
+          {"titre": "Eligible expenditure", "source": "ligne.montant_depense"},
+          {"titre": "Rate applied", "source": "ligne.taux"},
+          {"titre": "16. Amount Requested", "source": "ligne.montant_a_retirer"}
+        ]},
+        {"genre": "a_completer", "etiquette": "7. Contractor/Supplier, 9. Country of Origin, 11. AfDB Contract Reference, 13. Bank's Share of Contract"},
+        {"genre": "a_completer", "etiquette": "17. Date of Payment and 18. Evidence of Payment (reimbursement and special account methods)"},
+        {"genre": "a_completer", "etiquette": "Project Manager and Authorized Signatories: names and signatures"}
+      ]
+    },
+    "bad_a3": {
+      "titre": "A3 Estimated Budgeted Activities",
+      "types_bad": ["special_account_initial_advance", "special_account_replenishment"],
+      "blocs": [
+        {"genre": "champ", "etiquette": "1. Application Type", "source": "demande.type_bad"},
+        {"genre": "champ", "etiquette": "2. Loan/Grant Number", "source": "accord.numero", "controle": "numero_accord_13_chiffres"},
+        {"genre": "champ", "etiquette": "3. Request Number", "source": "demande.numero", "controle": "numero_demande_bad"},
+        {"genre": "champ", "etiquette": "4. Project Title", "source": "projet.titre"},
+        {"genre": "champ", "etiquette": "6. Currency", "source": "demande.devise"},
+        {"genre": "tableau", "groupe": "ligne.categorie", "etiquette_groupe": "5. Category/Sub-Project", "total": "ligne.montant_a_retirer", "colonnes": [
+          {"titre": "Item No", "source": "numero_ligne"},
+          {"titre": "8. Detailed Description of Goods/Services", "source": "ligne.contrat_objet"},
+          {"titre": "13. Advance Requested", "source": "ligne.montant_a_retirer"}
+        ]},
+        {"genre": "a_completer", "etiquette": "7. Period for Utilization of Advance (generally not exceeding 6 months)"},
+        {"genre": "a_completer", "etiquette": "9. Quantity, 10. Country of Origin, 11. Annual Budget, 12. Bank's Share, 14. Date of approval by Bank"},
+        {"genre": "a_completer", "etiquette": "Project Manager and Authorized Signatories: names and signatures"}
+      ]
+    }
+  }
+}

@@ -21,7 +21,8 @@ répartition entre bailleurs se déclenche à la saisie (`"cle"` sur une ligne d
 (`/api/v1/projets/<id>/ecritures/`, E9a) et son écran (E9b) existent ; les contrôles de la bibliothèque s'exécutent à la **validation d'une écriture**
 (codification, pièces, éligibilité), pas à la génération d'un rapport ; `accounting_basis` n'a qu'un
 effet (un projet en caisse ne crée pas d'engagement, aucune conversion caisse/engagement) ; les taux de
-change s'enregistrent par API (`/api/v1/taux/`) et par un écran ; deux modèles d'état sont livrés (rapprochement du compte désigné, réconciliation BAD du compte spécial) ; aucune IA
+change s'enregistrent par API (`/api/v1/taux/`) et par un écran ; deux modèles d'état sont livrés (rapprochement du compte désigné, réconciliation BAD du compte spécial) ; les formulaires BAD A1, A2, A3 s'exportent en Excel marqué NON OFFICIEL (Lot 8, API
+`/api/v1/projets/<id>/demandes-retrait/<id>/export/<format>/`) : le format de fichier du formulaire officiel n'est pas public ; aucune IA
 n'existe. Le code vit dans `core/`, `niveau1_socle/` (organisations, habilitations,
 exercices, référentiels, comptabilité, budget, financements, décaissements, avances, rapprochement,
 marchés, trésorerie), `niveau2_profils/` (bibliothèque de profils de bailleurs), `niveau3_config/` et

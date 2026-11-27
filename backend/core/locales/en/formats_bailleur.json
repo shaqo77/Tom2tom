@@ -1,0 +1,14 @@
+{
+  "formats_bailleur.avance_anterieure_non_soumise": "An earlier advance of this agreement is not yet submitted: we cannot tell whether this request is the initial advance or a replenishment.",
+  "formats_bailleur.controle_inconnu": "Format {format}: unknown check {valeur}.",
+  "formats_bailleur.demande_sans_ligne": "Request {numero} has no expenditure: there is nothing to export.",
+  "formats_bailleur.format_non_applicable": "Format {format} does not apply to a request of type “{type}”.",
+  "formats_bailleur.genre_inconnu": "Format {format}: unknown block kind {valeur}.",
+  "formats_bailleur.groupe_inconnu": "Format {format}: unknown grouping {valeur}.",
+  "formats_bailleur.source_demande_inconnue": "Format {format}: unknown request source {valeur}.",
+  "formats_bailleur.source_ligne_inconnue": "Format {format}: unknown line source {valeur}.",
+  "formats_bailleur.total_inconnu": "Format {format}: unknown total {valeur}.",
+  "formats_bailleur.type_sans_equivalent": "Request type “{type}” has no equivalent in the Bank's forms: the export is refused.",
+  "formats_bailleur.verifier_numero_accord": "Agreement number “{valeur}” does not have the 13 digits the Bank asks for.",
+  "formats_bailleur.verifier_numero_demande": "Request number “{valeur}” is not in the Bank's format (4 digits, optionally followed by a 3-letter agency suffix)."
+}

@@ -1,0 +1,14 @@
+{
+  "formats_bailleur.avance_anterieure_non_soumise": "Une avance antérieure de cet accord n'est pas encore soumise : on ne peut pas dire si cette demande est l'avance initiale ou une reconstitution.",
+  "formats_bailleur.controle_inconnu": "Format {format} : contrôle inconnu {valeur}.",
+  "formats_bailleur.demande_sans_ligne": "La demande {numero} n'a aucune dépense : il n'y a rien à exporter.",
+  "formats_bailleur.format_non_applicable": "Le format {format} ne s'applique pas à une demande de type « {type} ».",
+  "formats_bailleur.genre_inconnu": "Format {format} : genre de bloc inconnu {valeur}.",
+  "formats_bailleur.groupe_inconnu": "Format {format} : regroupement inconnu {valeur}.",
+  "formats_bailleur.source_demande_inconnue": "Format {format} : source de demande inconnue {valeur}.",
+  "formats_bailleur.source_ligne_inconnue": "Format {format} : source de ligne inconnue {valeur}.",
+  "formats_bailleur.total_inconnu": "Format {format} : total inconnu {valeur}.",
+  "formats_bailleur.type_sans_equivalent": "Le type de demande « {type} » n'a pas d'équivalent dans les formulaires de la Banque : l'export est refusé.",
+  "formats_bailleur.verifier_numero_accord": "Le numéro d'accord « {valeur} » n'a pas les 13 chiffres que demande la Banque.",
+  "formats_bailleur.verifier_numero_demande": "Le numéro de demande « {valeur} » n'est pas au format de la Banque (4 chiffres, suivis éventuellement de 3 lettres d'agence)."
+}
