@@ -872,7 +872,7 @@ tout ce que l'application ne détient pas (bénéficiaire, coordonnées bancaire
 (`niveau2_profils/catalogue/bad_format_export.json`) validée au chargement sur une liste fermée de sources (règle 5) : ajouter un bailleur, c'est déposer un fichier. Le **type BAD** se déduit
 (remboursement ; première avance = avance initiale ; avances suivantes = reconstitution ; paiement direct) et un cas indécidable (avance antérieure non soumise, type sans équivalent) est **refusé**.
 Le « déjà payé par la Banque » d'un contrat est une requête sur les demandes antérieures adressées à la Banque, jamais une saisie.
-15 tests ; 10 mutations tuées (marquage, texte exact, liste blanche, type BAD, ambiguïté, cumul sur les seuls statuts adressés et sur les seules demandes antérieures, journalisation, droit de lecture).
+15 tests ; 9 mutations tuées (marquage, texte exact, liste blanche, type BAD, ambiguïté, cumul sur les seuls statuts adressés et sur les seules demandes antérieures, journalisation, droit de lecture).
 Au passage : le paramètre d'URL ne peut pas s'appeler `format` (DRF l'emploie pour choisir le rendu et répond 404).
 **Limites** : fichier Excel non officiel faute de connaître le format du formulaire officiel ; pas de PDF ni de signature ; le nom du fournisseur est laissé à compléter (donnée personnelle des tiers :
 on n'y accède pas ici) ; A3 ne sait remplir que la description (catégorie ou contrat) et le montant demandé ; la correspondance est cherchée sur le code du bailleur de l'accord (`BAD`) ;
